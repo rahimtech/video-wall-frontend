@@ -265,6 +265,39 @@ function App() {
     document.getElementById("pause").addEventListener("click", function () {
       video.pause();
     });
+
+    var inputElement = document.getElementById("fileInput");
+
+    inputElement.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+
+      if (file) {
+        console.log("file::: ", file);
+        const reader = new FileReader();
+        console.log("reader::: ", reader);
+
+        reader.onload = function (readerEvent) {
+          const fileType = file.type.split("/")[0]; // "image" یا "video"
+
+          if (fileType === "image") {
+            // اگر نوع فایل تصویر باشد
+
+            handleImage(readerEvent.target.result);
+          } else if (fileType === "video") {
+            // اگر نوع فایل ویدیو باشد
+            handleVideo(readerEvent.target.result);
+          } else {
+            console.error("Unsupported file type.");
+          }
+        };
+
+        if (fileType === "image") {
+          reader.readAsDataURL(file);
+        } else if (fileType === "video") {
+          reader.readAsArrayBuffer(file);
+        }
+      }
+    });
   }, []);
 
   const lunching = () => {
@@ -426,7 +459,12 @@ function App() {
       </div>
       <button id="play">Play</button>
       <button id="pause">Pause</button>
-      <input type="file" placeholder="افزودن تصویر یا فیلم" id="fileInput" />
+      <input
+        className="absolute"
+        type="file"
+        placeholder="افزودن تصویر یا فیلم"
+        id="fileInput"
+      />
       <div id="fff" className="w-full h-full flex ">
         {/* <div className="flex w-[200px] absolute m-5 z-10 gap-3">
           <div
