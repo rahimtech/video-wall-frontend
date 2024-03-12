@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas Video Example</title>
+  </head>
+  <body>
+    <canvas
+      id="myCanvas"
+      width="400"
+      height="400"
+      style="border: 1px solid #000"
+    ></canvas>
+    <input type="file" id="videoInput" accept="video/*" />
+    <input type="number" id="start" placeholder="Start time (seconds)" />
+    <input type="number" id="end" placeholder="End time (seconds)" />
+    <button onclick="playVideo()">Play</button>
+
+    <script>
+      const canvas = document.getElementById("myCanvas");
+      const ctx = canvas.getContext("2d");
+      const videoInput = document.getElementById("videoInput");
+      const startInput = document.getElementById("start");
+      const endInput = document.getElementById("end");
+      let video;
+
+      function drawVideoOnCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+
+      function playVideo() {
+        const start = parseInt(startInput.value) || 0;
+        const end = parseInt(endInput.value) || video.duration;
+
+        video = document.createElement("video");
+        video.setAttribute("controls", "controls");
+
+        const reader = new FileReader();
+
+        reader.onload = function (readerEvent) {
+          video.src = readerEvent.target.result;
+          video.load();
+          video.currentTime = start;
+
+          // حلقه باز برای به‌روزرسانی فریم‌های ویدیو
+          function updateFrame() {
+            drawVideoOnCanvas();
+            requestAnimationFrame(updateFrame);
+          }
+
+          video.play();
+          updateFrame(); // شروع حلقه باز برای به‌روزرسانی فریم‌ها
+        };
+
+        reader.readAsDataURL(videoInput.files[0]);
+      }
+    </script>
+  </body>
+</html>

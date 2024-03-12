@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Multiple Cameras</title>
+  </head>
+  <body>
+    <h2>لیست دستگاه‌های ورودی</h2>
+    <ul id="deviceList"></ul>
+    <button id="addCameraButton">Add Camera</button>
+    <div id="camerasContainer"></div>
+    <script>
+      const deviceList = document.getElementById("deviceList");
+
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+          const inputs = devices.filter(
+            (device) =>
+              device.kind === "videoinput" || device.kind === "audioinput"
+          );
+
+          if (inputs.length === 0) {
+            deviceList.innerHTML = "<li>هیچ ورودی وصل نمی‌باشد.</li>";
+          } else {
+            inputs.forEach((device) => {
+              const listItem = document.createElement("li");
+              listItem.textContent = `${
+                device.kind === "videoinput" ? "دوربین" : "میکروفون"
+              }: ${device.label || "نامشخص"}`;
+              deviceList.appendChild(listItem);
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("خطا در بازیابی اطلاعات دستگاه‌ها: ", err);
+        });
+    </script>
+    <script>
+      const camerasContainer = document.getElementById("camerasContainer");
+
+      // تابع برای اضافه کردن دوربین
+      function addCamera() {
+        const cameraWrapper = document.createElement("div");
+        const video = document.createElement("video");
+        const removeButton = document.createElement("button");
+        video.width = 640;
+        video.height = 480;
+        video.autoplay = true;
+        removeButton.textContent = "Remove";
+
+        // تابع برای حذف دوربین
+        removeButton.addEventListener("click", function () {
+          if (video.srcObject) {
+            video.srcObject.getTracks().forEach((track) => track.stop());
+          }
+          cameraWrapper.remove();
+        });
+
+        cameraWrapper.appendChild(video);
+        cameraWrapper.appendChild(removeButton);
+        camerasContainer.appendChild(cameraWrapper);
+
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then((stream) => {
+            video.srcObject = stream;
+          })
+          .catch((err) => {
+            console.error("خطا در دسترسی به دوربین: ", err);
+            cameraWrapper.remove();
+          });
+      }
+
+      // اتصال تابع اضافه کردن دوربین به دکمه
+      document
+        .getElementById("addCameraButton")
+        .addEventListener("click", addCamera);
+    </script>
+  </body>
+</html>

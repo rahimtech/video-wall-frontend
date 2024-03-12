@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+
+      #container {
+        width: 300%;
+        height: 300%;
+        background-color: #f0f0f0;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .box {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+      }
+
+      .blue {
+        background-color: blue;
+        left: 20%;
+        top: 20%;
+      }
+
+      .red {
+        background-color: red;
+        left: 50%;
+        top: 50%;
+      }
+
+      .yellow {
+        background-color: yellow;
+        left: 80%;
+        top: 80%;
+      }
+    </style>
+    <title>Draggable Divs</title>
+  </head>
+  <body>
+    <div id="container">
+      <div class="box blue"></div>
+      <div class="box red"></div>
+      <div class="box yellow"></div>
+    </div>
+
+    <script>
+      var container = document.getElementById("container");
+      var offsetX,
+        offsetY,
+        isDragging = false;
+
+      container.addEventListener("mousedown", function (e) {
+        isDragging = true;
+        offsetX = e.clientX - container.scrollLeft;
+        offsetY = e.clientY - container.scrollTop;
+      });
+
+      document.addEventListener("mouseup", function () {
+        isDragging = false;
+      });
+
+      document.addEventListener("mousemove", function (e) {
+        if (!isDragging) return;
+
+        e.preventDefault();
+        container.scrollLeft = e.clientX - offsetX;
+        container.scrollTop = e.clientY - offsetY;
+      });
+    </script>
+  </body>
+</html>
