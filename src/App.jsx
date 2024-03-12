@@ -78,6 +78,60 @@ function App() {
     };
   }
 
+  function handleImage(dataURL) {
+    // مدیریت تصویر
+    var image = new Konva.Image({
+      image: dataURL,
+      draggable: true,
+      x: 50,
+      y: 20,
+    });
+
+    layer.add(image);
+    layer.draw();
+  }
+
+  function handleVideo(arrayBuffer) {
+    // مدیریت ویدیو
+    var video = document.createElement("video");
+    var videoBlob = new Blob([arrayBuffer], { type: "video/mp4" });
+    video.src = URL.createObjectURL(videoBlob);
+
+    var videoImage = new Konva.Image({
+      image: video,
+      draggable: true,
+      x: 50,
+      y: 20,
+    });
+
+    layer.add(videoImage);
+
+    video.addEventListener("loadedmetadata", function (e) {
+      videoImage.width(video.videoWidth);
+      videoImage.height(video.videoHeight);
+
+      const positionRelativeToVideoWall =
+        updateImagePositionRelativeToVideoWall(videoImage, videoWalls[0]);
+
+      videoImage.position(positionRelativeToVideoWall);
+      console.log(
+        "positionRelativeToVideoWall::: ",
+        positionRelativeToVideoWall
+      );
+      layer.draw();
+
+      videoImage.on("dragmove", function () {
+        const updatedPosition = updateImagePositionRelativeToVideoWall(
+          videoImage,
+          videoWalls[0]
+        );
+
+        console.log("updatedPosition::: ", updatedPosition);
+        // می‌توانید از مقادیر جدید به دلخواه خود برای بروزرسانی استفاده کنید
+      });
+    });
+  }
+
   useEffect(() => {
     var width = window.innerWidth;
     var height = window.innerHeight;
