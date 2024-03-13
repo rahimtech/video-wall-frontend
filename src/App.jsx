@@ -347,59 +347,70 @@ function App() {
       }
     });
 
-    const tr = new Konva.Transformer({
-      nodes: [image],
-      boundBoxFunc: (oldBox, newBox) => {
-        const box = getClientRect(newBox);
-        const isOut =
-          box.x < 0 ||
-          box.y < 0 ||
-          box.x + box.width > stage.width() ||
-          box.y + box.height > stage.height();
+    image.on("click", (e) => {
+      const tr = new Konva.Transformer({
+        nodes: [image],
+        boundBoxFunc: (oldBox, newBox) => {
+          const box = getClientRect(newBox);
+          const isOut =
+            box.x < 0 ||
+            box.y < 0 ||
+            box.x + box.width > stage.width() ||
+            box.y + box.height > stage.height();
 
-        // if new bounding box is out of visible viewport, let's just skip transforming
-        // this logic can be improved by still allow some transforming if we have small available space
-        if (isOut) {
-          return oldBox;
-        }
-        return newBox;
-      },
-    });
-
-    tr.on("dragmove", () => {
-      const boxes = tr.nodes().map((node) => node.getClientRect());
-      const box = getTotalBox(boxes);
-      tr.nodes().forEach((shape) => {
-        const absPos = shape.getAbsolutePosition();
-        // where are shapes inside bounding box of all shapes?
-        const offsetX = box.x - absPos.x;
-        const offsetY = box.y - absPos.y;
-
-        // we total box goes outside of viewport, we need to move absolute position of shape
-        const newAbsPos = { ...absPos };
-        if (box.x < 0) {
-          newAbsPos.x = -offsetX;
-        }
-        if (box.y < 0) {
-          newAbsPos.y = -offsetY;
-        }
-        if (box.x + box.width > stage.width()) {
-          newAbsPos.x = stage.width() - box.width - offsetX;
-        }
-        if (box.y + box.height > stage.height()) {
-          newAbsPos.y = stage.height() - box.height - offsetY;
-        }
-        shape.setAbsolutePosition(newAbsPos);
+          // if new bounding box is out of visible viewport, let's just skip transforming
+          // this logic can be improved by still allow some transforming if we have small available space
+          if (isOut) {
+            return oldBox;
+          }
+          return newBox;
+        },
       });
-    });
+      tr.on("dragmove", () => {
+        const boxes = tr.nodes().map((node) => node.getClientRect());
+        const box = getTotalBox(boxes);
+        tr.nodes().forEach((shape) => {
+          const absPos = shape.getAbsolutePosition();
+          // where are shapes inside bounding box of all shapes?
+          const offsetX = box.x - absPos.x;
+          const offsetY = box.y - absPos.y;
 
-    image.on("click", () => {
+          // we total box goes outside of viewport, we need to move absolute position of shape
+          const newAbsPos = { ...absPos };
+          if (box.x < 0) {
+            newAbsPos.x = -offsetX;
+          }
+          if (box.y < 0) {
+            newAbsPos.y = -offsetY;
+          }
+          if (box.x + box.width > stage.width()) {
+            newAbsPos.x = stage.width() - box.width - offsetX;
+          }
+          if (box.y + box.height > stage.height()) {
+            newAbsPos.y = stage.height() - box.height - offsetY;
+          }
+          shape.setAbsolutePosition(newAbsPos);
+        });
+      });
       layer.add(tr);
+      console.log("tr::: ", tr);
+      console.log("layer::: ", layer);
+    });
+    stage.on("click", (e) => {
+      if (e.target !== image) {
+        const index = layer.children.findIndex(
+          (child) => child instanceof Konva.Transformer
+        );
+
+        if (index !== -1) {
+          layer.children.splice(index, 1);
+        }
+        layer.draw();
+        console.log(layer);
+      }
     });
 
-    image.on("dragend", () => {
-      layer.remove(tr);
-    });
+    // image.on("dragend", () => {});
   }, []);
 
   const lunching = () => {
