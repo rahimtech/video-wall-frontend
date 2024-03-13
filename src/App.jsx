@@ -78,58 +78,59 @@ function App() {
     };
   }
 
-  function handleImage(dataURL) {
-    // مدیریت تصویر
-    var image = new Konva.Image({
-      image: dataURL,
-      draggable: true,
-      x: 50,
-      y: 20,
-    });
+  function getCorner(pivotX, pivotY, diffX, diffY, angle) {
+    const distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-    layer.add(image);
-    layer.draw();
+    /// find angle from pivot to corner
+    angle += Math.atan2(diffY, diffX);
+
+    /// get new x and y and round it off to integer
+    const x = pivotX + distance * Math.cos(angle);
+    const y = pivotY + distance * Math.sin(angle);
+
+    return { x: x, y: y };
   }
 
-  function handleVideo(arrayBuffer) {
-    // مدیریت ویدیو
-    var video = document.createElement("video");
-    var videoBlob = new Blob([arrayBuffer], { type: "video/mp4" });
-    video.src = URL.createObjectURL(videoBlob);
+  function getClientRect(rotatedBox) {
+    const { x, y, width, height } = rotatedBox;
+    const rad = rotatedBox.rotation;
 
-    var videoImage = new Konva.Image({
-      image: video,
-      draggable: true,
-      x: 50,
-      y: 20,
+    const p1 = getCorner(x, y, 0, 0, rad);
+    const p2 = getCorner(x, y, width, 0, rad);
+    const p3 = getCorner(x, y, width, height, rad);
+    const p4 = getCorner(x, y, 0, height, rad);
+
+    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
+    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
+    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
+    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
+
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
+
+  function getTotalBox(boxes) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    boxes.forEach((box) => {
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.width);
+      maxY = Math.max(maxY, box.y + box.height);
     });
-
-    layer.add(videoImage);
-
-    video.addEventListener("loadedmetadata", function (e) {
-      videoImage.width(video.videoWidth);
-      videoImage.height(video.videoHeight);
-
-      const positionRelativeToVideoWall =
-        updateImagePositionRelativeToVideoWall(videoImage, videoWalls[0]);
-
-      videoImage.position(positionRelativeToVideoWall);
-      console.log(
-        "positionRelativeToVideoWall::: ",
-        positionRelativeToVideoWall
-      );
-      layer.draw();
-
-      videoImage.on("dragmove", function () {
-        const updatedPosition = updateImagePositionRelativeToVideoWall(
-          videoImage,
-          videoWalls[0]
-        );
-
-        console.log("updatedPosition::: ", updatedPosition);
-        // می‌توانید از مقادیر جدید به دلخواه خود برای بروزرسانی استفاده کنید
-      });
-    });
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
   }
 
   useEffect(() => {
@@ -225,6 +226,8 @@ function App() {
 
     var video = document.createElement("video");
     video.src = "/controller/video.mp4";
+    var video2 = document.createElement("video");
+    video2.src = "/controller/video.mp4";
 
     var image = new Konva.Image({
       image: video,
@@ -255,48 +258,147 @@ function App() {
         );
 
         console.log("updatedPosition::: ", updatedPosition);
-        // می‌توانید از مقادیر جدید به دلخواه خود برای بروزرسانی استفاده کنید
       });
     });
 
     document.getElementById("play").addEventListener("click", function () {
       video.play();
+      video2.play();
     });
     document.getElementById("pause").addEventListener("click", function () {
       video.pause();
     });
 
+    function handleImage(dataURL) {
+      var img = document.createElement("img");
+      img.src = "/public/logo192.png";
+      // مدیریت تصویر
+      var image = new Konva.Image({
+        image: img,
+        draggable: true,
+        x: 50,
+        y: 20,
+      });
+
+      layer.add(image);
+    }
+
+    function handleVideo(arrayBuffer) {
+      // مدیریت ویدیو
+      console.log("س::: ");
+      var videoImage = new Konva.Image({
+        image: video2,
+        draggable: true,
+        x: 50,
+        y: 20,
+        width: 200,
+        height: 200,
+      });
+
+      layer.add(videoImage);
+
+      video2.addEventListener("loadedmetadata", function (e) {
+        videoImage.width(video2.videoWidth);
+        videoImage.height(video2.videoHeight);
+
+        const positionRelativeToVideoWall =
+          updateImagePositionRelativeToVideoWall(videoImage, videoWalls[0]);
+
+        videoImage.position(positionRelativeToVideoWall);
+        console.log(
+          "positionRelativeToVideoWall::: ",
+          positionRelativeToVideoWall
+        );
+        layer.draw();
+
+        videoImage.on("dragmove", function () {
+          const updatedPosition = updateImagePositionRelativeToVideoWall(
+            videoImage,
+            videoWalls[0]
+          );
+
+          console.log("updatedPosition::: ", updatedPosition);
+          // می‌توانید از مقادیر جدید به دلخواه خود برای بروزرسانی استفاده کنید
+        });
+      });
+    }
+
     var inputElement = document.getElementById("fileInput");
 
     inputElement.addEventListener("change", function (e) {
       const file = e.target.files[0];
+      console.log("file::: ", file);
 
       if (file) {
-        console.log("file::: ", file);
-        const reader = new FileReader();
-        console.log("reader::: ", reader);
-
-        reader.onload = function (readerEvent) {
-          const fileType = file.type.split("/")[0]; // "image" یا "video"
-
-          if (fileType === "image") {
-            // اگر نوع فایل تصویر باشد
-
-            handleImage(readerEvent.target.result);
-          } else if (fileType === "video") {
-            // اگر نوع فایل ویدیو باشد
-            handleVideo(readerEvent.target.result);
-          } else {
-            console.error("Unsupported file type.");
-          }
-        };
+        const fileType = file.type.split("/")[0]; // "image" یا "video"
 
         if (fileType === "image") {
-          reader.readAsDataURL(file);
+          // اگر نوع فایل تصویر باشد
+          const imageURL = URL.createObjectURL(file);
+          console.log("imageURL::: ", imageURL);
+          handleImage(imageURL);
         } else if (fileType === "video") {
-          reader.readAsArrayBuffer(file);
+          // اگر نوع فایل ویدیو باشد
+          const videoURL = URL.createObjectURL(file);
+          handleVideo(videoURL);
+        } else {
+          console.error("Unsupported file type.");
         }
       }
+    });
+
+    const tr = new Konva.Transformer({
+      nodes: [image],
+      boundBoxFunc: (oldBox, newBox) => {
+        const box = getClientRect(newBox);
+        const isOut =
+          box.x < 0 ||
+          box.y < 0 ||
+          box.x + box.width > stage.width() ||
+          box.y + box.height > stage.height();
+
+        // if new bounding box is out of visible viewport, let's just skip transforming
+        // this logic can be improved by still allow some transforming if we have small available space
+        if (isOut) {
+          return oldBox;
+        }
+        return newBox;
+      },
+    });
+
+    tr.on("dragmove", () => {
+      const boxes = tr.nodes().map((node) => node.getClientRect());
+      const box = getTotalBox(boxes);
+      tr.nodes().forEach((shape) => {
+        const absPos = shape.getAbsolutePosition();
+        // where are shapes inside bounding box of all shapes?
+        const offsetX = box.x - absPos.x;
+        const offsetY = box.y - absPos.y;
+
+        // we total box goes outside of viewport, we need to move absolute position of shape
+        const newAbsPos = { ...absPos };
+        if (box.x < 0) {
+          newAbsPos.x = -offsetX;
+        }
+        if (box.y < 0) {
+          newAbsPos.y = -offsetY;
+        }
+        if (box.x + box.width > stage.width()) {
+          newAbsPos.x = stage.width() - box.width - offsetX;
+        }
+        if (box.y + box.height > stage.height()) {
+          newAbsPos.y = stage.height() - box.height - offsetY;
+        }
+        shape.setAbsolutePosition(newAbsPos);
+      });
+    });
+
+    image.on("click", () => {
+      layer.add(tr);
+    });
+
+    image.on("dragend", () => {
+      layer.remove(tr);
     });
   }, []);
 
@@ -457,14 +559,16 @@ function App() {
           <p>با کلیک روی گزینه اعمال چیدمان‌ها در مانیتور قابل مشاهده میشوند</p>
         </div> */}
       </div>
-      <button id="play">Play</button>
-      <button id="pause">Pause</button>
-      <input
-        className="absolute"
-        type="file"
-        placeholder="افزودن تصویر یا فیلم"
-        id="fileInput"
-      />
+      <div className="flex flex-col absolute z-10">
+        <button id="play">Play</button>
+        <button id="pause">Pause</button>
+        <input
+          className=""
+          type="file"
+          placeholder="افزودن تصویر یا فیلم"
+          id="fileInput"
+        />
+      </div>
       <div id="fff" className="w-full h-full flex ">
         {/* <div className="flex w-[200px] absolute m-5 z-10 gap-3">
           <div
