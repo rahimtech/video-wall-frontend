@@ -409,8 +409,6 @@ function App() {
         console.log(layer);
       }
     });
-
-    // image.on("dragend", () => {});
   }, []);
 
   const lunching = () => {
@@ -482,7 +480,7 @@ function App() {
             افزودن محتوا
           </Button>
         </div>
-        <div
+        {/* <div
           id="Template-setting"
           className="text-center p-2 flex flex-col items-center justify-start w-full bg-gray-400 rounded-lg"
         >
@@ -513,7 +511,7 @@ function App() {
             <option value={8}> ۸ قسمتی</option>
             <option value={12}> ۱۲ قسمتی</option>
           </select>
-        </div>
+        </div> */}
         <div
           id="Pictures-setting"
           className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
