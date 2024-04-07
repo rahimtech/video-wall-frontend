@@ -3,59 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Canvas Video Example</title>
+    <title>Calculate Position</title>
+    <style>
+      #div1,
+      #div2 {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+        position: absolute;
+      }
+      #div2 {
+        left: 0;
+        top: 0;
+        background-color: blue;
+      }
+    </style>
   </head>
   <body>
-    <canvas
-      id="myCanvas"
-      width="400"
-      height="400"
-      style="border: 1px solid #000"
-    ></canvas>
-    <input type="file" id="videoInput" accept="video/*" />
-    <input type="number" id="start" placeholder="Start time (seconds)" />
-    <input type="number" id="end" placeholder="End time (seconds)" />
-    <button onclick="playVideo()">Play</button>
+    <div id="div1"></div>
+    <div id="div2"></div>
 
     <script>
-      const canvas = document.getElementById("myCanvas");
-      const ctx = canvas.getContext("2d");
-      const videoInput = document.getElementById("videoInput");
-      const startInput = document.getElementById("start");
-      const endInput = document.getElementById("end");
-      let video;
+      document.addEventListener("DOMContentLoaded", () => {
+        const div1 = document.getElementById("div1");
+        const div2 = document.getElementById("div2");
 
-      function drawVideoOnCanvas() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
+        // Get the position of div2 relative to the viewport
+        const rect1 = div1.getBoundingClientRect();
+        const rect2 = div2.getBoundingClientRect();
 
-      function playVideo() {
-        const start = parseInt(startInput.value) || 0;
-        const end = parseInt(endInput.value) || video.duration;
+        // Calculate the relative position of div1 relative to div2
+        const relativeX = rect1.left - rect2.left;
+        const relativeY = rect1.top - rect2.top;
 
-        video = document.createElement("video");
-        video.setAttribute("controls", "controls");
-
-        const reader = new FileReader();
-
-        reader.onload = function (readerEvent) {
-          video.src = readerEvent.target.result;
-          video.load();
-          video.currentTime = start;
-
-          // حلقه باز برای به‌روزرسانی فریم‌های ویدیو
-          function updateFrame() {
-            drawVideoOnCanvas();
-            requestAnimationFrame(updateFrame);
-          }
-
-          video.play();
-          updateFrame(); // شروع حلقه باز برای به‌روزرسانی فریم‌ها
-        };
-
-        reader.readAsDataURL(videoInput.files[0]);
-      }
+        console.log("Relative Position:");
+        console.log(`X: ${relativeX}px`);
+        console.log(`Y: ${relativeY}px`);
+      });
     </script>
   </body>
 </html>

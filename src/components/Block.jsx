@@ -25,6 +25,12 @@ export default function Block({
 
   useEffect(() => {
     con.setIsActiveG(IAG);
+    if (
+      targetRef.current.getBoundingClientRect().x < 100 &&
+      targetRef.current.getBoundingClientRect().x > 0
+    ) {
+      con.setCB(targetRef.current.getBoundingClientRect());
+    }
   }, [IAG]);
 
   return (

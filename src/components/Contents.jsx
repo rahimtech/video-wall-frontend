@@ -42,6 +42,7 @@ export default function Contents({ videoName, index, IAG }) {
         throttleDragRotate={0}
         onDrag={(e) => {
           e.target.style.transform = e.transform;
+          con.setCF(e.target.getClientRects());
         }}
         scalable={true}
         throttleScale={0}

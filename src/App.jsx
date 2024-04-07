@@ -4,7 +4,7 @@ import Block from "./components/Block";
 import Box4 from "./components/Box4";
 import Box8 from "./components/Box8";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faL, faTrash } from "@fortawesome/free-solid-svg-icons";
 import ModalCustom from "./components/ModalCustom";
 import { Button } from "@nextui-org/react";
 import { useMyContext } from "./context/MyContext";
@@ -48,8 +48,11 @@ function App() {
   const [checkvideo, setCheckVideo] = useState(1);
   const [checkSection, setCheckSection] = useState(0);
   const [scale, setScale] = useState(1);
+  const [relativePosition, setRelativePosition] = useState({ x: 0, y: 0 });
   const con = useMyContext();
   const transformComponentRef = useRef(null);
+  let contentRef = useRef(null);
+  let centerBox = useRef(null);
 
   const zoomToImage = () => {
     if (transformComponentRef.current) {
@@ -423,9 +426,12 @@ function App() {
     let offsetY = 0;
 
     function handleMouseDown(event) {
-      isDragging = true;
-      lastX = event.clientX;
-      lastY = event.clientY;
+      console.log("flagDragging11::: ", con.flagDragging);
+      if (con.flagDragging) {
+        isDragging = true;
+        lastX = event.clientX;
+        lastY = event.clientY;
+      }
     }
 
     function handleMouseMove(event) {
@@ -446,20 +452,30 @@ function App() {
     function handleMouseUp() {
       isDragging = false;
     }
+    if (con.flagDragging) {
+      div.addEventListener("mousedown", handleMouseDown);
+      div.addEventListener("mousemove", handleMouseMove);
+      div.addEventListener("mouseup", handleMouseUp);
 
-    div.addEventListener("mousedown", handleMouseDown);
-    div.addEventListener("mousemove", handleMouseMove);
-    div.addEventListener("mouseup", handleMouseUp);
+      // Resize div to match window size
+      function resizeDiv() {
+        div.style.width = window.innerWidth + "px";
+        div.style.height = window.innerHeight + "px";
+      }
 
-    // Resize div to match window size
-    function resizeDiv() {
-      div.style.width = window.innerWidth + "px";
-      div.style.height = window.innerHeight + "px";
+      resizeDiv();
+      window.addEventListener("resize", resizeDiv);
     }
-
-    resizeDiv();
-    window.addEventListener("resize", resizeDiv);
   }, []);
+
+  useEffect(() => {
+    let x = con.cF[0]?.x - con.cB.x;
+    let y = con.cF[0]?.y - con.cB.y;
+    setRelativePosition({ x: x, y: y });
+    console.log(relativePosition.x);
+    console.log(relativePosition.y);
+    console.log("________________");
+  }, [con.cF]);
 
   const lunching = () => {
     var canvas = document.getElementById("All");
@@ -650,7 +666,6 @@ function App() {
         <div
           onClick={(e) => {
             con.setIsActiveG("un");
-            console.log(con.isActiveG);
           }}
           id="Monitor"
           className={`${
@@ -730,10 +745,9 @@ function App() {
           >
             <div id="content" className="absolute w-full h-full top-0 left-0">
               <div
-                className="ff z-20 relative "
+                className="ff z-50 relative "
                 onMouseDown={(e) => {
-                  console.log(e);
-                  e.stopPropagation();
+                  con.setFlagDragging(false);
                 }}
               >
                 {content.map((contentName, index) => (
@@ -746,16 +760,18 @@ function App() {
                 ))}
               </div>
               {videoWalls.map((videoName, index) => (
-                <Block
-                  key={index}
-                  videoName={videoName.name}
-                  index={index}
-                  IAG={con.isActiveG}
-                  customH={videoName.height}
-                  customW={videoName.width}
-                  customX={videoName.x}
-                  customY={videoName.y}
-                />
+                <span ref={centerBox} key={index}>
+                  <Block
+                    key={index}
+                    videoName={videoName.name}
+                    index={index}
+                    IAG={con.isActiveG}
+                    customH={videoName.height}
+                    customW={videoName.width}
+                    customX={videoName.x}
+                    customY={videoName.y}
+                  />
+                </span>
               ))}
             </div>
           </div>
