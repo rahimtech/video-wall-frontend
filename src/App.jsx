@@ -62,420 +62,687 @@ function App() {
   };
   const addVideoWall = () => {};
 
-  // function updateImagePositionRelativeToVideoWall(image, videoWall) {
-  //   const { x, y, width, height } = videoWall;
-  //   const scaleX = image.width() / width;
-  //   const scaleY = image.height() / height;
+  function updateImagePositionRelativeToVideoWall(image, videoWall) {
+    const { x, y, width, height } = videoWall;
+    const scaleX = image.width() / width;
 
-  //   const newImageX = (image.x() - x) / scaleX;
-  //   const newImageY = -(image.y() + y) / scaleY; // Y باید منفی شود چون در Konva محور Y به سمت پایین است
+    const scaleY = image.height() / height;
 
-  //   const newImageWidth = image.width() / scaleX;
-  //   const newImageHeight = image.height() / scaleY;
+    const newImageX = image.x() - x;
+    const newImageY = -(image.y() + y); // Y باید منفی شود چون در Konva محور Y به سمت پایین است
 
-  //   return {
-  //     x: newImageX,
-  //     y: newImageY,
-  //     width: newImageWidth,
-  //     height: newImageHeight,
-  //   };
-  // }
+    const newImageWidth = image.width();
+    const newImageHeight = image.height();
 
-  // function getCorner(pivotX, pivotY, diffX, diffY, angle) {
-  //   const distance = Math.sqrt(diffX * diffX + diffY * diffY);
+    return {
+      x: newImageX,
+      y: newImageY,
+      width: newImageWidth,
+      height: newImageHeight,
+    };
+  }
 
-  //   /// find angle from pivot to corner
-  //   angle += Math.atan2(diffY, diffX);
+  function getCorner(pivotX, pivotY, diffX, diffY, angle) {
+    const distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-  //   /// get new x and y and round it off to integer
-  //   const x = pivotX + distance * Math.cos(angle);
-  //   const y = pivotY + distance * Math.sin(angle);
+    /// find angle from pivot to corner
+    angle += Math.atan2(diffY, diffX);
 
-  //   return { x: x, y: y };
-  // }
+    /// get new x and y and round it off to integer
+    const x = pivotX + distance * Math.cos(angle);
+    const y = pivotY + distance * Math.sin(angle);
 
-  // function getClientRect(rotatedBox) {
-  //   const { x, y, width, height } = rotatedBox;
-  //   const rad = rotatedBox.rotation;
+    return { x: x, y: y };
+  }
 
-  //   const p1 = getCorner(x, y, 0, 0, rad);
-  //   const p2 = getCorner(x, y, width, 0, rad);
-  //   const p3 = getCorner(x, y, width, height, rad);
-  //   const p4 = getCorner(x, y, 0, height, rad);
+  function getClientRect(rotatedBox) {
+    const { x, y, width, height } = rotatedBox;
+    const rad = rotatedBox.rotation;
 
-  //   const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
-  //   const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
-  //   const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
-  //   const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
+    const p1 = getCorner(x, y, 0, 0, rad);
+    const p2 = getCorner(x, y, width, 0, rad);
+    const p3 = getCorner(x, y, width, height, rad);
+    const p4 = getCorner(x, y, 0, height, rad);
 
-  //   return {
-  //     x: minX,
-  //     y: minY,
-  //     width: maxX - minX,
-  //     height: maxY - minY,
-  //   };
-  // }
+    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
+    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
+    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
+    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
 
-  // function getTotalBox(boxes) {
-  //   let minX = Infinity;
-  //   let minY = Infinity;
-  //   let maxX = -Infinity;
-  //   let maxY = -Infinity;
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
 
-  //   boxes.forEach((box) => {
-  //     minX = Math.min(minX, box.x);
-  //     minY = Math.min(minY, box.y);
-  //     maxX = Math.max(maxX, box.x + box.width);
-  //     maxY = Math.max(maxY, box.y + box.height);
-  //   });
-  //   return {
-  //     x: minX,
-  //     y: minY,
-  //     width: maxX - minX,
-  //     height: maxY - minY,
-  //   };
-  // }
+  function getTotalBox(boxes) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
 
-  // useEffect(() => {
-  //   var width = window.innerWidth;
-  //   var height = window.innerHeight;
-
-  //   var stage = new Konva.Stage({
-  //     container: "containerKonva",
-  //     width: width,
-  //     height: height,
-  //     draggable: true,
-  //   });
-
-  //   var layer = new Konva.Layer();
-  //   stage.add(layer);
-
-  //   var WIDTH = 3000;
-  //   var HEIGHT = 3000;
-  //   var NUMBER = 2;
-
-  //   function generateNode(x, y, width, height) {
-  //     const group = new Konva.Group({
-  //       clip: {
-  //         x: x,
-  //         y: -y,
-  //         width: width,
-  //         height: height,
-  //       },
-  //     });
-
-  //     // ایجاد مستطیل داخل گروه
-  //     const rect = new Konva.Rect({
-  //       x: x,
-  //       y: -y,
-  //       width: width,
-  //       height: height,
-  //       radius: 50,
-  //       fill: "transparent",
-  //       stroke: "white",
-  //     });
-
-  //     // اضافه کردن مستطیل به گروه
-  //     group.add(rect);
-
-  //     return group;
-  //   }
-
-  //   for (var i = 0; i < NUMBER; i++) {
-  //     layer.add(
-  //       generateNode(
-  //         videoWalls[i].x,
-  //         videoWalls[i].y,
-  //         videoWalls[i].width,
-  //         videoWalls[i].height
-  //       )
-  //     );
-  //   }
-
-  //   layer.draw();
-
-  //   var scaleBy = 1.04;
-  //   stage.on("wheel", (e) => {
-  //     // stop default scrolling
-  //     e.evt.preventDefault();
-
-  //     var oldScale = stage.scaleX();
-  //     var pointer = stage.getPointerPosition();
-
-  //     var mousePointTo = {
-  //       x: (pointer.x - stage.x()) / oldScale,
-  //       y: (pointer.y - stage.y()) / oldScale,
-  //     };
-
-  //     // how to scale? Zoom in? Or zoom out?
-  //     let direction = e.evt.deltaY > 0 ? 1 : -1;
-
-  //     // when we zoom on trackpad, e.evt.ctrlKey is true
-  //     // in that case lets revert direction
-  //     if (e.evt.ctrlKey) {
-  //       direction = -direction;
-  //     }
-
-  //     var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-
-  //     stage.scale({ x: newScale, y: newScale });
-
-  //     var newPos = {
-  //       x: pointer.x - mousePointTo.x * newScale,
-  //       y: pointer.y - mousePointTo.y * newScale,
-  //     };
-  //     stage.position(newPos);
-  //   });
-
-  //   var video = document.createElement("video");
-  //   video.src = "/controller/video.mp4";
-  //   var video2 = document.createElement("video");
-  //   video2.src = "/controller/video.mp4";
-
-  //   var image = new Konva.Image({
-  //     image: video,
-  //     draggable: true,
-  //     x: 50,
-  //     y: 20,
-  //   });
-  //   layer.add(image);
-
-  //   video.addEventListener("loadedmetadata", function (e) {
-  //     image.width(video.videoWidth);
-  //     image.height(video.videoHeight);
-
-  //     const positionRelativeToVideoWall =
-  //       updateImagePositionRelativeToVideoWall(image, videoWalls[0]);
-
-  //     image.position(positionRelativeToVideoWall);
-  //     console.log(
-  //       "positionRelativeToVideoWall::: ",
-  //       positionRelativeToVideoWall
-  //     );
-  //     layer.draw();
-
-  //     image.on("dragmove", function () {
-  //       const updatedPosition = updateImagePositionRelativeToVideoWall(
-  //         image,
-  //         videoWalls[0]
-  //       );
-
-  //       console.log("updatedPosition::: ", updatedPosition);
-  //     });
-  //   });
-
-  //   document.getElementById("play").addEventListener("click", function () {
-  //     video.play();
-  //     video2.play();
-  //   });
-  //   document.getElementById("pause").addEventListener("click", function () {
-  //     video.pause();
-  //   });
-
-  //   function handleImage(dataURL) {
-  //     var img = document.createElement("img");
-  //     img.src = "/public/logo192.png";
-  //     // مدیریت تصویر
-  //     var image = new Konva.Image({
-  //       image: img,
-  //       draggable: true,
-  //       x: 50,
-  //       y: 20,
-  //     });
-
-  //     layer.add(image);
-  //   }
-
-  //   function handleVideo(arrayBuffer) {
-  //     // مدیریت ویدیو
-  //     console.log("س::: ");
-  //     var videoImage = new Konva.Image({
-  //       image: video2,
-  //       draggable: true,
-  //       x: 50,
-  //       y: 20,
-  //       width: 200,
-  //       height: 200,
-  //     });
-
-  //     layer.add(videoImage);
-
-  //     video2.addEventListener("loadedmetadata", function (e) {
-  //       videoImage.width(video2.videoWidth);
-  //       videoImage.height(video2.videoHeight);
-
-  //       const positionRelativeToVideoWall =
-  //         updateImagePositionRelativeToVideoWall(videoImage, videoWalls[0]);
-
-  //       videoImage.position(positionRelativeToVideoWall);
-  //       console.log(
-  //         "positionRelativeToVideoWall::: ",
-  //         positionRelativeToVideoWall
-  //       );
-  //       layer.draw();
-
-  //       videoImage.on("dragmove", function () {
-  //         const updatedPosition = updateImagePositionRelativeToVideoWall(
-  //           videoImage,
-  //           videoWalls[0]
-  //         );
-
-  //         console.log("updatedPosition::: ", updatedPosition);
-  //         // می‌توانید از مقادیر جدید به دلخواه خود برای بروزرسانی استفاده کنید
-  //       });
-  //     });
-  //   }
-
-  //   var inputElement = document.getElementById("fileInput");
-
-  //   inputElement.addEventListener("change", function (e) {
-  //     const file = e.target.files[0];
-  //     console.log("file::: ", file);
-
-  //     if (file) {
-  //       const fileType = file.type.split("/")[0]; // "image" یا "video"
-
-  //       if (fileType === "image") {
-  //         // اگر نوع فایل تصویر باشد
-  //         const imageURL = URL.createObjectURL(file);
-  //         console.log("imageURL::: ", imageURL);
-  //         handleImage(imageURL);
-  //       } else if (fileType === "video") {
-  //         // اگر نوع فایل ویدیو باشد
-  //         const videoURL = URL.createObjectURL(file);
-  //         handleVideo(videoURL);
-  //       } else {
-  //         console.error("Unsupported file type.");
-  //       }
-  //     }
-  //   });
-
-  //   image.on("click", (e) => {
-  //     const tr = new Konva.Transformer({
-  //       nodes: [image],
-  //       boundBoxFunc: (oldBox, newBox) => {
-  //         const box = getClientRect(newBox);
-  //         const isOut =
-  //           box.x < 0 ||
-  //           box.y < 0 ||
-  //           box.x + box.width > stage.width() ||
-  //           box.y + box.height > stage.height();
-
-  //         // if new bounding box is out of visible viewport, let's just skip transforming
-  //         // this logic can be improved by still allow some transforming if we have small available space
-  //         if (isOut) {
-  //           return oldBox;
-  //         }
-  //         return newBox;
-  //       },
-  //     });
-  //     tr.on("dragmove", () => {
-  //       const boxes = tr.nodes().map((node) => node.getClientRect());
-  //       const box = getTotalBox(boxes);
-  //       tr.nodes().forEach((shape) => {
-  //         const absPos = shape.getAbsolutePosition();
-  //         // where are shapes inside bounding box of all shapes?
-  //         const offsetX = box.x - absPos.x;
-  //         const offsetY = box.y - absPos.y;
-
-  //         // we total box goes outside of viewport, we need to move absolute position of shape
-  //         const newAbsPos = { ...absPos };
-  //         if (box.x < 0) {
-  //           newAbsPos.x = -offsetX;
-  //         }
-  //         if (box.y < 0) {
-  //           newAbsPos.y = -offsetY;
-  //         }
-  //         if (box.x + box.width > stage.width()) {
-  //           newAbsPos.x = stage.width() - box.width - offsetX;
-  //         }
-  //         if (box.y + box.height > stage.height()) {
-  //           newAbsPos.y = stage.height() - box.height - offsetY;
-  //         }
-  //         shape.setAbsolutePosition(newAbsPos);
-  //       });
-  //     });
-  //     layer.add(tr);
-  //     console.log("tr::: ", tr);
-  //     console.log("layer::: ", layer);
-  //   });
-  //   stage.on("click", (e) => {
-  //     if (e.target !== image) {
-  //       const index = layer.children.findIndex(
-  //         (child) => child instanceof Konva.Transformer
-  //       );
-
-  //       if (index !== -1) {
-  //         layer.children.splice(index, 1);
-  //       }
-  //       layer.draw();
-  //       console.log(layer);
-  //     }
-  //   });
-  // }, []);
+    boxes.forEach((box) => {
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.width);
+      maxY = Math.max(maxY, box.y + box.height);
+    });
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
 
   useEffect(() => {
-    const div = document.getElementById("infiniteDiv");
-    const content = document.getElementById("content");
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    var GUIDELINE_OFFSET = 5;
 
-    let isDragging = false;
-    let lastX = 0;
-    let lastY = 0;
+    var stage = new Konva.Stage({
+      container: "containerKonva",
+      width: width,
+      height: height,
+      draggable: true,
+    });
 
-    let offsetX = 0;
-    let offsetY = 0;
+    var layer = new Konva.Layer();
+    stage.add(layer);
 
-    function handleMouseDown(event) {
-      console.log("flagDragging11::: ", con.flagDragging);
-      if (con.flagDragging) {
-        isDragging = true;
-        lastX = event.clientX;
-        lastY = event.clientY;
-      }
+    var WIDTH = 1000;
+    var HEIGHT = 1000;
+    var NUMBER = 2;
+
+    function generateNode(x, y, width, height) {
+      const group = new Konva.Group({
+        clip: {
+          x: x,
+          y: -y,
+          width: width,
+          height: height,
+        },
+      });
+
+      const rect = new Konva.Rect({
+        x: x,
+        y: -y,
+        width: width,
+        height: height,
+        fill: "transparent",
+        stroke: "white",
+        name: "fillShape",
+      });
+
+      // اضافه کردن مستطیل به گروه
+      group.add(rect);
+
+      return group;
     }
 
-    function handleMouseMove(event) {
-      if (isDragging) {
-        const newX = event.clientX;
-        const newY = event.clientY;
-
-        offsetX += newX - lastX;
-        offsetY += newY - lastY;
-
-        content.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-
-        lastX = newX;
-        lastY = newY;
-      }
+    for (var i = 0; i < NUMBER; i++) {
+      layer.add(
+        generateNode(
+          videoWalls[i].x,
+          videoWalls[i].y,
+          videoWalls[i].width,
+          videoWalls[i].height
+        )
+      );
     }
 
-    function handleMouseUp() {
-      isDragging = false;
-    }
-    if (con.flagDragging) {
-      div.addEventListener("mousedown", handleMouseDown);
-      div.addEventListener("mousemove", handleMouseMove);
-      div.addEventListener("mouseup", handleMouseUp);
+    layer.draw();
 
-      // Resize div to match window size
-      function resizeDiv() {
-        div.style.width = window.innerWidth + "px";
-        div.style.height = window.innerHeight + "px";
+    var scaleBy = 1.04;
+    stage.on("wheel", (e) => {
+      // stop default scrolling
+      e.evt.preventDefault();
+
+      var oldScale = stage.scaleX();
+      var pointer = stage.getPointerPosition();
+
+      var mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+
+      // how to scale? Zoom in? Or zoom out?
+      let direction = e.evt.deltaY > 0 ? 1 : -1;
+
+      // when we zoom on trackpad, e.evt.ctrlKey is true
+      // in that case lets revert direction
+      if (e.evt.ctrlKey) {
+        direction = -direction;
       }
 
-      resizeDiv();
-      window.addEventListener("resize", resizeDiv);
+      var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+      stage.scale({ x: newScale, y: newScale });
+
+      var newPos = {
+        x: pointer.x - mousePointTo.x * newScale,
+        y: pointer.y - mousePointTo.y * newScale,
+      };
+      stage.position(newPos);
+    });
+
+    var video = document.createElement("video");
+    video.src = "/controller/video.mp4";
+    var video2 = document.createElement("video");
+    video2.src = "/controller/video.mp4";
+
+    var image = new Konva.Image({
+      image: video,
+      draggable: true,
+      x: 50,
+      y: 20,
+      name: "object",
+    });
+    layer.add(image);
+
+    video.addEventListener("loadedmetadata", function (e) {
+      image.width(video.videoWidth);
+      image.height(video.videoHeight);
+
+      const positionRelativeToVideoWall =
+        updateImagePositionRelativeToVideoWall(image, videoWalls[0]);
+
+      image.position(positionRelativeToVideoWall);
+      console.log(
+        "positionRelativeToVideoWall::: ",
+        positionRelativeToVideoWall
+      );
+      layer.draw();
+
+      image.on("dragmove", function () {
+        const updatedPosition = updateImagePositionRelativeToVideoWall(
+          image,
+          videoWalls[0]
+        );
+
+        console.log("updatedPosition::: ", updatedPosition);
+      });
+    });
+
+    var anim = new Konva.Animation(function () {
+      // do nothing, animation just need to update the layer
+    }, layer);
+
+    document.getElementById("play").addEventListener("click", function () {
+      video.play();
+      // video2.play();
+      anim.start();
+    });
+    document.getElementById("pause").addEventListener("click", function () {
+      video.pause();
+      anim.stop();
+    });
+
+    function handleImage(dataURL) {
+      var img = document.createElement("img");
+      img.src = "/public/logo192.png";
+      // مدیریت تصویر
+      var image = new Konva.Image({
+        image: img,
+        draggable: true,
+        x: 50,
+        y: 20,
+        name: "object",
+      });
+
+      layer.add(image);
+    }
+
+    function handleVideo(arrayBuffer) {
+      // مدیریت ویدیو
+      var videoImage = new Konva.Image({
+        image: video2,
+        draggable: true,
+        x: 50,
+        y: 20,
+        width: 200,
+        height: 200,
+        name: "object",
+      });
+
+      layer.add(videoImage);
+
+      video2.addEventListener("loadedmetadata", function (e) {
+        videoImage.width(video2.videoWidth);
+        videoImage.height(video2.videoHeight);
+
+        const positionRelativeToVideoWall =
+          updateImagePositionRelativeToVideoWall(videoImage, videoWalls[0]);
+
+        videoImage.position(positionRelativeToVideoWall);
+        console.log(
+          "positionRelativeToVideoWall::: ",
+          positionRelativeToVideoWall
+        );
+        layer.draw();
+
+        videoImage.on("dragmove", function () {
+          const updatedPosition = updateImagePositionRelativeToVideoWall(
+            videoImage,
+            videoWalls[0]
+          );
+
+          console.log("updatedPosition::: ", updatedPosition);
+        });
+      });
+    }
+
+    var inputElement = document.getElementById("fileInput");
+
+    inputElement.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      console.log("file::: ", file);
+
+      if (file) {
+        const fileType = file.type.split("/")[0]; // "image" یا "video"
+
+        if (fileType === "image") {
+          // اگر نوع فایل تصویر باشد
+          const imageURL = URL.createObjectURL(file);
+          console.log("imageURL::: ", imageURL);
+          handleImage(imageURL);
+        } else if (fileType === "video") {
+          // اگر نوع فایل ویدیو باشد
+          const videoURL = URL.createObjectURL(file);
+          handleVideo(videoURL);
+        } else {
+          console.error("Unsupported file type.");
+        }
+      }
+    });
+
+    image.on("click", (e) => {
+      const tr = new Konva.Transformer({
+        nodes: [image],
+        boundBoxFunc: (oldBox, newBox) => {
+          const box = getClientRect(newBox);
+          const isOut =
+            box.x < 0 ||
+            box.y < 0 ||
+            box.x + box.width > stage.width() ||
+            box.y + box.height > stage.height();
+
+          // if new bounding box is out of visible viewport, let's just skip transforming
+          // this logic can be improved by still allow some transforming if we have small available space
+          if (isOut) {
+            return oldBox;
+          }
+          return newBox;
+        },
+      });
+      tr.on("dragmove", () => {
+        const boxes = tr.nodes().map((node) => node.getClientRect());
+        const box = getTotalBox(boxes);
+        tr.nodes().forEach((shape) => {
+          const absPos = shape.getAbsolutePosition();
+          // where are shapes inside bounding box of all shapes?
+          const offsetX = box.x - absPos.x;
+          const offsetY = box.y - absPos.y;
+
+          // we total box goes outside of viewport, we need to move absolute position of shape
+          const newAbsPos = { ...absPos };
+          if (box.x < 0) {
+            newAbsPos.x = -offsetX;
+          }
+          if (box.y < 0) {
+            newAbsPos.y = -offsetY;
+          }
+          if (box.x + box.width > stage.width()) {
+            newAbsPos.x = stage.width() - box.width - offsetX;
+          }
+          if (box.y + box.height > stage.height()) {
+            newAbsPos.y = stage.height() - box.height - offsetY;
+          }
+          shape.setAbsolutePosition(newAbsPos);
+        });
+      });
+      layer.add(tr);
+    });
+    stage.on("click", (e) => {
+      if (e.target !== image) {
+        const index = layer.children.findIndex(
+          (child) => child instanceof Konva.Transformer
+        );
+
+        if (index !== -1) {
+          layer.children.splice(index, 1);
+        }
+        layer.draw();
+        console.log(layer);
+      }
+    });
+
+    // were can we snap our objects?
+    function getLineGuideStops(skipShape) {
+      var vertical = [0, stage.width() / 2, stage.width()];
+      var horizontal = [0, stage.height() / 2, stage.height()];
+
+      stage.find(".object").forEach((guideItem) => {
+        if (guideItem === skipShape) {
+          return;
+        }
+        var box = guideItem.getClientRect();
+        // and we can snap to all edges of shapes
+        vertical.push([box.x, box.x + box.width, box.x + box.width / 2]);
+        horizontal.push([box.y, box.y + box.height, box.y + box.height / 2]);
+      });
+      return {
+        vertical: vertical.flat(),
+        horizontal: horizontal.flat(),
+      };
+    }
+
+    // what points of the object will trigger to snapping?
+    // it can be just center of the object
+    // but we will enable all edges and center
+    function getObjectSnappingEdges(node) {
+      var box = node.getClientRect();
+      var absPos = node.absolutePosition();
+
+      return {
+        vertical: [
+          {
+            guide: Math.round(box.x),
+            offset: Math.round(absPos.x - box.x),
+            snap: "start",
+          },
+          {
+            guide: Math.round(box.x + box.width / 2),
+            offset: Math.round(absPos.x - box.x - box.width / 2),
+            snap: "center",
+          },
+          {
+            guide: Math.round(box.x + box.width),
+            offset: Math.round(absPos.x - box.x - box.width),
+            snap: "end",
+          },
+        ],
+        horizontal: [
+          {
+            guide: Math.round(box.y),
+            offset: Math.round(absPos.y - box.y),
+            snap: "start",
+          },
+          {
+            guide: Math.round(box.y + box.height / 2),
+            offset: Math.round(absPos.y - box.y - box.height / 2),
+            snap: "center",
+          },
+          {
+            guide: Math.round(box.y + box.height),
+            offset: Math.round(absPos.y - box.y - box.height),
+            snap: "end",
+          },
+        ],
+      };
+    }
+
+    // find all snapping possibilities
+    function getGuides(lineGuideStops, itemBounds) {
+      var resultV = [];
+      var resultH = [];
+
+      lineGuideStops.vertical.forEach((lineGuide) => {
+        itemBounds.vertical.forEach((itemBound) => {
+          var diff = Math.abs(lineGuide - itemBound.guide);
+          // if the distance between guild line and object snap point is close we can consider this for snapping
+          if (diff < GUIDELINE_OFFSET) {
+            resultV.push({
+              lineGuide: lineGuide,
+              diff: diff,
+              snap: itemBound.snap,
+              offset: itemBound.offset,
+            });
+          }
+        });
+      });
+
+      lineGuideStops.horizontal.forEach((lineGuide) => {
+        itemBounds.horizontal.forEach((itemBound) => {
+          var diff = Math.abs(lineGuide - itemBound.guide);
+          if (diff < GUIDELINE_OFFSET) {
+            resultH.push({
+              lineGuide: lineGuide,
+              diff: diff,
+              snap: itemBound.snap,
+              offset: itemBound.offset,
+            });
+          }
+        });
+      });
+
+      var guides = [];
+
+      // find closest snap
+      var minV = resultV.sort((a, b) => a.diff - b.diff)[0];
+      var minH = resultH.sort((a, b) => a.diff - b.diff)[0];
+      if (minV) {
+        guides.push({
+          lineGuide: minV.lineGuide,
+          offset: minV.offset,
+          orientation: "V",
+          snap: minV.snap,
+        });
+      }
+      if (minH) {
+        guides.push({
+          lineGuide: minH.lineGuide,
+          offset: minH.offset,
+          orientation: "H",
+          snap: minH.snap,
+        });
+      }
+      return guides;
+    }
+
+    function drawGuides(guides) {
+      guides.forEach((lg) => {
+        if (lg.orientation === "H") {
+          var line = new Konva.Line({
+            points: [-6000, 0, 6000, 0],
+            stroke: "rgb(0, 161, 255)",
+            strokeWidth: 1,
+            name: "guid-line",
+            dash: [4, 6],
+          });
+          layer.add(line);
+          line.absolutePosition({
+            x: 0,
+            y: lg.lineGuide,
+          });
+        } else if (lg.orientation === "V") {
+          var line = new Konva.Line({
+            points: [0, -6000, 0, 6000],
+            stroke: "rgb(0, 161, 255)",
+            strokeWidth: 1,
+            name: "guid-line",
+            dash: [4, 6],
+          });
+          layer.add(line);
+          line.absolutePosition({
+            x: lg.lineGuide,
+            y: 0,
+          });
+        }
+      });
+    }
+
+    layer.on("dragmove", function (e) {
+      // clear all previous lines on the screen
+      layer.find(".guid-line").forEach((l) => l.destroy());
+
+      // find possible snapping lines
+      var lineGuideStops = getLineGuideStops(e.target);
+      // find snapping points of current object
+      var itemBounds = getObjectSnappingEdges(e.target);
+
+      // now find where can we snap current object
+      var guides = getGuides(lineGuideStops, itemBounds);
+
+      // do nothing of no snapping
+      if (!guides.length) {
+        return;
+      }
+
+      drawGuides(guides);
+
+      var absPos = e.target.absolutePosition();
+      // now force object position
+      guides.forEach((lg) => {
+        switch (lg.snap) {
+          case "start": {
+            switch (lg.orientation) {
+              case "V": {
+                absPos.x = lg.lineGuide + lg.offset;
+                break;
+              }
+              case "H": {
+                absPos.y = lg.lineGuide + lg.offset;
+                break;
+              }
+            }
+            break;
+          }
+          case "center": {
+            switch (lg.orientation) {
+              case "V": {
+                absPos.x = lg.lineGuide + lg.offset;
+                break;
+              }
+              case "H": {
+                absPos.y = lg.lineGuide + lg.offset;
+                break;
+              }
+            }
+            break;
+          }
+          case "end": {
+            switch (lg.orientation) {
+              case "V": {
+                absPos.x = lg.lineGuide + lg.offset;
+                break;
+              }
+              case "H": {
+                absPos.y = lg.lineGuide + lg.offset;
+                break;
+              }
+            }
+            break;
+          }
+        }
+      });
+      e.target.absolutePosition(absPos);
+
+      var target = e.target;
+      var targetRect = e.target.getClientRect();
+      layer.children.forEach(function (group) {
+        if (group === target) {
+          return;
+        }
+        if (haveIntersection(group.getClientRect(), targetRect)) {
+          if (group instanceof Konva.Group) {
+            const shape = group.findOne(".fillShape");
+            if (shape) {
+              shape.stroke("red");
+            }
+          }
+        } else {
+          if (group instanceof Konva.Group) {
+            const shape = group.findOne(".fillShape");
+            if (shape) {
+              shape.stroke("white");
+            }
+          }
+        }
+      });
+    });
+
+    layer.on("dragend", function (e) {
+      // clear all previous lines on the screen
+      layer.find(".guid-line").forEach((l) => l.destroy());
+    });
+
+    function haveIntersection(r1, r2) {
+      return !(
+        r2.x > r1.x + r1.width ||
+        r2.x + r2.width < r1.x ||
+        r2.y > r1.y + r1.height ||
+        r2.y + r2.height < r1.y
+      );
     }
   }, []);
 
-  useEffect(() => {
-    let x = con.cF[0]?.x - con.cB.x;
-    let y = con.cF[0]?.y - con.cB.y;
-    setRelativePosition({ x: x, y: y });
-    console.log(relativePosition.x);
-    console.log(relativePosition.y);
-    console.log("________________");
-  }, [con.cF]);
+  useEffect(() => {});
+
+  // useEffect(() => {
+  //   const div = document.getElementById("infiniteDiv");
+  //   const content = document.getElementById("content");
+
+  //   let isDragging = false;
+  //   let lastX = 0;
+  //   let lastY = 0;
+
+  //   let offsetX = 0;
+  //   let offsetY = 0;
+
+  //   function handleMouseDown(event) {
+  //     console.log("flagDragging11::: ", con.flagDragging);
+  //     if (con.flagDragging) {
+  //       isDragging = true;
+  //       lastX = event.clientX;
+  //       lastY = event.clientY;
+  //     }
+  //   }
+
+  //   function handleMouseMove(event) {
+  //     if (isDragging) {
+  //       const newX = event.clientX;
+  //       const newY = event.clientY;
+
+  //       offsetX += newX - lastX;
+  //       offsetY += newY - lastY;
+
+  //       content.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+
+  //       lastX = newX;
+  //       lastY = newY;
+  //     }
+  //   }
+
+  //   function handleMouseUp() {
+  //     isDragging = false;
+  //   }
+  //   if (con.flagDragging) {
+  //     div.addEventListener("mousedown", handleMouseDown);
+  //     div.addEventListener("mousemove", handleMouseMove);
+  //     div.addEventListener("mouseup", handleMouseUp);
+
+  //     // Resize div to match window size
+  //     function resizeDiv() {
+  //       div.style.width = window.innerWidth + "px";
+  //       div.style.height = window.innerHeight + "px";
+  //     }
+
+  //     resizeDiv();
+  //     window.addEventListener("resize", resizeDiv);
+  //   }
+  // }, []);
+
+  // useEffect(() => {
+  //   let x = con.cF[0]?.x - con.cB.x;
+  //   let y = con.cF[0]?.y - con.cB.y;
+  //   setRelativePosition({ x: x, y: y });
+  //   console.log(relativePosition.x);
+  //   console.log(relativePosition.y);
+  //   console.log("________________");
+  // }, [con.cF]);
 
   const lunching = () => {
     var canvas = document.getElementById("All");
@@ -546,14 +813,14 @@ function App() {
             >
               افزودن محتوا
             </Button>
-            {/* <input
+            <input
               className="absolute left-10 h-[45px] opacity-0 cursor-pointer w-[100px]"
               type="file"
               id="fileInput"
-            /> */}
+            />
           </div>
-          {/* <button id="play">Play</button>
-          <button id="pause">Pause</button> */}
+          <button id="play">Play</button>
+          <button id="pause">Pause</button>
         </div>
         {/* <div
           id="Template-setting"
@@ -746,6 +1013,7 @@ function App() {
             <div id="content" className="absolute w-full h-full top-0 left-0">
               <div
                 className="ff z-50 relative "
+                id="containerKonva"
                 onMouseDown={(e) => {
                   con.setFlagDragging(false);
                 }}
@@ -759,7 +1027,7 @@ function App() {
                   />
                 ))}
               </div>
-              {videoWalls.map((videoName, index) => (
+              {/* {videoWalls.map((videoName, index) => (
                 <span ref={centerBox} key={index}>
                   <Block
                     key={index}
@@ -772,7 +1040,7 @@ function App() {
                     customY={videoName.y}
                   />
                 </span>
-              ))}
+              ))} */}
             </div>
           </div>
         </div>
