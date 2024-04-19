@@ -48,12 +48,17 @@ function App() {
   const [checkvideo, setCheckVideo] = useState(1);
   const [checkSection, setCheckSection] = useState(0);
   const [scale, setScale] = useState(1);
+  const [data, setData] = useState([{ monitor: 0, position: 0 }]);
   const [relativePosition, setRelativePosition] = useState({ x: 0, y: 0 });
   const con = useMyContext();
   const transformComponentRef = useRef(null);
   let contentRef = useRef(null);
   let centerBox = useRef(null);
-
+  let arrayCollisions = [];
+  let setData2 = [];
+  let updatedPosition = 0;
+  let counterImages = 0;
+  let counterVideos = 0;
   const zoomToImage = () => {
     if (transformComponentRef.current) {
       const { zoomToElement } = transformComponentRef.current.instance;
@@ -96,6 +101,7 @@ function App() {
   }
 
   function getClientRect(rotatedBox) {
+    console.log("s");
     const { x, y, width, height } = rotatedBox;
     const rad = rotatedBox.rotation;
 
@@ -155,14 +161,15 @@ function App() {
     var WIDTH = 1000;
     var HEIGHT = 1000;
     var NUMBER = 2;
-
-    function generateNode(x, y, width, height) {
-      const group = new Konva.Group({
+    let group = null;
+    function generateNode(x, y, width, height, name) {
+      group = new Konva.Group({
         clip: {
           x: x,
           y: -y,
           width: width,
           height: height,
+          fill: "red",
         },
       });
 
@@ -174,9 +181,9 @@ function App() {
         fill: "transparent",
         stroke: "white",
         name: "fillShape",
+        id: name,
       });
 
-      // اضافه کردن مستطیل به گروه
       group.add(rect);
 
       return group;
@@ -188,7 +195,8 @@ function App() {
           videoWalls[i].x,
           videoWalls[i].y,
           videoWalls[i].width,
-          videoWalls[i].height
+          videoWalls[i].height,
+          videoWalls[i].name
         )
       );
     }
@@ -239,8 +247,12 @@ function App() {
       x: 50,
       y: 20,
       name: "object",
+      id: "video" + counterVideos++,
     });
+    console.log("layer::: ", layer);
+    console.log("group::: ", group);
     layer.add(image);
+    // image.setZIndex(0);
 
     video.addEventListener("loadedmetadata", function (e) {
       image.width(video.videoWidth);
@@ -250,19 +262,14 @@ function App() {
         updateImagePositionRelativeToVideoWall(image, videoWalls[0]);
 
       image.position(positionRelativeToVideoWall);
-      console.log(
-        "positionRelativeToVideoWall::: ",
-        positionRelativeToVideoWall
-      );
+
       layer.draw();
 
       image.on("dragmove", function () {
-        const updatedPosition = updateImagePositionRelativeToVideoWall(
+        updatedPosition = updateImagePositionRelativeToVideoWall(
           image,
           videoWalls[0]
         );
-
-        console.log("updatedPosition::: ", updatedPosition);
       });
     });
 
@@ -290,6 +297,7 @@ function App() {
         x: 50,
         y: 20,
         name: "object",
+        id: "image" + counterImages++,
       });
 
       layer.add(image);
@@ -651,17 +659,48 @@ function App() {
             const shape = group.findOne(".fillShape");
             if (shape) {
               shape.stroke("red");
+              let x = arrayCollisions.find(
+                (item) => item == shape.getAttr("id")
+              );
+
+              if (!x) {
+                arrayCollisions.push(shape.getAttr("id"));
+              }
             }
           }
         } else {
           if (group instanceof Konva.Group) {
             const shape = group.findOne(".fillShape");
+
             if (shape) {
+              let x = arrayCollisions.find(
+                (item) => item == shape.getAttr("id")
+              );
+
+              if (x) {
+                let y = arrayCollisions.indexOf(x);
+                if (y !== -1) {
+                  arrayCollisions.splice(y, 1);
+                }
+              }
               shape.stroke("white");
             }
           }
         }
       });
+      setData2 = [
+        {
+          monitor: arrayCollisions,
+          x: updatedPosition.x,
+          y: updatedPosition.y,
+          width: updatedPosition.width,
+          height: updatedPosition.height,
+          name: e.target.getNodes
+            ? e.target.getNodes()[0].getAttr("id")
+            : e.target.getAttr("id"),
+        },
+      ];
+      console.log(...setData2);
     });
 
     layer.on("dragend", function (e) {
@@ -678,8 +717,6 @@ function App() {
       );
     }
   }, []);
-
-  useEffect(() => {});
 
   // useEffect(() => {
   //   const div = document.getElementById("infiniteDiv");
@@ -784,44 +821,6 @@ function App() {
         id="Options"
         className=" absolute h-[770px] z-50 translate-x-[-220px] hover:translate-x-[-30px] transition-all overflow-auto p-3 w-[200px] bg-slate-500 bg-opacity-100 rounded-md flex flex-col gap-5"
       >
-        <div
-          id="Template-setting"
-          className="text-center w-full flex flex-col items-center justify-start  bg-gray-400 rounded-lg p-1"
-        >
-          <h1>مدیریت محتوا</h1>
-          <ModalCustom />
-          {/* <Button
-            onClick={addVideoWall}
-            className={`${
-              checkvideo == 4 || checkvideo == 8
-                ? "bg-slate-500"
-                : "bg-slate-600  cursor-pointer"
-            } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
-            disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
-          >
-            افزودن مانتیور
-          </Button> */}
-          <div>
-            <Button
-              onClick={addContent}
-              className={`${
-                checkvideo == 4 || checkvideo == 8
-                  ? "bg-slate-500"
-                  : "bg-slate-600  cursor-pointer"
-              } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
-              disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
-            >
-              افزودن محتوا
-            </Button>
-            <input
-              className="absolute left-10 h-[45px] opacity-0 cursor-pointer w-[100px]"
-              type="file"
-              id="fileInput"
-            />
-          </div>
-          <button id="play">Play</button>
-          <button id="pause">Pause</button>
-        </div>
         {/* <div
           id="Template-setting"
           className="text-center p-2 flex flex-col items-center justify-start w-full bg-gray-400 rounded-lg"
@@ -881,6 +880,27 @@ function App() {
           className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
         >
           <h1 className="">مدیریت محتوا </h1>
+          <div>
+            <Button
+              onClick={addContent}
+              className={`${
+                checkvideo == 4 || checkvideo == 8
+                  ? "bg-slate-500"
+                  : "bg-slate-600  cursor-pointer"
+              } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
+              disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
+            >
+              افزودن محتوا
+            </Button>
+            <input
+              className="absolute left-10 h-[45px] opacity-0 cursor-pointer w-[100px]"
+              type="file"
+              id="fileInput"
+            />
+          </div>
+          <button id="play">Play</button>
+          <button id="pause">Pause</button>
+          <input type="checkbox" id="checkbox" />
           <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
             {content.map((videoName, index) => (
               <li
