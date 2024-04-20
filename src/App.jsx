@@ -45,6 +45,7 @@ function App() {
     },
   ]);
   const [content, setContent] = useState([]);
+  const [content2, setContent2] = useState([]);
   const [checkvideo, setCheckVideo] = useState(1);
   const [checkSection, setCheckSection] = useState(0);
   const [scale, setScale] = useState(1);
@@ -135,6 +136,7 @@ function App() {
       maxX = Math.max(maxX, box.x + box.width);
       maxY = Math.max(maxY, box.y + box.height);
     });
+
     return {
       x: minX,
       y: minY,
@@ -236,42 +238,25 @@ function App() {
       stage.position(newPos);
     });
 
-    var video = document.createElement("video");
-    video.src = "/controller/video.mp4";
-    var video2 = document.createElement("video");
-    video2.src = "/controller/video.mp4";
+    // let video = document.createElement("video");
+    // let image = null;
+    // video.src = "/controller/video.mp4";
 
-    var image = new Konva.Image({
-      image: video,
-      draggable: true,
-      x: 50,
-      y: 20,
-      name: "object",
-      id: "video" + counterVideos++,
-    });
+    // image = new Konva.Image({
+    //   image: video,
+    //   draggable: true,
+    //   x: 50,
+    //   y: 20,
+    //   name: "object",
+    //   id: "video" + counterVideos++,
+    //   width: 640,
+    //   height: 480,
+    // });
+
     console.log("layer::: ", layer);
     console.log("group::: ", group);
-    layer.add(image);
+
     // image.setZIndex(0);
-
-    video.addEventListener("loadedmetadata", function (e) {
-      image.width(video.videoWidth);
-      image.height(video.videoHeight);
-
-      const positionRelativeToVideoWall =
-        updateImagePositionRelativeToVideoWall(image, videoWalls[0]);
-
-      image.position(positionRelativeToVideoWall);
-
-      layer.draw();
-
-      image.on("dragmove", function () {
-        updatedPosition = updateImagePositionRelativeToVideoWall(
-          image,
-          videoWalls[0]
-        );
-      });
-    });
 
     var anim = new Konva.Animation(function () {
       // do nothing, animation just need to update the layer
@@ -303,43 +288,40 @@ function App() {
       layer.add(image);
     }
 
+    let video = document.createElement("video");
+    video.src = "/controller/video.mp4";
+    let image = new Konva.Image({
+      image: video,
+      draggable: true,
+      x: 50,
+      y: 20,
+      name: "object",
+      id: "video" + counterVideos++,
+    });
+    layer.add(image);
+    image.width(video.videoWidth);
+    image.height(video.videoHeight);
+    layer.draw();
     function handleVideo(arrayBuffer) {
       // مدیریت ویدیو
-      var videoImage = new Konva.Image({
-        image: video2,
+      image = new Konva.Image({
+        image: video,
         draggable: true,
         x: 50,
         y: 20,
-        width: 200,
-        height: 200,
         name: "object",
+        id: "video" + counterVideos++,
       });
 
-      layer.add(videoImage);
+      layer.add(image);
+      console.log(layer);
+      image.width(video.videoWidth);
+      image.height(video.videoHeight);
+      layer.draw();
+      const positionRelativeToVideoWall =
+        updateImagePositionRelativeToVideoWall(image, videoWalls[0]);
 
-      video2.addEventListener("loadedmetadata", function (e) {
-        videoImage.width(video2.videoWidth);
-        videoImage.height(video2.videoHeight);
-
-        const positionRelativeToVideoWall =
-          updateImagePositionRelativeToVideoWall(videoImage, videoWalls[0]);
-
-        videoImage.position(positionRelativeToVideoWall);
-        console.log(
-          "positionRelativeToVideoWall::: ",
-          positionRelativeToVideoWall
-        );
-        layer.draw();
-
-        videoImage.on("dragmove", function () {
-          const updatedPosition = updateImagePositionRelativeToVideoWall(
-            videoImage,
-            videoWalls[0]
-          );
-
-          console.log("updatedPosition::: ", updatedPosition);
-        });
-      });
+      image.position(positionRelativeToVideoWall);
     }
 
     var inputElement = document.getElementById("fileInput");
@@ -371,20 +353,21 @@ function App() {
         nodes: [image],
         boundBoxFunc: (oldBox, newBox) => {
           const box = getClientRect(newBox);
+          // image.width(box.width);
+          // image.height(box.height);
           const isOut =
             box.x < 0 ||
             box.y < 0 ||
             box.x + box.width > stage.width() ||
             box.y + box.height > stage.height();
 
-          // if new bounding box is out of visible viewport, let's just skip transforming
-          // this logic can be improved by still allow some transforming if we have small available space
           if (isOut) {
             return oldBox;
           }
           return newBox;
         },
       });
+
       tr.on("dragmove", () => {
         const boxes = tr.nodes().map((node) => node.getClientRect());
         const box = getTotalBox(boxes);
@@ -583,18 +566,11 @@ function App() {
     }
 
     layer.on("dragmove", function (e) {
-      // clear all previous lines on the screen
       layer.find(".guid-line").forEach((l) => l.destroy());
-
-      // find possible snapping lines
       var lineGuideStops = getLineGuideStops(e.target);
-      // find snapping points of current object
       var itemBounds = getObjectSnappingEdges(e.target);
-
-      // now find where can we snap current object
       var guides = getGuides(lineGuideStops, itemBounds);
 
-      // do nothing of no snapping
       if (!guides.length) {
         return;
       }
@@ -688,6 +664,7 @@ function App() {
           }
         }
       });
+
       setData2 = [
         {
           monitor: arrayCollisions,
@@ -716,7 +693,7 @@ function App() {
         r2.y + r2.height < r1.y
       );
     }
-  }, []);
+  }, [setContent2, content2]);
 
   // useEffect(() => {
   //   const div = document.getElementById("infiniteDiv");
