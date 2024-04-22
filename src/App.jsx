@@ -262,73 +262,20 @@ function App() {
       // do nothing, animation just need to update the layer
     }, layer);
 
-    document.getElementById("play").addEventListener("click", function () {
-      video.play();
-      // video2.play();
-      anim.start();
-    });
-    document.getElementById("pause").addEventListener("click", function () {
-      video.pause();
-      anim.stop();
-    });
-
-    function handleImage(dataURL) {
-      var img = document.createElement("img");
-      img.src = "/public/logo192.png";
-      // مدیریت تصویر
-      var image = new Konva.Image({
-        image: img,
-        draggable: true,
-        x: 50,
-        y: 20,
-        name: "object",
-        id: "image" + counterImages++,
-      });
-
-      layer.add(image);
-    }
-
-    let video = document.createElement("video");
-    video.src = "/controller/video.mp4";
-    let image = new Konva.Image({
-      image: video,
-      draggable: true,
-      x: 50,
-      y: 20,
-      name: "object",
-      id: "video" + counterVideos++,
-    });
-    layer.add(image);
-    image.width(video.videoWidth);
-    image.height(video.videoHeight);
-    layer.draw();
-    function handleVideo(arrayBuffer) {
-      // مدیریت ویدیو
-      image = new Konva.Image({
-        image: video,
-        draggable: true,
-        x: 50,
-        y: 20,
-        name: "object",
-        id: "video" + counterVideos++,
-      });
-
-      layer.add(image);
-      console.log(layer);
-      image.width(video.videoWidth);
-      image.height(video.videoHeight);
-      layer.draw();
-      const positionRelativeToVideoWall =
-        updateImagePositionRelativeToVideoWall(image, videoWalls[0]);
-
-      image.position(positionRelativeToVideoWall);
-    }
+    // document.getElementById("play").addEventListener("click", function () {
+    //   video.play();
+    //   // video2.play();
+    //   anim.start();
+    // });
+    // document.getElementById("pause").addEventListener("click", function () {
+    //   video.pause();
+    //   anim.stop();
+    // });
 
     var inputElement = document.getElementById("fileInput");
 
     inputElement.addEventListener("change", function (e) {
       const file = e.target.files[0];
-      console.log("file::: ", file);
 
       if (file) {
         const fileType = file.type.split("/")[0]; // "image" یا "video"
@@ -347,6 +294,144 @@ function App() {
         }
       }
     });
+
+    function handleImage(dataURL) {
+      var img = document.createElement("img");
+      img.src = "/public/logo192.png";
+      // مدیریت تصویر
+      var image = new Konva.Image({
+        image: img,
+        draggable: true,
+        x: 50,
+        y: 20,
+        name: "object",
+        id: "image" + counterImages++,
+      });
+
+      layer.add(image);
+    }
+
+    let image = new Konva.Image({});
+
+    function handleVideo(arrayBuffer) {
+      const video = document.createElement("video");
+      video.src = "/controller/video.mp4";
+      video.setAttribute("id", "video" + counterImages++);
+
+      video.addEventListener("loadedmetadata", () => {
+        const group2 = new Konva.Group({
+          draggable: true,
+          x: 0,
+          y: 0,
+        });
+
+        const image = new Konva.Image({
+          image: video,
+          width: video.videoWidth,
+          height: video.videoHeight,
+          name: "object",
+          fill: "gray",
+          id: "video" + counterImages,
+        });
+
+        const group3 = new Konva.Group({
+          id: "video" + counterImages,
+        });
+
+        const group4 = new Konva.Group({
+          id: "video" + counterImages,
+        });
+
+        const playButton = new Konva.Rect({
+          x: 10,
+          y: 10,
+          width: 50,
+          height: 30,
+          fill: "green",
+          cornerRadius: 5,
+        });
+
+        const playText = new Konva.Text({
+          x: 20,
+          y: 15,
+          text: "Play",
+          fontSize: 16,
+          fill: "white",
+        });
+
+        const pauseButton = new Konva.Rect({
+          x: 70,
+          y: 10,
+          width: 60,
+          height: 30,
+          fill: "red",
+          cornerRadius: 5,
+        });
+
+        const pauseText = new Konva.Text({
+          x: 80,
+          y: 15,
+          text: "Pause",
+          fontSize: 16,
+          fill: "white",
+        });
+
+        group3.add(playButton);
+        group3.add(playText);
+        group4.add(pauseButton);
+        group4.add(pauseText);
+
+        group2.add(image);
+        group2.add(group3);
+        group2.add(group4);
+
+        layer.add(group2);
+        stage.add(layer);
+
+        // عملکرد دکمه Play
+        group3.on("click tap", () => {
+          video.play();
+          anim.start();
+        });
+
+        group4.on("click tap", () => {
+          video.pause();
+        });
+
+        image.width(video.videoWidth);
+        image.height(video.videoHeight);
+
+        const positionRelativeToVideoWall =
+          updateImagePositionRelativeToVideoWall(group2, videoWalls[0]);
+        group2.position(positionRelativeToVideoWall);
+
+        layer.draw();
+
+        const transformer = new Konva.Transformer({
+          nodes: [image],
+          enabledAnchors: [
+            "top-left",
+            "top-right",
+            "top-center",
+            "bottom-left",
+            "bottom-right",
+            "bottom-center",
+            "middle-right",
+            "middle-left",
+          ],
+        });
+
+        group2.add(transformer);
+
+        transformer.on("transform", () => {
+          const scaleX = image.scaleX();
+          const scaleY = image.scaleY();
+          image.width(video.videoWidth * scaleX);
+          image.height(video.videoHeight * scaleY);
+          layer.batchDraw();
+        });
+      });
+    }
 
     image.on("click", (e) => {
       const tr = new Konva.Transformer({
@@ -796,7 +881,7 @@ function App() {
     <main className="p-6 bg-gray-800 h-screen w-full flex  items-center gap-5">
       <div
         id="Options"
-        className=" absolute h-[770px] z-50 translate-x-[-220px] hover:translate-x-[-30px] transition-all overflow-auto p-3 w-[200px] bg-slate-500 bg-opacity-100 rounded-md flex flex-col gap-5"
+        className=" absolute h-full z-50 translate-x-[-220px] hover:translate-x-[-30px] transition-all overflow-auto p-3 w-[200px] bg-slate-500 bg-opacity-100  flex flex-col gap-5"
       >
         {/* <div
           id="Template-setting"
@@ -857,7 +942,7 @@ function App() {
           className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
         >
           <h1 className="">مدیریت محتوا </h1>
-          <div>
+          <div className="cursor-pointer">
             <Button
               onClick={addContent}
               className={`${
