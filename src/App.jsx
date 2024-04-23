@@ -149,6 +149,10 @@ function App() {
     var width = window.innerWidth;
     var height = window.innerHeight;
     var GUIDELINE_OFFSET = 5;
+    var WIDTH = 1000;
+    var HEIGHT = 1000;
+    var NUMBER = 2;
+    let group = null;
 
     var stage = new Konva.Stage({
       container: "containerKonva",
@@ -160,10 +164,6 @@ function App() {
     var layer = new Konva.Layer();
     stage.add(layer);
 
-    var WIDTH = 1000;
-    var HEIGHT = 1000;
-    var NUMBER = 2;
-    let group = null;
     function generateNode(x, y, width, height, name) {
       group = new Konva.Group({
         clip: {
@@ -262,16 +262,6 @@ function App() {
       // do nothing, animation just need to update the layer
     }, layer);
 
-    // document.getElementById("play").addEventListener("click", function () {
-    //   video.play();
-    //   // video2.play();
-    //   anim.start();
-    // });
-    // document.getElementById("pause").addEventListener("click", function () {
-    //   video.pause();
-    //   anim.stop();
-    // });
-
     var inputElement = document.getElementById("fileInput");
 
     inputElement.addEventListener("change", function (e) {
@@ -298,20 +288,42 @@ function App() {
     function handleImage(dataURL) {
       var img = document.createElement("img");
       img.src = "/public/logo192.png";
-      // مدیریت تصویر
-      var image = new Konva.Image({
-        image: img,
+
+      const group2 = new Konva.Group({
         draggable: true,
-        x: 50,
-        y: 20,
+        x: 0,
+        y: 0,
+      });
+      // ایجاد یک شیء Image جدید با استفاده از Konva.Image
+      const image = new Konva.Image({
+        image: img, // استفاده از داده URL برای تصویر
         name: "object",
         id: "image" + counterImages++,
       });
+      group2.add(image);
+      layer.add(group2); // اضافه کردن تصویر به لایه
 
-      layer.add(image);
+      const transformer = new Konva.Transformer({
+        nodes: [image],
+        enabledAnchors: [
+          "top-left",
+          "top-right",
+          "bottom-left",
+          "bottom-right",
+        ],
+      });
+
+      group2.add(transformer); // اضافه کردن تغییر اندازه به لایه
+
+      // رفتار تغییر اندازه تصویر
+      transformer.on("transform", () => {
+        const scaleX = image.scaleX();
+        const scaleY = image.scaleY();
+        image.width(image.image().width * scaleX); // به‌روزرسانی عرض تصویر
+        image.height(image.image().height * scaleY); // به‌روزرسانی ارتفاع تصویر
+        layer.batchDraw(); // به‌روزرسانی لایه برای نمایش تغییرات
+      });
     }
-
-    let image = new Konva.Image({});
 
     function handleVideo(arrayBuffer) {
       const video = document.createElement("video");
@@ -432,68 +444,6 @@ function App() {
         });
       });
     }
-
-    image.on("click", (e) => {
-      const tr = new Konva.Transformer({
-        nodes: [image],
-        boundBoxFunc: (oldBox, newBox) => {
-          const box = getClientRect(newBox);
-          // image.width(box.width);
-          // image.height(box.height);
-          const isOut =
-            box.x < 0 ||
-            box.y < 0 ||
-            box.x + box.width > stage.width() ||
-            box.y + box.height > stage.height();
-
-          if (isOut) {
-            return oldBox;
-          }
-          return newBox;
-        },
-      });
-
-      tr.on("dragmove", () => {
-        const boxes = tr.nodes().map((node) => node.getClientRect());
-        const box = getTotalBox(boxes);
-        tr.nodes().forEach((shape) => {
-          const absPos = shape.getAbsolutePosition();
-          // where are shapes inside bounding box of all shapes?
-          const offsetX = box.x - absPos.x;
-          const offsetY = box.y - absPos.y;
-
-          // we total box goes outside of viewport, we need to move absolute position of shape
-          const newAbsPos = { ...absPos };
-          if (box.x < 0) {
-            newAbsPos.x = -offsetX;
-          }
-          if (box.y < 0) {
-            newAbsPos.y = -offsetY;
-          }
-          if (box.x + box.width > stage.width()) {
-            newAbsPos.x = stage.width() - box.width - offsetX;
-          }
-          if (box.y + box.height > stage.height()) {
-            newAbsPos.y = stage.height() - box.height - offsetY;
-          }
-          shape.setAbsolutePosition(newAbsPos);
-        });
-      });
-      layer.add(tr);
-    });
-    stage.on("click", (e) => {
-      if (e.target !== image) {
-        const index = layer.children.findIndex(
-          (child) => child instanceof Konva.Transformer
-        );
-
-        if (index !== -1) {
-          layer.children.splice(index, 1);
-        }
-        layer.draw();
-        console.log(layer);
-      }
-    });
 
     // were can we snap our objects?
     function getLineGuideStops(skipShape) {
@@ -883,38 +833,6 @@ function App() {
         id="Options"
         className=" absolute h-full z-50 translate-x-[-220px] hover:translate-x-[-30px] transition-all overflow-auto p-3 w-[200px] bg-slate-500 bg-opacity-100  flex flex-col gap-5"
       >
-        {/* <div
-          id="Template-setting"
-          className="text-center p-2 flex flex-col items-center justify-start w-full bg-gray-400 rounded-lg"
-        >
-          <h1>تنظیمات قالب</h1>
-
-          <select
-            className="text-white  bg-slate-600  px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-900  rtl"
-            value={checkvideo}
-            onChange={(e) => {
-              handleCheckVideo(parseInt(e.target.value));
-            }}
-          >
-            <option value={1}>قالب آزاد</option>
-            <option value={4}>قالب ۴ تایی</option>
-            <option value={8}>قالب ۸ تایی</option>
-          </select>
-
-          <label>قسمت بندی</label>
-          <select
-            className="text-white  bg-slate-600 w-[120px] rtl  px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-900 "
-            value={checkSection}
-            onChange={(e) => {
-              handleCheckSection(parseInt(e.target.value));
-            }}
-          >
-            <option value={0}> فاقد قسمت</option>
-            <option value={4}> ۴ قسمتی</option>
-            <option value={8}> ۸ قسمتی</option>
-            <option value={12}> ۱۲ قسمتی</option>
-          </select>
-        </div> */}
         <div
           id="Pictures-setting"
           className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
@@ -960,9 +878,9 @@ function App() {
               id="fileInput"
             />
           </div>
-          <button id="play">Play</button>
+          {/* <button id="play">Play</button>
           <button id="pause">Pause</button>
-          <input type="checkbox" id="checkbox" />
+          <input type="checkbox" id="checkbox" /> */}
           <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
             {content.map((videoName, index) => (
               <li
@@ -980,21 +898,10 @@ function App() {
             ))}
           </ul>
         </div>
-        <div className="w-full">
-          <Button className="w-full" onClick={lunching}>
-            اعمال
-          </Button>
-        </div>
-        {/* <div id="Guid" className="w-[700px] text-right">
-          <p>ابتدا روی مانیتور کلیک کرده سپس درگ کنید</p>
-          <p>علامت ✕ نمایانگر برداشتن حالت گزینه تغییرات تصویر است</p>
-
-          <p>با کلیک روی گزینه اعمال چیدمان‌ها در مانیتور قابل مشاهده میشوند</p>
-        </div> */}
       </div>
 
       <div id="fff" className="w-full h-full flex ">
-        <div className="flex w-[200px] absolute m-5 z-10 gap-3">
+        {/* <div className="flex w-[200px] absolute m-5 z-10 gap-3">
           <div
             onClick={() => {
               setScale(scale - 0.1);
@@ -1011,7 +918,7 @@ function App() {
           >
             +
           </div>
-        </div>
+        </div> */}
         <div
           onClick={(e) => {
             con.setIsActiveG("un");
