@@ -328,7 +328,7 @@ function App() {
 
     let allData = [];
     function handleImage(dataURL) {
-      var img = document.createElement("img");
+      let img = document.createElement("img");
       img.src = "/public/logo192.png";
       counterImages++;
       const group2 = new Konva.Group({
@@ -508,7 +508,6 @@ function App() {
           image.width(video.videoWidth * scaleX);
           image.height(video.videoHeight * scaleY);
           layer.batchDraw();
-          console.log("image.width()::: ", image.width());
           processImageResize(image.width(), image.height(), group2);
         });
 
@@ -743,7 +742,6 @@ function App() {
 
       var target = e.target;
       var targetRect = e.target.getClientRect();
-      console.log("targetRect::: ", targetRect);
       layer.children.forEach(function (group) {
         if (group === target) {
           return;
