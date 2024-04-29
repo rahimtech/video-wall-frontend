@@ -10,8 +10,10 @@ import { Button } from "@nextui-org/react";
 import { useMyContext } from "./context/MyContext";
 import { MyContextProvider } from "./context/MyContext";
 import Contents from "./components/Contents";
+import axios from "axios";
 // import { exec } from "child_process";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import SwitchCustom from "./components/SwitchCustom";
 
 const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   <>
@@ -22,33 +24,13 @@ const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
 );
 
 function App() {
-  const [videoWalls, setVideoWalls] = useState([
-    {
-      height: 900,
-      height_mm: null,
-      is_primary: true,
-      name: 1,
-      width: 1440,
-      width_mm: null,
-      x: 0,
-      y: 0,
-    },
-    {
-      height: 1080,
-      height_mm: null,
-      is_primary: false,
-      name: 2,
-      width: 1920,
-      width_mm: null,
-      x: -1920,
-      y: 696,
-    },
-  ]);
+  const [videoWalls, setVideoWalls] = useState();
   const [content, setContent] = useState([]);
   const [content2, setContent2] = useState([]);
   const [checkvideo, setCheckVideo] = useState(1);
   const [checkSection, setCheckSection] = useState(0);
   const [scale, setScale] = useState(1);
+  const [darkMode, setDarkMode] = useState(false);
   const [data, setData] = useState([]);
   const [relativePosition, setRelativePosition] = useState({ x: 0, y: 0 });
   const con = useMyContext();
@@ -58,14 +40,8 @@ function App() {
   let updatedPosition = 0;
   let counterImages = 0;
   let counterVideos = 0;
-  const zoomToImage = () => {
-    if (transformComponentRef.current) {
-      const { zoomToElement } = transformComponentRef.current.instance;
-      zoomToElement("imgExample");
-    }
-  };
-  const addVideoWall = () => {};
-
+  let allData = [];
+  let allDataMonitors = [];
   function updateImagePositionRelativeToVideoWall(image, videoWall) {
     const { x, y, width, height } = videoWall;
     const scaleX = image.width() / width;
@@ -142,7 +118,17 @@ function App() {
     };
   }
 
-  useEffect(() => {
+  useEffect(async () => {
+    // GET request
+    // axios
+    //   .get("/api/users")
+    //   .then((response) => {
+    //     console.log(response.data);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error fetching data:", error);
+    //   });
+
     var width = window.innerWidth;
     var height = window.innerHeight;
     var GUIDELINE_OFFSET = 5;
@@ -177,9 +163,10 @@ function App() {
         y: -y,
         width: width,
         height: height,
-        fill: "transparent",
-        stroke: "white",
+        fill: "#e3e4e4",
+        stroke: "black",
         name: "fillShape",
+        strokeWidth: 3,
         id: name,
       });
 
@@ -188,14 +175,27 @@ function App() {
       return group;
     }
 
-    for (var i = 0; i < NUMBER; i++) {
+    await axios
+      .get("http://127.0.0.1:5500/displays")
+      .then((response) => {
+        console.log(response.data);
+        allDataMonitors = response.data;
+        setVideoWalls(allDataMonitors);
+        console.log("allDataMonitors::: ", allDataMonitors);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
+    console.log(allDataMonitors);
+
+    for (var i = 0; i < allDataMonitors?.length; i++) {
       layer.add(
         generateNode(
-          videoWalls[i].x,
-          videoWalls[i].y,
-          videoWalls[i].width,
-          videoWalls[i].height,
-          videoWalls[i].name
+          allDataMonitors[i].x,
+          allDataMonitors[i].y,
+          allDataMonitors[i].width,
+          allDataMonitors[i].height,
+          allDataMonitors[i].name
         )
       );
     }
@@ -234,6 +234,8 @@ function App() {
       };
       stage.position(newPos);
     });
+    stage.position({ x: 200, y: 200 });
+    stage.scale({ x: 0.17, y: 0.17 });
 
     // console.log("layer::: ", layer);
     // console.log("group::: ", group);
@@ -246,9 +248,11 @@ function App() {
 
     inputElement.addEventListener("change", function (e) {
       const file = e.target.files[0];
+      console.log("file::: ", file);
 
       if (file) {
         const fileType = file.type.split("/")[0]; // "image" یا "video"
+        console.log("fileType::: ", fileType);
 
         if (fileType === "image") {
           // اگر نوع فایل تصویر باشد
@@ -256,8 +260,8 @@ function App() {
           handleImage(imageURL);
         } else if (fileType === "video") {
           // اگر نوع فایل ویدیو باشد
-          const videoURL = URL.createObjectURL(file);
-          handleVideo(videoURL);
+          // const videoURL = URL.createObjectURL(file);
+          handleVideo(file);
         } else {
           console.error("Unsupported file type.");
         }
@@ -309,12 +313,12 @@ function App() {
       let searchIndexArray = group2.getAttr("id");
 
       allData.find((item) => {
-        if (item[0].name == searchIndexArray) {
+        if (item.name == searchIndexArray) {
           let updatedPosition = updateImagePositionRelativeToVideoWall(
             group2.children[0],
             videoWalls[0]
           );
-          item[0] = {
+          item = {
             monitor: arrayCollisions,
             x: updatedPosition.x,
             y: updatedPosition.y,
@@ -326,7 +330,6 @@ function App() {
       });
     }
 
-    let allData = [];
     function handleImage(dataURL) {
       let img = document.createElement("img");
       img.src = "/public/logo192.png";
@@ -362,14 +365,13 @@ function App() {
         ],
       });
 
-      group2.add(transformer); // اضافه کردن تغییر اندازه به لایه
+      group2.add(transformer);
 
-      // رفتار تغییر اندازه تصویر
       transformer.on("transform", () => {
         const scaleX = image.scaleX();
         const scaleY = image.scaleY();
-        image.width(image.image().width * scaleX); // به‌روزرسانی عرض تصویر
-        image.height(image.image().height * scaleY); // به‌روزرسانی ارتفاع تصویر
+        image.width(image.image().width * scaleX);
+        image.height(image.image().height * scaleY);
         layer.batchDraw();
         processImageResize(image.width(), image.height(), group2);
       });
@@ -392,9 +394,28 @@ function App() {
       console.log(allData);
     }
 
-    function handleVideo(arrayBuffer) {
+    async function handleVideo(arrayBuffer) {
+      console.log("arrayBuffer::: ", arrayBuffer);
       const video = document.createElement("video");
-      video.src = "/controller/video.mp4";
+      video.src = "/public/1.mp4";
+
+      var formData = new FormData();
+
+      formData.append("file", arrayBuffer);
+
+      // await axios
+      //   .post("http://127.0.0.1:5500/files/upload", formData, {
+      //     headers: {
+      //       "Content-Type": "multipart/form-data",
+      //     },
+      //   })
+      //   .then((response) => {
+      //     console.log(response.data);
+      //   })
+      //   .catch((error) => {
+      //     console.error("Error fetching data:", error);
+      //   });
+
       video.setAttribute("id", "video" + counterVideos++);
 
       video.addEventListener("loadedmetadata", () => {
@@ -510,19 +531,62 @@ function App() {
           layer.batchDraw();
           processImageResize(image.width(), image.height(), group2);
         });
+        let xx = 0;
+        axios
+          .get("http://127.0.0.1:5500/sources")
+          .then((response) => {
+            xx = response.data.id;
+            console.log("User added successfully");
+          })
+          .catch((error) => {
+            console.error("Error adding user:", error);
+          });
+        console.log(xx);
 
-        allData.push([
-          {
-            monitor: [1],
+        axios
+          .post("http://127.0.0.1:5500/sources", {
+            // id: "13ab8ea5-2b8b-45fb-a760-c1075d95d724",
+            name: "video" + counterVideos,
             x: positionRelativeToVideoWall.x,
             y: positionRelativeToVideoWall.y,
             width: image.width(),
             height: image.height(),
-            name: "video" + counterVideos,
-          },
-        ]);
+            source: 0,
+            z_index: 0,
+            fps: 30,
+          })
+          .then((response) => {
+            allData.push(
+              {
+                monitor: [1],
+                x: positionRelativeToVideoWall.x,
+                y: positionRelativeToVideoWall.y,
+                width: image.width(),
+                height: image.height(),
+                name: "video" + counterVideos,
+                id: response.data.id,
+              },
+              console.log(allData)
+            );
+          })
+          .catch((error) => {
+            console.error("Error adding user:", error);
+          });
 
-        console.log(allData);
+        // console.log(allData);
+      });
+      stage.on("click", (e) => {
+        if (e.target !== video) {
+          const index = layer.children.findIndex(
+            (child) => child instanceof Konva.Transformer
+          );
+
+          if (index !== -1) {
+            layer.children.splice(index, 1);
+          }
+          layer.draw();
+          console.log(layer);
+        }
       });
     }
 
@@ -782,21 +846,44 @@ function App() {
       });
 
       let searchIndexArray = e.target.children[0].getAttr("id");
+      console.log("allData::: ", allData);
       allData.find((item) => {
-        if (item[0].name == searchIndexArray) {
+        console.log("searchIndexArray::: ", searchIndexArray);
+        console.log("item.name::: ", item?.name);
+        if (item && item.name == searchIndexArray) {
           let updatedPosition = updateImagePositionRelativeToVideoWall(
             e.target,
             videoWalls[0]
           );
-          item[0] = {
+          item = {
             monitor: arrayCollisions,
             x: updatedPosition.x,
             y: updatedPosition.y,
-            width: item[0].width,
-            height: item[0].height,
+            width: item.width,
+            height: item.height,
             name: searchIndexArray,
+            id: item.id,
           };
-          console.log(item[0]);
+
+          axios
+            .patch("http://127.0.0.1:5500/sources", {
+              id: item.id,
+              name: item.name,
+              x: updatedPosition.x,
+              y: updatedPosition.y,
+              width: item.width,
+              height: item.height,
+              source: 0,
+              z_index: 0,
+              fps: 30,
+            })
+            .then((response) => {
+              console.log("Source updated successfully");
+            })
+            .catch((error) => {
+              console.error("Error updating source:", error);
+            });
+          console.log(item);
         }
       });
     });
@@ -914,80 +1001,95 @@ function App() {
   };
 
   return (
-    <main className="p-6 bg-gray-800 h-screen w-full flex  items-center gap-5">
+    <main
+      className={`p-6 ${
+        darkMode ? "bg-black" : "bg-[#e3e4e4]"
+      }  h-screen w-full flex  items-center gap-5`}
+    >
       <div
         id="Options"
-        className=" absolute h-full z-50 translate-x-[-220px] hover:translate-x-[-30px] transition-all overflow-auto p-3 w-[200px] bg-slate-500 bg-opacity-100  flex flex-col gap-5"
+        className={` absolute left-0 h-full z-50 transition-all overflow-auto p-3 w-[200px] ${
+          darkMode ? "bg-[#212121]" : "bg-[#bcc2c9]"
+        } flex flex-col justify-between gap-5`}
       >
-        <div
-          id="Pictures-setting"
-          className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
-        >
-          <h1 className="">مدیریت مانیتورها </h1>
-          <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
-            {videoWalls.map((videoName, index) => (
-              <li
-                key={videoName.name}
-                className="flex justify-between px-1 bg-slate-500 rounded-lg  w-full"
-              >
-                <span>{videoName.name}</span>
-                <span>{videoName.width + "*" + videoName.height}</span>
-                {/* <span
+        <div className="flex flex-col gap-5">
+          <div
+            id="Pictures-setting"
+            className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
+          >
+            <h1 className="">مدیریت مانیتورها </h1>
+            <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
+              {videoWalls?.map((videoName, index) => (
+                <li
+                  key={videoName.name}
+                  className="flex justify-between px-1 bg-[#bcc2c9] rounded-lg  w-full"
+                >
+                  <span>{videoName.name}</span>
+                  <span>{videoName.width + "*" + videoName.height}</span>
+                  {/* <span
                   onClick={() => deletVideoWall(videoName)}
                   className="cursor-pointer hover:shadow-md shadow-black"
                 >
                   <FontAwesomeIcon icon={faTrash} className="text-red-900" />
                 </span> */}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div
-          id="Pictures-setting"
-          className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
-        >
-          <h1 className="">مدیریت محتوا </h1>
-          <div className="cursor-pointer">
-            <Button
-              onClick={addContent}
-              className={`${
-                checkvideo == 4 || checkvideo == 8
-                  ? "bg-slate-500"
-                  : "bg-slate-600  cursor-pointer"
-              } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
-              disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
-            >
-              افزودن محتوا
-            </Button>
-            <input
-              className="absolute left-10 h-[45px] opacity-0 cursor-pointer w-[100px]"
-              type="file"
-              id="fileInput"
-            />
+                </li>
+              ))}
+            </ul>
           </div>
-          {/* <button id="play">Play</button>
+          <div
+            id="Pictures-setting"
+            className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
+          >
+            <h1 className="">مدیریت محتوا </h1>
+            <div className="cursor-pointer">
+              <Button
+                onClick={addContent}
+                className={`${
+                  checkvideo == 4 || checkvideo == 8
+                    ? "bg-slate-500"
+                    : "bg-slate-600  cursor-pointer"
+                } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
+                disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
+              >
+                افزودن محتوا
+              </Button>
+              <input
+                className="absolute left-10 h-[45px] opacity-0 cursor-pointer w-[100px]"
+                type="file"
+                id="fileInput"
+              />
+            </div>
+            {/* <button id="play">Play</button>
           <button id="pause">Pause</button>
           <input type="checkbox" id="checkbox" /> */}
-          <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
-            {content.map((videoName, index) => (
-              <li
-                key={videoName}
-                className="flex justify-between px-1 bg-slate-500 rounded-lg  w-full"
-              >
-                <span>{videoName}</span>
-                <span
-                  onClick={() => deleteContent(videoName)}
-                  className="cursor-pointer hover:shadow-md shadow-black"
+            <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
+              {content.map((videoName, index) => (
+                <li
+                  key={videoName}
+                  className="flex justify-between px-1 bg-slate-500 rounded-lg  w-full"
                 >
-                  <FontAwesomeIcon icon={faTrash} className="text-red-900" />
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <span>{videoName}</span>
+                  <span
+                    onClick={() => deleteContent(videoName)}
+                    className="cursor-pointer hover:shadow-md shadow-black"
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="text-red-900" />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div id="setting">
+          <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
         </div>
       </div>
 
-      <div id="fff" className="w-full h-full flex ">
+      <div
+        id="fff"
+        className="w-full h-full flex "
+        style={{ marginLeft: "200px" }}
+      >
         {/* <div className="flex w-[200px] absolute m-5 z-10 gap-3">
           <div
             onClick={() => {
@@ -1019,67 +1121,9 @@ function App() {
                     id="b-sec-4"
                     className={`  absolute !z-10 w-full h-full  flex-col bg-transparent pointer-events-none `}
                   ></div> */}
-          <div
-            id="b-sec-4"
-            className={`${
-              checkSection === 4 ? "flex" : "hidden"
-            }  absolute !z-10 w-full h-full border-dashed  border-4 border-red-800 flex-col bg-transparent pointer-events-none `}
-          >
-            <div className=" w-full h-1/2 flex ">
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-            </div>
-            <div className=" w-full h-1/2 flex">
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-            </div>
-          </div>
+         
 
-          <div
-            id="b-sec-8"
-            className={`${
-              checkSection === 8 ? "flex" : "hidden"
-            } absolute !z-10 w-full h-full  flex-col bg-transparent pointer-events-none `}
-          >
-            <div className=" w-full h-1/2 flex ">
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-            </div>
-            <div className=" w-full h-1/2 flex ">
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-            </div>
-          </div>
-
-          <div
-            id="b-sec-12"
-            className={`${
-              checkSection === 12 ? "flex" : "hidden"
-            }  absolute !z-10 w-full h-full flex-col bg-transparent pointer-events-none `}
-          >
-            <div className=" w-full h-1/2 flex ">
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-            </div>
-            <div className=" w-full h-1/2 flex ">
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-              <div className="w-full h-full border-2 border-gray-600"></div>
-            </div>
-          </div>
+         
 
           <div
             id="infiniteDiv"
