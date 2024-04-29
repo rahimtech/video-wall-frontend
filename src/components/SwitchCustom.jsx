@@ -16,10 +16,8 @@ const ThemeSwitch = (props) => {
   } = useSwitch(props);
 
   useEffect(() => {
-    props.setDarkMode(!props.darkMode);
+    props.setDarkMode(!isSelected);
   }, [isSelected]);
-
- 
 
   return (
     <div className="flex flex-col gap-2">
@@ -45,5 +43,5 @@ const ThemeSwitch = (props) => {
 };
 
 export default function SwitchCustom({ setDarkMode, darkMode }) {
-  return <ThemeSwitch setDarkMode={setDarkMode} darkMode={darkMode} />;
+  return <ThemeSwitch setDarkMode={setDarkMode} />;
 }

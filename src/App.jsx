@@ -28,11 +28,8 @@ function App() {
   const [content, setContent] = useState([]);
   const [content2, setContent2] = useState([]);
   const [checkvideo, setCheckVideo] = useState(1);
-  const [checkSection, setCheckSection] = useState(0);
   const [scale, setScale] = useState(1);
   const [darkMode, setDarkMode] = useState(false);
-  const [data, setData] = useState([]);
-  const [relativePosition, setRelativePosition] = useState({ x: 0, y: 0 });
   const con = useMyContext();
   const transformComponentRef = useRef(null);
   let arrayCollisions = [];
@@ -119,16 +116,6 @@ function App() {
   }
 
   useEffect(async () => {
-    // GET request
-    // axios
-    //   .get("/api/users")
-    //   .then((response) => {
-    //     console.log(response.data);
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error fetching data:", error);
-    //   });
-
     var width = window.innerWidth;
     var height = window.innerHeight;
     var GUIDELINE_OFFSET = 5;
@@ -136,7 +123,6 @@ function App() {
     var HEIGHT = 1000;
     var NUMBER = 2;
     let group = null;
-
     var stage = new Konva.Stage({
       container: "containerKonva",
       width: width,
@@ -163,7 +149,7 @@ function App() {
         y: -y,
         width: width,
         height: height,
-        fill: "#e3e4e4",
+        fill: "#ffffff73",
         stroke: "black",
         name: "fillShape",
         strokeWidth: 3,
@@ -181,7 +167,6 @@ function App() {
         console.log(response.data);
         allDataMonitors = response.data;
         setVideoWalls(allDataMonitors);
-        console.log("allDataMonitors::: ", allDataMonitors);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
@@ -313,10 +298,10 @@ function App() {
       let searchIndexArray = group2.getAttr("id");
 
       allData.find((item) => {
-        if (item.name == searchIndexArray) {
+        if (item && item.name == searchIndexArray) {
           let updatedPosition = updateImagePositionRelativeToVideoWall(
             group2.children[0],
-            videoWalls[0]
+            allDataMonitors[0]
           );
           item = {
             monitor: arrayCollisions,
@@ -334,6 +319,8 @@ function App() {
       let img = document.createElement("img");
       img.src = "/public/logo192.png";
       counterImages++;
+      setContent([...content, "image" + counterImages]);
+
       const group2 = new Konva.Group({
         draggable: true,
         x: 0,
@@ -377,7 +364,7 @@ function App() {
       });
 
       const positionRelativeToVideoWall =
-        updateImagePositionRelativeToVideoWall(group2, videoWalls[0]);
+        updateImagePositionRelativeToVideoWall(group2, allDataMonitors[0]);
       group2.position(positionRelativeToVideoWall);
 
       allData.push([
@@ -417,6 +404,8 @@ function App() {
       //   });
 
       video.setAttribute("id", "video" + counterVideos++);
+
+      setContent([...content, "video" + counterVideos++]);
 
       video.addEventListener("loadedmetadata", () => {
         const group2 = new Konva.Group({
@@ -502,7 +491,7 @@ function App() {
         image.height(video.videoHeight);
 
         const positionRelativeToVideoWall =
-          updateImagePositionRelativeToVideoWall(group2, videoWalls[0]);
+          updateImagePositionRelativeToVideoWall(group2, allDataMonitors[0]);
         group2.position(positionRelativeToVideoWall);
 
         layer.draw();
@@ -590,218 +579,9 @@ function App() {
       });
     }
 
-    // were can we snap our objects?
-    function getLineGuideStops(skipShape) {
-      var vertical = [0, stage.width() / 2, stage.width()];
-      var horizontal = [0, stage.height() / 2, stage.height()];
-
-      stage.find(".object").forEach((guideItem) => {
-        if (guideItem === skipShape) {
-          return;
-        }
-        var box = guideItem.getClientRect();
-        // and we can snap to all edges of shapes
-        vertical.push([box.x, box.x + box.width, box.x + box.width / 2]);
-        horizontal.push([box.y, box.y + box.height, box.y + box.height / 2]);
-      });
-      return {
-        vertical: vertical.flat(),
-        horizontal: horizontal.flat(),
-      };
-    }
-
-    // what points of the object will trigger to snapping?
-    // it can be just center of the object
-    // but we will enable all edges and center
-    function getObjectSnappingEdges(node) {
-      var box = node.getClientRect();
-      var absPos = node.absolutePosition();
-
-      return {
-        vertical: [
-          {
-            guide: Math.round(box.x),
-            offset: Math.round(absPos.x - box.x),
-            snap: "start",
-          },
-          {
-            guide: Math.round(box.x + box.width / 2),
-            offset: Math.round(absPos.x - box.x - box.width / 2),
-            snap: "center",
-          },
-          {
-            guide: Math.round(box.x + box.width),
-            offset: Math.round(absPos.x - box.x - box.width),
-            snap: "end",
-          },
-        ],
-        horizontal: [
-          {
-            guide: Math.round(box.y),
-            offset: Math.round(absPos.y - box.y),
-            snap: "start",
-          },
-          {
-            guide: Math.round(box.y + box.height / 2),
-            offset: Math.round(absPos.y - box.y - box.height / 2),
-            snap: "center",
-          },
-          {
-            guide: Math.round(box.y + box.height),
-            offset: Math.round(absPos.y - box.y - box.height),
-            snap: "end",
-          },
-        ],
-      };
-    }
-
-    // find all snapping possibilities
-    function getGuides(lineGuideStops, itemBounds) {
-      var resultV = [];
-      var resultH = [];
-
-      lineGuideStops.vertical.forEach((lineGuide) => {
-        itemBounds.vertical.forEach((itemBound) => {
-          var diff = Math.abs(lineGuide - itemBound.guide);
-          // if the distance between guild line and object snap point is close we can consider this for snapping
-          if (diff < GUIDELINE_OFFSET) {
-            resultV.push({
-              lineGuide: lineGuide,
-              diff: diff,
-              snap: itemBound.snap,
-              offset: itemBound.offset,
-            });
-          }
-        });
-      });
-
-      lineGuideStops.horizontal.forEach((lineGuide) => {
-        itemBounds.horizontal.forEach((itemBound) => {
-          var diff = Math.abs(lineGuide - itemBound.guide);
-          if (diff < GUIDELINE_OFFSET) {
-            resultH.push({
-              lineGuide: lineGuide,
-              diff: diff,
-              snap: itemBound.snap,
-              offset: itemBound.offset,
-            });
-          }
-        });
-      });
-
-      var guides = [];
-
-      // find closest snap
-      var minV = resultV.sort((a, b) => a.diff - b.diff)[0];
-      var minH = resultH.sort((a, b) => a.diff - b.diff)[0];
-      if (minV) {
-        guides.push({
-          lineGuide: minV.lineGuide,
-          offset: minV.offset,
-          orientation: "V",
-          snap: minV.snap,
-        });
-      }
-      if (minH) {
-        guides.push({
-          lineGuide: minH.lineGuide,
-          offset: minH.offset,
-          orientation: "H",
-          snap: minH.snap,
-        });
-      }
-      return guides;
-    }
-
-    function drawGuides(guides) {
-      guides.forEach((lg) => {
-        if (lg.orientation === "H") {
-          var line = new Konva.Line({
-            points: [-6000, 0, 6000, 0],
-            stroke: "rgb(0, 161, 255)",
-            strokeWidth: 1,
-            name: "guid-line",
-            dash: [4, 6],
-          });
-          layer.add(line);
-          line.absolutePosition({
-            x: 0,
-            y: lg.lineGuide,
-          });
-        } else if (lg.orientation === "V") {
-          var line = new Konva.Line({
-            points: [0, -6000, 0, 6000],
-            stroke: "rgb(0, 161, 255)",
-            strokeWidth: 1,
-            name: "guid-line",
-            dash: [4, 6],
-          });
-          layer.add(line);
-          line.absolutePosition({
-            x: lg.lineGuide,
-            y: 0,
-          });
-        }
-      });
-    }
-
     layer.on("dragmove", function (e) {
-      layer.find(".guid-line").forEach((l) => l.destroy());
-      var lineGuideStops = getLineGuideStops(e.target);
-      var itemBounds = getObjectSnappingEdges(e.target);
-      var guides = getGuides(lineGuideStops, itemBounds);
-
-      if (!guides.length) {
-        return;
-      }
-
-      drawGuides(guides);
-
       var absPos = e.target.absolutePosition();
-      // now force object position
-      guides.forEach((lg) => {
-        switch (lg.snap) {
-          case "start": {
-            switch (lg.orientation) {
-              case "V": {
-                absPos.x = lg.lineGuide + lg.offset;
-                break;
-              }
-              case "H": {
-                absPos.y = lg.lineGuide + lg.offset;
-                break;
-              }
-            }
-            break;
-          }
-          case "center": {
-            switch (lg.orientation) {
-              case "V": {
-                absPos.x = lg.lineGuide + lg.offset;
-                break;
-              }
-              case "H": {
-                absPos.y = lg.lineGuide + lg.offset;
-                break;
-              }
-            }
-            break;
-          }
-          case "end": {
-            switch (lg.orientation) {
-              case "V": {
-                absPos.x = lg.lineGuide + lg.offset;
-                break;
-              }
-              case "H": {
-                absPos.y = lg.lineGuide + lg.offset;
-                break;
-              }
-            }
-            break;
-          }
-        }
-      });
+
       e.target.absolutePosition(absPos);
 
       var target = e.target;
@@ -853,7 +633,7 @@ function App() {
         if (item && item.name == searchIndexArray) {
           let updatedPosition = updateImagePositionRelativeToVideoWall(
             e.target,
-            videoWalls[0]
+            allDataMonitors[0]
           );
           item = {
             monitor: arrayCollisions,
@@ -901,8 +681,7 @@ function App() {
         r2.y + r2.height < r1.y
       );
     }
-  }, [setContent2, content2]);
-
+  }, []);
   // useEffect(() => {
   //   const div = document.getElementById("infiniteDiv");
   //   const content = document.getElementById("content");
@@ -978,23 +757,6 @@ function App() {
     setContent([...content, `content${content.length + 1}`]);
   };
 
-  const handleCheckVideo = (num) => {
-    setCheckVideo(num);
-  };
-
-  const handleCheckSection = (num) => {
-    if (num === 0) {
-      setCheckSection(0);
-    } else {
-      setCheckSection(num);
-    }
-  };
-
-  const deletVideoWall = (item) => {
-    let newArray = videoWalls.filter((i) => i !== item);
-    setVideoWalls(newArray);
-  };
-
   const deleteContent = (item) => {
     let newArray = content.filter((i) => i !== item);
     setContent(newArray);
@@ -1024,7 +786,7 @@ function App() {
                   key={videoName.name}
                   className="flex justify-between px-1 bg-[#bcc2c9] rounded-lg  w-full"
                 >
-                  <span>{videoName.name}</span>
+                  <span>{videoName.id}</span>
                   <span>{videoName.width + "*" + videoName.height}</span>
                   {/* <span
                   onClick={() => deletVideoWall(videoName)}
@@ -1054,7 +816,7 @@ function App() {
                 افزودن محتوا
               </Button>
               <input
-                className="absolute left-10 h-[45px] opacity-0 cursor-pointer w-[100px]"
+                className="absolute left-10 h-[48px] opacity-0 cursor-pointer w-[120px]"
                 type="file"
                 id="fileInput"
               />
@@ -1086,7 +848,7 @@ function App() {
       </div>
 
       <div
-        id="fff"
+        id="Video-Wall-Section"
         className="w-full h-full flex "
         style={{ marginLeft: "200px" }}
       >
@@ -1121,9 +883,6 @@ function App() {
                     id="b-sec-4"
                     className={`  absolute !z-10 w-full h-full  flex-col bg-transparent pointer-events-none `}
                   ></div> */}
-         
-
-         
 
           <div
             id="infiniteDiv"
@@ -1163,20 +922,6 @@ function App() {
               ))} */}
             </div>
           </div>
-        </div>
-        <div
-          className={`${
-            checkvideo == 4 ? " block " : " hidden "
-          } h-full w-full`}
-        >
-          <Box4 />
-        </div>
-        <div
-          className={`${
-            checkvideo == 8 ? " block " : " hidden "
-          } h-full w-full`}
-        >
-          <Box8 />
         </div>
       </div>
     </main>
