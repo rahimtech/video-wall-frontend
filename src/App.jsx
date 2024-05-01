@@ -381,7 +381,7 @@ function App() {
       console.log(allData);
     }
 
-    async function handleVideo(arrayBuffer) {
+    function handleVideo(arrayBuffer) {
       console.log("arrayBuffer::: ", arrayBuffer);
       const video = document.createElement("video");
       video.src = "/public/1.mp4";
@@ -390,24 +390,26 @@ function App() {
 
       formData.append("file", arrayBuffer);
 
-      // await axios
-      //   .post("http://127.0.0.1:5500/files/upload", formData, {
-      //     headers: {
-      //       "Content-Type": "multipart/form-data",
-      //     },
-      //   })
-      //   .then((response) => {
-      //     console.log(response.data);
-      //   })
-      //   .catch((error) => {
-      //     console.error("Error fetching data:", error);
-      //   });
-
+      axios
+        .post("http://127.0.0.1:5500/sources/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        })
+        .then((response) => {
+          console.log("Upload done", response.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching data:", error);
+        });
+      console.log("s::: ");
       video.setAttribute("id", "video" + counterVideos++);
 
-      setContent([...content, "video" + counterVideos++]);
+      setContent((prev) => [...prev, "video" + counterVideos]);
 
+      console.log("video::: ", video);
       video.addEventListener("loadedmetadata", () => {
+        console.log("411");
         const group2 = new Konva.Group({
           draggable: true,
           x: 0,
