@@ -149,7 +149,7 @@ function App() {
         y: -y,
         width: width,
         height: height,
-        fill: "#212121",
+        fill: "#161616",
         stroke: "white",
         name: "fillShape",
         strokeWidth: 3,
@@ -219,7 +219,7 @@ function App() {
       };
       stage.position(newPos);
     });
-    stage.position({ x: 200, y: 200 });
+    stage.position({ x: 500, y: 400 });
     stage.scale({ x: 0.17, y: 0.17 });
 
     // console.log("layer::: ", layer);
@@ -382,9 +382,8 @@ function App() {
     }
 
     function handleVideo(arrayBuffer) {
-      console.log("arrayBuffer::: ", arrayBuffer);
       const video = document.createElement("video");
-      video.src = "/public/1.mp4";
+      video.src = URL.createObjectURL(arrayBuffer);
 
       var formData = new FormData();
 
@@ -494,42 +493,22 @@ function App() {
         group2.position(positionRelativeToVideoWall);
 
         layer.draw();
-
         const transformer = new Konva.Transformer({
           nodes: [image],
           enabledAnchors: [
             "top-left",
             "top-right",
-            "top-center",
+            // "top-center",
             "bottom-left",
             "bottom-right",
-            "bottom-center",
-            "middle-right",
-            "middle-left",
+            // "bottom-center",
+            // "middle-right",
+            // "middle-left",
           ],
+          rotateEnabled: false,
         });
 
         group2.add(transformer);
-
-        transformer.on("transform", () => {
-          const scaleX = image.scaleX();
-          const scaleY = image.scaleY();
-          image.width(video.videoWidth * scaleX);
-          image.height(video.videoHeight * scaleY);
-          layer.batchDraw();
-          processImageResize(image.width(), image.height(), group2);
-        });
-        let xx = 0;
-        axios
-          .get("http://127.0.0.1:5500/sources")
-          .then((response) => {
-            xx = response.data.id;
-            console.log("User added successfully");
-          })
-          .catch((error) => {
-            console.error("Error adding user:", error);
-          });
-        console.log(xx);
 
         axios
           .post("http://127.0.0.1:5500/sources", {
@@ -560,6 +539,56 @@ function App() {
           .catch((error) => {
             console.error("Error adding user:", error);
           });
+
+        transformer.on("transform", (e) => {
+          console.log("e::: ", e);
+          const scaleX = image.scaleX();
+          const scaleY = image.scaleY();
+          let widthX = video.videoWidth * scaleX;
+          console.log("widthX::: ", widthX);
+          let widthY = video.videoHeight * scaleY;
+          console.log("widthY::: ", widthY);
+
+          processImageResize(image.width(), image.height(), group2);
+          allData.find((item) => {
+            console.log("item::: ", item);
+            console.log('e.target.getAttr("id")::: ', e.target.getAttr("id"));
+            let updatedPosition = updateImagePositionRelativeToVideoWall(
+              e.target,
+              allDataMonitors[0]
+            );
+            // item = {
+            //   monitor: arrayCollisions,
+            //   x: updatedPosition.x,
+            //   y: updatedPosition.y,
+            //   width: widthX,
+            //   height: widthY,
+            //   name: e.target.getAttr("id"),
+            //   id: item.id,
+            // };
+            if (item && item.name == e.target.getAttr("id")) {
+              axios
+                .patch("http://127.0.0.1:5500/sources", {
+                  id: item.id,
+                  name: item.name,
+                  x: updatedPosition.x,
+                  y: updatedPosition.y,
+                  width: widthX,
+                  height: widthY,
+                  source: 0,
+                  z_index: 0,
+                  fps: 30,
+                })
+                .then((response) => {
+                  console.log("Source updated successfully");
+                })
+                .catch((error) => {
+                  console.error("Error updating source:", error);
+                });
+            }
+            console.log(item);
+          });
+        });
 
         // console.log(allData);
       });
@@ -763,15 +792,15 @@ function App() {
 
   return (
     <main
-      className={`p-6 ${
+      className={`${
         darkMode ? "bg-black" : "bg-[#e3e4e4]"
       }  h-screen w-full flex  items-center gap-5`}
     >
       <div
         id="Options"
         className={` absolute left-0 h-full z-50 transition-all overflow-auto p-3 w-[200px] ${
-          darkMode ? "bg-[#212121]" : "bg-[#bcc2c9]"
-        } flex flex-col justify-between gap-5`}
+          darkMode ? "bg-[#161616]" : "bg-[#bcc2c9]"
+        } flex flex-col   shadow-lg shadow-gray-700 justify-between gap-5`}
       >
         <div className="flex flex-col gap-5">
           <div
@@ -876,7 +905,7 @@ function App() {
           id="Monitor"
           className={`${
             checkvideo == 1 ? " block " : " hidden "
-          } w-full overflow-hidden active:cursor-grabbing relative  h-full border-dashed  border-3 border-red-600  bg-slate-500  bg-opacity-30`}
+          } w-full overflow-hidden active:cursor-grabbing relative  h-full border-dashed    bg-slate-500  bg-opacity-30`}
         >
           {/* <div
                     id="b-sec-4"
@@ -890,7 +919,7 @@ function App() {
           >
             <div id="content" className="absolute w-full h-full top-0 left-0">
               <div
-                className="ff z-50 relative "
+                className=" z-50 relative "
                 id="containerKonva"
                 onMouseDown={(e) => {
                   con.setFlagDragging(false);
