@@ -149,8 +149,8 @@ function App() {
         y: -y,
         width: width,
         height: height,
-        fill: "#ffffff73",
-        stroke: "black",
+        fill: "#212121",
+        stroke: "white",
         name: "fillShape",
         strokeWidth: 3,
         id: name,
@@ -402,14 +402,11 @@ function App() {
         .catch((error) => {
           console.error("Error fetching data:", error);
         });
-      console.log("s::: ");
       video.setAttribute("id", "video" + counterVideos++);
 
       setContent((prev) => [...prev, "video" + counterVideos]);
 
-      console.log("video::: ", video);
       video.addEventListener("loadedmetadata", () => {
-        console.log("411");
         const group2 = new Konva.Group({
           draggable: true,
           x: 0,
