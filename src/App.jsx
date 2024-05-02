@@ -137,7 +137,7 @@ function App() {
       group = new Konva.Group({
         clip: {
           x: x,
-          y: -y,
+          y: y,
           width: width,
           height: height,
           fill: "red",
@@ -146,7 +146,7 @@ function App() {
 
       const rect = new Konva.Rect({
         x: x,
-        y: -y,
+        y: y,
         width: width,
         height: height,
         fill: "#161616",
