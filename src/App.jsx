@@ -26,7 +26,6 @@ const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
 function App() {
   const [videoWalls, setVideoWalls] = useState();
   const [content, setContent] = useState([]);
-  const [content2, setContent2] = useState([]);
   const [checkvideo, setCheckVideo] = useState(1);
   const [scale, setScale] = useState(1);
   const [darkMode, setDarkMode] = useState(false);
@@ -161,8 +160,38 @@ function App() {
       return group;
     }
 
+    function generateNode2(x, y, width, height, name) {
+      group = new Konva.Group({
+        clip: {
+          x: 0,
+          y: 0,
+          width: width,
+          height: height,
+          fill: "red",
+        },
+      });
+
+      const rect = new Konva.Rect({
+        x: 0,
+        y: 0,
+        width: width,
+        height: height,
+        fill: "red",
+        stroke: "white",
+        name: "fillShape",
+        strokeWidth: 3,
+        id: name + Math.random(),
+        draggable: true,
+      });
+
+      group.add(rect);
+      group.moveToTop();
+      layer.add(group);
+      return group;
+    }
+
     await axios
-      .get("http://127.0.0.1:5500/displays")
+      .get("http://192.168.1.2:5500/displays")
       .then((response) => {
         console.log(response.data);
         allDataMonitors = response.data;
@@ -172,6 +201,27 @@ function App() {
         console.error("Error fetching data:", error);
       });
     console.log(allDataMonitors);
+
+    await axios
+      .get("http://192.168.1.2:5500/sources")
+      .then((response) => {
+        console.log("response::: ", response);
+        for (var i = 0; i < response.data.length; i++) {
+          layer.add(
+            generateNode2(
+              response.data[i].x,
+              response.data[i].y,
+              response.data[i].width,
+              response.data[i].height,
+              "name"
+            )
+          );
+        }
+        generateNode(x, y, width, height, name);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
 
     for (var i = 0; i < allDataMonitors?.length; i++) {
       layer.add(
@@ -390,7 +440,7 @@ function App() {
       formData.append("file", arrayBuffer);
 
       axios
-        .post("http://127.0.0.1:5500/sources/upload", formData, {
+        .post("http://192.168.1.2:5500/sources/upload", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -511,7 +561,7 @@ function App() {
         group2.add(transformer);
 
         axios
-          .post("http://127.0.0.1:5500/sources", {
+          .post("http://192.168.1.2:5500/sources", {
             // id: "13ab8ea5-2b8b-45fb-a760-c1075d95d724",
             name: "video" + counterVideos,
             x: positionRelativeToVideoWall.x,
@@ -568,7 +618,7 @@ function App() {
             // };
             if (item && item.name == e.target.getAttr("id")) {
               axios
-                .patch("http://127.0.0.1:5500/sources", {
+                .patch("http://192.168.1.2:5500/sources", {
                   id: item.id,
                   name: item.name,
                   x: updatedPosition.x,
@@ -674,7 +724,7 @@ function App() {
           };
 
           axios
-            .patch("http://127.0.0.1:5500/sources", {
+            .patch("http://192.168.1.2:5500/sources", {
               id: item.id,
               name: item.name,
               x: updatedPosition.x,
@@ -710,6 +760,7 @@ function App() {
       );
     }
   }, []);
+  
   // useEffect(() => {
   //   const div = document.getElementById("infiniteDiv");
   //   const content = document.getElementById("content");
