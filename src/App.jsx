@@ -189,30 +189,44 @@ function App() {
     layer = new Konva.Layer();
     stage.add(layer);
 
-    function generateNode(x, y, width, height, name) {
-      group = new Konva.Group({
+    function generateMonitorNode(x, y, width, height, index) {
+      const group = new Konva.Group({
+        x: x,
+        y: y,
         clip: {
-          x: x,
-          y: y,
+          x: 0,
+          y: 0,
           width: width,
           height: height,
-          fill: "red",
         },
       });
 
       const rect = new Konva.Rect({
-        x: x,
-        y: y,
+        x: 0,
+        y: 0,
         width: width,
         height: height,
         fill: "#161616",
         stroke: "white",
         name: "fillShape",
         strokeWidth: 3,
-        id: name,
+        id: `monitor-${index}`,
+      });
+
+      const text = new Konva.Text({
+        x: width / 2,
+        y: height / 2,
+        text: `Monitor ${index + 1}\n${width}x${height}`,
+        fontSize: 90,
+        fill: "gray",
+        align: "center",
+        verticalAlign: "middle",
+        offsetX: width / 7, // مرکز کردن متن افقی
+        offsetY: 24, // مرکز کردن متن عمودی
       });
 
       group.add(rect);
+      group.add(text);
 
       return group;
     }
@@ -249,12 +263,12 @@ function App() {
 
     for (var i = 0; i < allDataMonitors?.length; i++) {
       layer.add(
-        generateNode(
+        generateMonitorNode(
           allDataMonitors[i].x,
           allDataMonitors[i].y,
           allDataMonitors[i].width,
           allDataMonitors[i].height,
-          allDataMonitors[i].name
+          i // اضافه کردن شماره مانیتور
         )
       );
     }
