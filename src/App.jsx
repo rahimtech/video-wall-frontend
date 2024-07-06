@@ -474,7 +474,7 @@ function App() {
           draggable: true,
           x: 0,
           y: 0,
-          id: videoName, // تنظیم شناسه گروه
+          id: videoName,
         });
 
         const image = new Konva.Image({
@@ -565,12 +565,11 @@ function App() {
         });
 
         group2.on("dragstart", () => {
-          group2.opacity(0.2);
+          group2.moveToTop(); // وقتی که درگ شروع می‌شود، گروه به بالاترین لایه منتقل می‌شود.
           layer.draw();
         });
 
         group2.on("dragend", (e) => {
-          group2.opacity(1);
           const updatedPosition = updateImagePositionRelativeToVideoWall(
             e.target,
             allDataMonitors[0]
