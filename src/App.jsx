@@ -51,22 +51,41 @@ let layer;
 let stage;
 function App() {
   const [videoWalls, setVideoWalls] = useState([
-    // ردیف بالا
+    // مجموعه‌ای از مانیتورها با ابعاد و موقعیت‌های تصادفی
+    { x: 0, y: 0, width: 1920, height: 1080 },
     { x: 1920, y: 0, width: 1920, height: 1080 },
-    { x: 3840, y: 0, width: 1920, height: 1080 },
-    { x: 5760, y: 0, width: 1920, height: 1080 },
-    // ردیف وسط
-    { x: 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 3840, y: 1080, width: 1920, height: 1080 },
-    { x: 5760, y: 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 0, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 0, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 0, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 0, width: 1920, height: 1080 },
     // ردیف پایین
-    { x: 1920, y: 2160, width: 1920, height: 1080 },
-    { x: 3840, y: 2160, width: 1920, height: 1080 },
-    { x: 5760, y: 2160, width: 1920, height: 1080 },
-    // مانیتور کشیده سمت چپ
-    { x: 0, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
-    // مانیتور کشیده سمت راست
-    { x: 7680, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
+    { x: 0, y: 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 0, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 0, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 0, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
   ]);
 
   const [loopVideos, setLoopVideos] = useState({});
@@ -84,22 +103,42 @@ function App() {
   let counterVideos = 0;
   let allData = [];
   let allDataMonitors = [
+    // مجموعه‌ای از مانیتورها با ابعاد و موقعیت‌های تصادفی
     // ردیف بالا
+    { x: 0, y: 0, width: 1920, height: 1080 },
     { x: 1920, y: 0, width: 1920, height: 1080 },
-    { x: 3840, y: 0, width: 1920, height: 1080 },
-    { x: 5760, y: 0, width: 1920, height: 1080 },
-    // ردیف وسط
-    { x: 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 3840, y: 1080, width: 1920, height: 1080 },
-    { x: 5760, y: 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 0, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 0, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 0, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 0, width: 1920, height: 1080 },
     // ردیف پایین
-    { x: 1920, y: 2160, width: 1920, height: 1080 },
-    { x: 3840, y: 2160, width: 1920, height: 1080 },
-    { x: 5760, y: 2160, width: 1920, height: 1080 },
-    // مانیتور کشیده سمت چپ
-    { x: 0, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
-    // مانیتور کشیده سمت راست
-    { x: 7680, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
+    { x: 0, y: 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 0, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 0, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 0, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 2 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 3 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 4 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
+    { x: 5 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
   ];
 
   const toggleLoop = (videoName) => {
