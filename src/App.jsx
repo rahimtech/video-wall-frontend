@@ -914,25 +914,22 @@ function App() {
                 ))}
               </ul>
             </div>
-            <div
-              id="Pictures-setting"
-              className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
-            >
-              <h1 className="">مدیریت محتوا </h1>
-              <div className="cursor-pointer">
+            <div className="text-center bg-gray-300 rounded-lg p-4 flex flex-col items-center shadow-md">
+              <h2 className="text-lg font-semibold mb-4">مدیریت محتوا</h2>
+              <div className="cursor-pointer mb-4">
                 <Button
                   onClick={addContent}
-                  className={`${
-                    checkvideo == 4 || checkvideo == 8
-                      ? "bg-slate-500"
-                      : "bg-slate-600  cursor-pointer"
-                  } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
-                  disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
+                  className={`w-full py-2 rounded-lg text-white ${
+                    checkvideo === 4 || checkvideo === 8
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-blue-600"
+                  }`}
+                  disabled={checkvideo === 4 || checkvideo === 8}
                 >
                   افزودن محتوا
                 </Button>
                 <input
-                  className="absolute left-10 h-[48px] opacity-0 cursor-pointer w-[120px]"
+                  className="absolute left-10 h-12 opacity-0 cursor-pointer w-full"
                   type="file"
                   id="fileInput"
                   onChange={(e) => {
@@ -948,34 +945,33 @@ function App() {
                   }}
                 />
               </div>
-              <ul className="w-full px-1 flex flex-col gap-2 p-1 rounded-md h-[180px] overflow-y-auto">
+              <ul className="w-full flex flex-col gap-2 overflow-y-auto">
                 {content.map((item, index) => (
                   <li
-                    key={item.name}
-                    className="flex flex-col justify-between px-1 bg-slate-500 rounded-lg w-full"
+                    key={index}
+                    className="flex flex-col justify-between p-2 bg-gray-200 rounded-lg shadow-sm"
                   >
-                    <span>name: {item.name}</span>
+                    <span className="font-semibold">name: {item.name}</span>
                     {item.type === "video" && (
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-3 mt-2">
                         <button
-                          className="w-full bg-green-400 rounded-md"
+                          className="w-full bg-green-500 rounded-md py-1 text-white"
                           onClick={() => playVideo(item.name)}
                         >
                           Play
                         </button>
                         <button
-                          className="w-full bg-orange-400 rounded-md"
+                          className="w-full bg-orange-500 rounded-md py-1 text-white"
                           onClick={() => pauseVideo(item.name)}
                         >
                           Pause
                         </button>
                         <MonitorSelect
-                          className="absolute"
                           videoName={item.name}
                           monitors={allDataMonitors}
                           fitToMonitors={fitToMonitors}
                         />
-                        <div className="flex items-center">
+                        <div className="flex items-center mt-2">
                           <label className="mr-2">Loop</label>
                           <input
                             type="checkbox"
@@ -987,9 +983,9 @@ function App() {
                     )}
                     <span
                       onClick={() => deleteContent(item.name)}
-                      className="cursor-pointer hover:shadow-md shadow-black"
+                      className="cursor-pointer hover:shadow-md shadow-black mt-2"
                     >
-                      <FontAwesomeIcon icon={faTrash} className="text-red-900" />
+                      <FontAwesomeIcon icon={faTrash} className="text-red-600" />
                     </span>
                   </li>
                 ))}
