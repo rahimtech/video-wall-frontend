@@ -69,6 +69,8 @@ function App() {
     { x: 7680, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
   ]);
 
+  const [loopVideos, setLoopVideos] = useState({});
+
   const [content, setContent] = useState([]);
   const [checkvideo, setCheckVideo] = useState(1);
   const [scale, setScale] = useState(1);
@@ -99,6 +101,14 @@ function App() {
     // مانیتور کشیده سمت راست
     { x: 7680, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
   ];
+
+  const toggleLoop = (videoName) => {
+    setLoopVideos((prev) => ({
+      ...prev,
+      [videoName]: !prev[videoName],
+    }));
+  };
+
   function updateImagePositionRelativeToVideoWall(image, videoWall) {
     const { x, y, width, height } = videoWall;
 
@@ -344,9 +354,7 @@ function App() {
             const shape = group.findOne(".fillShape");
             if (shape) {
               shape.stroke("red");
-              let x = arrayCollisions.find(
-                (item) => item == shape.getAttr("id")
-              );
+              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
 
               if (!x) {
                 arrayCollisions.push(shape.getAttr("id"));
@@ -358,9 +366,7 @@ function App() {
             const shape = group.findOne(".fillShape");
 
             if (shape) {
-              let x = arrayCollisions.find(
-                (item) => item == shape.getAttr("id")
-              );
+              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
 
               if (x) {
                 let y = arrayCollisions.indexOf(x);
@@ -441,8 +447,10 @@ function App() {
         processImageResize(image.width(), image.height(), group2);
       });
 
-      const positionRelativeToVideoWall =
-        updateImagePositionRelativeToVideoWall(group2, allDataMonitors[0]);
+      const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
+        group2,
+        allDataMonitors[0]
+      );
       group2.position(positionRelativeToVideoWall);
 
       allData.push([
@@ -464,10 +472,7 @@ function App() {
       const videoName = "video" + counterVideos++;
       video.setAttribute("id", videoName);
 
-      setContent((prev) => [
-        ...prev,
-        { type: "video", name: videoName, videoElement: video },
-      ]);
+      setContent((prev) => [...prev, { type: "video", name: videoName, videoElement: video }]);
 
       video.addEventListener("loadedmetadata", () => {
         const group2 = new Konva.Group({
@@ -490,20 +495,17 @@ function App() {
         layer.add(group2);
         stage.add(layer);
 
-        const positionRelativeToVideoWall =
-          updateImagePositionRelativeToVideoWall(group2, allDataMonitors[0]);
+        const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
+          group2,
+          allDataMonitors[0]
+        );
         group2.position(positionRelativeToVideoWall);
 
         layer.draw();
 
         const transformer = new Konva.Transformer({
           nodes: [image],
-          enabledAnchors: [
-            "top-left",
-            "top-right",
-            "bottom-left",
-            "bottom-right",
-          ],
+          enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
           rotateEnabled: true,
         });
 
@@ -549,6 +551,11 @@ function App() {
             group2,
             allDataMonitors[0]
           );
+          console.log(
+            `Updated position and size: (${parseInt(x)}, ${parseInt(y)}, ${parseInt(
+              newWidth
+            )}, ${parseInt(newHeight)})`
+          );
 
           allData = allData.map((item) => {
             if (item.name === videoName) {
@@ -565,11 +572,13 @@ function App() {
         });
 
         group2.on("dragstart", () => {
+          group2.opacity(0.2);
           group2.moveToTop(); // وقتی که درگ شروع می‌شود، گروه به بالاترین لایه منتقل می‌شود.
           layer.draw();
         });
 
         group2.on("dragend", (e) => {
+          group2.opacity(1);
           const updatedPosition = updateImagePositionRelativeToVideoWall(
             e.target,
             allDataMonitors[0]
@@ -587,6 +596,7 @@ function App() {
           });
           layer.draw();
         });
+        video.loop = loopVideos[videoName] || false;
       });
     }
 
@@ -605,9 +615,7 @@ function App() {
             const shape = group.findOne(".fillShape");
             if (shape) {
               shape.stroke("red");
-              let x = arrayCollisions.find(
-                (item) => item == shape.getAttr("id")
-              );
+              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
 
               if (!x) {
                 arrayCollisions.push(shape.getAttr("id"));
@@ -619,9 +627,7 @@ function App() {
             const shape = group.findOne(".fillShape");
 
             if (shape) {
-              let x = arrayCollisions.find(
-                (item) => item == shape.getAttr("id")
-              );
+              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
 
               if (x) {
                 let y = arrayCollisions.indexOf(x);
@@ -671,12 +677,22 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    content.forEach((item) => {
+      if (item.type === "video") {
+        const videoElement = item.videoElement;
+        if (videoElement) {
+          videoElement.loop = loopVideos[item.name] || false;
+        }
+      }
+    });
+  }, [loopVideos, content]);
+
   const fitToMonitors = (videoName, selectedMonitors) => {
     const videoGroup = layer.findOne(`#${videoName}`);
     if (videoGroup) {
       const firstMonitor = allDataMonitors[selectedMonitors[0]];
-      const lastMonitor =
-        allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
+      const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
 
       const x = firstMonitor.x;
       const y = firstMonitor.y;
@@ -776,9 +792,7 @@ function App() {
     const groupToRemove = layer.findOne(`#${videoName}`);
     if (groupToRemove) {
       // متوقف کردن ویدیو
-      const videoElement = content.find(
-        (item) => item.name === videoName
-      )?.videoElement;
+      const videoElement = content.find((item) => item.name === videoName)?.videoElement;
       if (videoElement) {
         videoElement.pause();
         videoElement.src = ""; // آزاد کردن منبع ویدیو
@@ -839,7 +853,7 @@ function App() {
       <div className="h-full w-full flex z-50">
         <div
           id="Options"
-          className={`absolute left-0 h-full z-40 transition-all overflow-auto p-3 pt-5 w-[200px] ${
+          className={` left-0 h-full z-40 transition-all overflow-auto p-3 pt-5 w-[250px] ${
             darkMode ? "bg-[#161616] " : "bg-[#bcc2c9] "
           } flex flex-col shadow-lg shadow-gray-700 justify-between gap-5`}
         >
@@ -899,7 +913,7 @@ function App() {
                 {content.map((item, index) => (
                   <li
                     key={item.name}
-                    className="flex flex-col  justify-between px-1 bg-slate-500 rounded-lg w-full"
+                    className="flex flex-col justify-between px-1 bg-slate-500 rounded-lg w-full"
                   >
                     <span>name: {item.name}</span>
                     {item.type === "video" && (
@@ -922,16 +936,21 @@ function App() {
                           monitors={allDataMonitors}
                           fitToMonitors={fitToMonitors}
                         />
+                        <div className="flex items-center">
+                          <label className="mr-2">Loop</label>
+                          <input
+                            type="checkbox"
+                            checked={loopVideos[item.name] || false}
+                            onChange={() => toggleLoop(item.name)}
+                          />
+                        </div>
                       </div>
                     )}
                     <span
                       onClick={() => deleteContent(item.name)}
                       className="cursor-pointer hover:shadow-md shadow-black"
                     >
-                      <FontAwesomeIcon
-                        icon={faTrash}
-                        className="text-red-900"
-                      />
+                      <FontAwesomeIcon icon={faTrash} className="text-red-900" />
                     </span>
                   </li>
                 ))}
@@ -940,11 +959,7 @@ function App() {
           </div>
         </div>
 
-        <div
-          id="Video-Wall-Section"
-          className="w-full h-full flex"
-          style={{ marginLeft: "200px" }}
-        >
+        <div id="Video-Wall-Section" className="w-full h-full flex">
           <div
             onClick={(e) => {
               con.setIsActiveG("un");
