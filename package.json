@@ -20,6 +20,7 @@
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.8",
     "child_process": "^1.0.2",
+    "electron": "^31.1.0",
     "framer-motion": "^10.16.16",
     "konva": "^9.3.6",
     "postcss": "^8.4.32",
