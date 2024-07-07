@@ -11,9 +11,11 @@ import { useMyContext } from "./context/MyContext";
 import { MyContextProvider } from "./context/MyContext";
 import Contents from "./components/Contents";
 import axios from "axios";
-// import { exec } from "child_process";
+import { Rnd as ReactRnd } from "react-rnd";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import SwitchCustom from "./components/SwitchCustom";
+import Setting from "./components/Setting";
+import Select from "react-select";
 
 const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   <>
@@ -23,8 +25,50 @@ const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   </>
 );
 
+const MonitorSelect = ({ videoName, monitors, fitToMonitors }) => {
+  const monitorOptions = monitors.map((monitor, index) => ({
+    value: index,
+    label: `Monitor ${index + 1}`,
+  }));
+
+  return (
+    <Select
+      isMulti
+      name="monitors"
+      options={monitorOptions}
+      className="basic-multi-select"
+      classNamePrefix="select"
+      onChange={(selectedOptions) => {
+        const selectedMonitors = selectedOptions.map((option) => option.value);
+        fitToMonitors(videoName, selectedMonitors);
+      }}
+    />
+  );
+};
+
+let anim;
+let layer;
+let stage;
 function App() {
-  const [videoWalls, setVideoWalls] = useState();
+  const [videoWalls, setVideoWalls] = useState([
+    // ردیف بالا
+    { x: 1920, y: 0, width: 1920, height: 1080 },
+    { x: 3840, y: 0, width: 1920, height: 1080 },
+    { x: 5760, y: 0, width: 1920, height: 1080 },
+    // ردیف وسط
+    { x: 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 3840, y: 1080, width: 1920, height: 1080 },
+    { x: 5760, y: 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 1920, y: 2160, width: 1920, height: 1080 },
+    { x: 3840, y: 2160, width: 1920, height: 1080 },
+    { x: 5760, y: 2160, width: 1920, height: 1080 },
+    // مانیتور کشیده سمت چپ
+    { x: 0, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
+    // مانیتور کشیده سمت راست
+    { x: 7680, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
+  ]);
+
   const [content, setContent] = useState([]);
   const [checkvideo, setCheckVideo] = useState(1);
   const [scale, setScale] = useState(1);
@@ -37,19 +81,32 @@ function App() {
   let counterImages = 0;
   let counterVideos = 0;
   let allData = [];
-  let allDataMonitors = [];
+  let allDataMonitors = [
+    // ردیف بالا
+    { x: 1920, y: 0, width: 1920, height: 1080 },
+    { x: 3840, y: 0, width: 1920, height: 1080 },
+    { x: 5760, y: 0, width: 1920, height: 1080 },
+    // ردیف وسط
+    { x: 1920, y: 1080, width: 1920, height: 1080 },
+    { x: 3840, y: 1080, width: 1920, height: 1080 },
+    { x: 5760, y: 1080, width: 1920, height: 1080 },
+    // ردیف پایین
+    { x: 1920, y: 2160, width: 1920, height: 1080 },
+    { x: 3840, y: 2160, width: 1920, height: 1080 },
+    { x: 5760, y: 2160, width: 1920, height: 1080 },
+    // مانیتور کشیده سمت چپ
+    { x: 0, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
+    // مانیتور کشیده سمت راست
+    { x: 7680, y: 0, width: 1920, height: 3240 }, // ارتفاع کل 3 مانیتور
+  ];
   function updateImagePositionRelativeToVideoWall(image, videoWall) {
     const { x, y, width, height } = videoWall;
-    const scaleX = image.width() / width;
-
-    const scaleY = image.height() / height;
 
     const newImageX = image.x() - x;
     const newImageY = -(image.y() + y); // Y باید منفی شود چون در Konva محور Y به سمت پایین است
 
     const newImageWidth = image.width();
     const newImageHeight = image.height();
-
     return {
       x: newImageX,
       y: newImageY,
@@ -122,40 +179,54 @@ function App() {
     var HEIGHT = 1000;
     var NUMBER = 2;
     let group = null;
-    var stage = new Konva.Stage({
+    stage = new Konva.Stage({
       container: "containerKonva",
       width: width,
       height: height,
       draggable: true,
     });
 
-    var layer = new Konva.Layer();
+    layer = new Konva.Layer();
     stage.add(layer);
 
-    function generateNode(x, y, width, height, name) {
-      group = new Konva.Group({
+    function generateMonitorNode(x, y, width, height, index) {
+      const group = new Konva.Group({
+        x: x,
+        y: y,
         clip: {
-          x: x,
-          y: y,
+          x: 0,
+          y: 0,
           width: width,
           height: height,
-          fill: "red",
         },
       });
 
       const rect = new Konva.Rect({
-        x: x,
-        y: y,
+        x: 0,
+        y: 0,
         width: width,
         height: height,
         fill: "#161616",
         stroke: "white",
         name: "fillShape",
         strokeWidth: 3,
-        id: name,
+        id: `monitor-${index}`,
+      });
+
+      const text = new Konva.Text({
+        x: width / 2,
+        y: height / 2,
+        text: `Monitor ${index + 1}\n${width}x${height}`,
+        fontSize: 90,
+        fill: "gray",
+        align: "center",
+        verticalAlign: "middle",
+        offsetX: width / 7, // مرکز کردن متن افقی
+        offsetY: 24, // مرکز کردن متن عمودی
       });
 
       group.add(rect);
+      group.add(text);
 
       return group;
     }
@@ -190,47 +261,14 @@ function App() {
       return group;
     }
 
-    await axios
-      .get("http://192.168.1.2:5500/displays")
-      .then((response) => {
-        console.log(response.data);
-        allDataMonitors = response.data;
-        setVideoWalls(allDataMonitors);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-    console.log(allDataMonitors);
-
-    await axios
-      .get("http://192.168.1.2:5500/sources")
-      .then((response) => {
-        console.log("response::: ", response);
-        for (var i = 0; i < response.data.length; i++) {
-          layer.add(
-            generateNode2(
-              response.data[i].x,
-              response.data[i].y,
-              response.data[i].width,
-              response.data[i].height,
-              "name"
-            )
-          );
-        }
-        generateNode(x, y, width, height, name);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-
     for (var i = 0; i < allDataMonitors?.length; i++) {
       layer.add(
-        generateNode(
+        generateMonitorNode(
           allDataMonitors[i].x,
           allDataMonitors[i].y,
           allDataMonitors[i].width,
           allDataMonitors[i].height,
-          allDataMonitors[i].name
+          i // اضافه کردن شماره مانیتور
         )
       );
     }
@@ -249,16 +287,14 @@ function App() {
         x: (pointer.x - stage.x()) / oldScale,
         y: (pointer.y - stage.y()) / oldScale,
       };
-
       // how to scale? Zoom in? Or zoom out?
-      let direction = e.evt.deltaY > 0 ? 1 : -1;
+      let direction = e.evt.deltaY > 0 ? -1 : 1;
 
       // when we zoom on trackpad, e.evt.ctrlKey is true
       // in that case lets revert direction
       if (e.evt.ctrlKey) {
         direction = -direction;
       }
-
       var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
 
       stage.scale({ x: newScale, y: newScale });
@@ -272,10 +308,7 @@ function App() {
     stage.position({ x: 500, y: 400 });
     stage.scale({ x: 0.17, y: 0.17 });
 
-    // console.log("layer::: ", layer);
-    // console.log("group::: ", group);
-
-    var anim = new Konva.Animation(function () {
+    anim = new Konva.Animation(function () {
       // do nothing, animation just need to update the layer
     }, layer);
 
@@ -283,18 +316,14 @@ function App() {
 
     inputElement.addEventListener("change", function (e) {
       const file = e.target.files[0];
-      console.log("file::: ", file);
 
       if (file) {
-        const fileType = file.type.split("/")[0]; // "image" یا "video"
-        console.log("fileType::: ", fileType);
+        const fileType = file.type.split("/")[0];
 
         if (fileType === "image") {
-          // اگر نوع فایل تصویر باشد
           const imageURL = URL.createObjectURL(file);
           handleImage(imageURL);
         } else if (fileType === "video") {
-          // اگر نوع فایل ویدیو باشد
           // const videoURL = URL.createObjectURL(file);
           handleVideo(file);
         } else {
@@ -344,14 +373,13 @@ function App() {
           }
         }
       });
-
-      let searchIndexArray = group2.getAttr("id");
+      let searchIndexArray = group2.children[0].getAttr("id");
 
       allData.find((item) => {
         if (item && item.name == searchIndexArray) {
           let updatedPosition = updateImagePositionRelativeToVideoWall(
-            group2.children[0],
-            allDataMonitors[0]
+            group2,
+            allDataMonitors[1] //سمت چپ ترین مانیتور اخذ شود
           );
           item = {
             monitor: arrayCollisions,
@@ -427,39 +455,26 @@ function App() {
           name: "image" + counterImages,
         },
       ]);
-
-      console.log(allData);
     }
 
     function handleVideo(arrayBuffer) {
       const video = document.createElement("video");
       video.src = URL.createObjectURL(arrayBuffer);
 
-      var formData = new FormData();
+      const videoName = "video" + counterVideos++;
+      video.setAttribute("id", videoName);
 
-      formData.append("file", arrayBuffer);
-
-      axios
-        .post("http://192.168.1.2:5500/sources/upload", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        .then((response) => {
-          console.log("Upload done", response.data);
-        })
-        .catch((error) => {
-          console.error("Error fetching data:", error);
-        });
-      video.setAttribute("id", "video" + counterVideos++);
-
-      setContent((prev) => [...prev, "video" + counterVideos]);
+      setContent((prev) => [
+        ...prev,
+        { type: "video", name: videoName, videoElement: video },
+      ]);
 
       video.addEventListener("loadedmetadata", () => {
         const group2 = new Konva.Group({
           draggable: true,
           x: 0,
           y: 0,
+          id: videoName,
         });
 
         const image = new Konva.Image({
@@ -468,198 +483,115 @@ function App() {
           height: video.videoHeight,
           name: "object",
           fill: "gray",
-          id: "video" + counterVideos,
+          id: videoName,
         });
-
-        const group3 = new Konva.Group({
-          id: "video" + counterVideos,
-        });
-
-        const group4 = new Konva.Group({
-          id: "video" + counterVideos,
-        });
-
-        const playButton = new Konva.Rect({
-          x: 10,
-          y: 10,
-          width: 50,
-          height: 30,
-          fill: "green",
-          cornerRadius: 5,
-        });
-
-        const playText = new Konva.Text({
-          x: 20,
-          y: 15,
-          text: "Play",
-          fontSize: 16,
-          fill: "white",
-        });
-
-        const pauseButton = new Konva.Rect({
-          x: 70,
-          y: 10,
-          width: 60,
-          height: 30,
-          fill: "red",
-          cornerRadius: 5,
-        });
-
-        const pauseText = new Konva.Text({
-          x: 80,
-          y: 15,
-          text: "Pause",
-          fontSize: 16,
-          fill: "white",
-        });
-
-        group3.add(playButton);
-        group3.add(playText);
-        group4.add(pauseButton);
-        group4.add(pauseText);
 
         group2.add(image);
-        group2.add(group3);
-        group2.add(group4);
-
         layer.add(group2);
         stage.add(layer);
-
-        // عملکرد دکمه Play
-        group3.on("click tap", () => {
-          video.play();
-          anim.start();
-        });
-
-        group4.on("click tap", () => {
-          video.pause();
-        });
-
-        image.width(video.videoWidth);
-        image.height(video.videoHeight);
 
         const positionRelativeToVideoWall =
           updateImagePositionRelativeToVideoWall(group2, allDataMonitors[0]);
         group2.position(positionRelativeToVideoWall);
 
         layer.draw();
+
         const transformer = new Konva.Transformer({
           nodes: [image],
           enabledAnchors: [
             "top-left",
             "top-right",
-            // "top-center",
             "bottom-left",
             "bottom-right",
-            // "bottom-center",
-            // "middle-right",
-            // "middle-left",
           ],
-          rotateEnabled: false,
+          rotateEnabled: true,
         });
 
-        group2.add(transformer);
+        image.on("click", () => {
+          layer.add(transformer);
+          transformer.attachTo(image);
+          layer.draw();
+        });
 
-        axios
-          .post("http://192.168.1.2:5500/sources", {
-            // id: "13ab8ea5-2b8b-45fb-a760-c1075d95d724",
-            name: "video" + counterVideos,
-            x: positionRelativeToVideoWall.x,
-            y: positionRelativeToVideoWall.y,
-            width: image.width(),
-            height: image.height(),
-            source: 0,
-            z_index: 0,
-            fps: 30,
-          })
-          .then((response) => {
-            allData.push(
-              {
-                monitor: [1],
-                x: positionRelativeToVideoWall.x,
-                y: positionRelativeToVideoWall.y,
-                width: image.width(),
-                height: image.height(),
-                name: "video" + counterVideos,
-                id: response.data.id,
-              },
-              console.log(allData)
-            );
-          })
-          .catch((error) => {
-            console.error("Error adding user:", error);
-          });
+        stage.on("click", (e) => {
+          if (e.target === stage || e.target === layer) {
+            transformer.detach();
+            layer.draw();
+          }
+        });
 
-        transformer.on("transform", (e) => {
-          console.log("e::: ", e);
+        allData.push({
+          monitor: [1],
+          x: positionRelativeToVideoWall.x,
+          y: positionRelativeToVideoWall.y,
+          width: image.width(),
+          height: image.height(),
+          name: videoName,
+          id: videoName,
+        });
+
+        transformer.on("transformend", () => {
           const scaleX = image.scaleX();
           const scaleY = image.scaleY();
-          let widthX = video.videoWidth * scaleX;
-          console.log("widthX::: ", widthX);
-          let widthY = video.videoHeight * scaleY;
-          console.log("widthY::: ", widthY);
+          const newWidth = image.width() * scaleX;
+          const newHeight = image.height() * scaleY;
+          const x = image.x();
+          const y = image.y();
 
-          processImageResize(image.width(), image.height(), group2);
-          allData.find((item) => {
-            console.log("item::: ", item);
-            console.log('e.target.getAttr("id")::: ', e.target.getAttr("id"));
-            let updatedPosition = updateImagePositionRelativeToVideoWall(
-              e.target,
-              allDataMonitors[0]
-            );
-            // item = {
-            //   monitor: arrayCollisions,
-            //   x: updatedPosition.x,
-            //   y: updatedPosition.y,
-            //   width: widthX,
-            //   height: widthY,
-            //   name: e.target.getAttr("id"),
-            //   id: item.id,
-            // };
-            if (item && item.name == e.target.getAttr("id")) {
-              axios
-                .patch("http://192.168.1.2:5500/sources", {
-                  id: item.id,
-                  name: item.name,
-                  x: updatedPosition.x,
-                  y: updatedPosition.y,
-                  width: widthX,
-                  height: widthY,
-                  source: 0,
-                  z_index: 0,
-                  fps: 30,
-                })
-                .then((response) => {
-                  console.log("Source updated successfully");
-                })
-                .catch((error) => {
-                  console.error("Error updating source:", error);
-                });
+          image.width(newWidth);
+          image.height(newHeight);
+          image.scaleX(1);
+          image.scaleY(1);
+          image.x(0);
+          image.y(0);
+
+          const updatedPosition = updateImagePositionRelativeToVideoWall(
+            group2,
+            allDataMonitors[0]
+          );
+
+          allData = allData.map((item) => {
+            if (item.name === videoName) {
+              return {
+                ...item,
+                x: x,
+                y: y,
+                width: newWidth,
+                height: newHeight,
+              };
             }
-            console.log(item);
+            return item;
           });
         });
 
-        // console.log(allData);
-      });
-      stage.on("click", (e) => {
-        if (e.target !== video) {
-          const index = layer.children.findIndex(
-            (child) => child instanceof Konva.Transformer
+        group2.on("dragstart", () => {
+          group2.moveToTop(); // وقتی که درگ شروع می‌شود، گروه به بالاترین لایه منتقل می‌شود.
+          layer.draw();
+        });
+
+        group2.on("dragend", (e) => {
+          const updatedPosition = updateImagePositionRelativeToVideoWall(
+            e.target,
+            allDataMonitors[0]
           );
 
-          if (index !== -1) {
-            layer.children.splice(index, 1);
-          }
+          allData = allData.map((item) => {
+            if (item.name === videoName) {
+              return {
+                ...item,
+                x: updatedPosition.x,
+                y: updatedPosition.y,
+              };
+            }
+            return item;
+          });
           layer.draw();
-          console.log(layer);
-        }
+        });
       });
     }
 
     layer.on("dragmove", function (e) {
       var absPos = e.target.absolutePosition();
-
       e.target.absolutePosition(absPos);
 
       var target = e.target;
@@ -704,46 +636,24 @@ function App() {
       });
 
       let searchIndexArray = e.target.children[0].getAttr("id");
-      console.log("allData::: ", allData);
-      allData.find((item) => {
-        console.log("searchIndexArray::: ", searchIndexArray);
-        console.log("item.name::: ", item?.name);
-        if (item && item.name == searchIndexArray) {
-          let updatedPosition = updateImagePositionRelativeToVideoWall(
-            e.target,
-            allDataMonitors[0]
-          );
-          item = {
-            monitor: arrayCollisions,
-            x: updatedPosition.x,
-            y: updatedPosition.y,
-            width: item.width,
-            height: item.height,
-            name: searchIndexArray,
-            id: item.id,
-          };
 
-          axios
-            .patch("http://192.168.1.2:5500/sources", {
-              id: item.id,
-              name: item.name,
-              x: updatedPosition.x,
-              y: updatedPosition.y,
-              width: item.width,
-              height: item.height,
-              source: 0,
-              z_index: 0,
-              fps: 30,
-            })
-            .then((response) => {
-              console.log("Source updated successfully");
-            })
-            .catch((error) => {
-              console.error("Error updating source:", error);
-            });
-          console.log(item);
-        }
-      });
+      // allData.find((item) => {
+      //   if (item && item.name == searchIndexArray) {
+      //     let updatedPosition = updateImagePositionRelativeToVideoWall(
+      //       e.target,
+      //       allDataMonitors[1] //سمت چپ ترین مانیتور باید اخذ شود
+      //     );
+      //     item = {
+      //       monitor: arrayCollisions,
+      //       x: updatedPosition.x,
+      //       y: updatedPosition.y,
+      //       width: item.width,
+      //       height: item.height,
+      //       name: searchIndexArray,
+      //       id: item.id,
+      //     };
+      //   }
+      // });
     });
 
     layer.on("dragend", function (e) {
@@ -760,7 +670,30 @@ function App() {
       );
     }
   }, []);
-  
+
+  const fitToMonitors = (videoName, selectedMonitors) => {
+    const videoGroup = layer.findOne(`#${videoName}`);
+    if (videoGroup) {
+      const firstMonitor = allDataMonitors[selectedMonitors[0]];
+      const lastMonitor =
+        allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
+
+      const x = firstMonitor.x;
+      const y = firstMonitor.y;
+      const width = lastMonitor.x + lastMonitor.width - firstMonitor.x;
+      const height = lastMonitor.y + lastMonitor.height - firstMonitor.y;
+
+      videoGroup.position({ x, y });
+
+      const videoNode = videoGroup.findOne("Image");
+      if (videoNode) {
+        videoNode.width(width);
+        videoNode.height(height);
+        layer.draw();
+      }
+    }
+  };
+
   // useEffect(() => {
   //   const div = document.getElementById("infiniteDiv");
   //   const content = document.getElementById("content");
@@ -833,172 +766,217 @@ function App() {
   };
 
   const addContent = () => {
-    setContent([...content, `content${content.length + 1}`]);
+    document.getElementById("fileInput").click();
   };
 
-  const deleteContent = (item) => {
-    let newArray = content.filter((i) => i !== item);
-    setContent(newArray);
+  const deleteContent = (videoName) => {
+    setContent(content.filter((item) => item.name !== videoName));
+
+    // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
+    const groupToRemove = layer.findOne(`#${videoName}`);
+    if (groupToRemove) {
+      // متوقف کردن ویدیو
+      const videoElement = content.find(
+        (item) => item.name === videoName
+      )?.videoElement;
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.src = ""; // آزاد کردن منبع ویدیو
+      }
+
+      // حذف Transformer های مرتبط
+      const transformers = layer.find("Transformer");
+      transformers.forEach((transformer) => {
+        const nodes = transformer.nodes();
+        if (nodes.includes(groupToRemove.findOne(".object"))) {
+          transformer.detach();
+          transformer.destroy();
+        }
+      });
+
+      // حذف گروه والد
+      groupToRemove.destroy();
+
+      layer.draw();
+    }
+  };
+
+  const playVideo = (videoName) => {
+    const video = content.find((item) => item.name === videoName)?.videoElement;
+    if (video) {
+      video.play();
+      anim.start();
+    }
+  };
+
+  const pauseVideo = (videoName) => {
+    const video = content.find((item) => item.name === videoName)?.videoElement;
+    if (video) video.pause();
   };
 
   return (
     <main
       className={`${
         darkMode ? "bg-black" : "bg-[#e3e4e4]"
-      }  h-screen w-full flex  items-center gap-5`}
+      }  h-screen w-full flex flex-col z-50  items-center `}
     >
       <div
-        id="Options"
-        className={` absolute left-0 h-full z-50 transition-all overflow-auto p-3 w-[200px] ${
-          darkMode ? "bg-[#161616]" : "bg-[#bcc2c9]"
-        } flex flex-col   shadow-lg shadow-gray-700 justify-between gap-5`}
+        className={` ${
+          darkMode ? "bg-[#161616] text-white" : "bg-[#bcc2c9] text-black"
+        } w-full shadow-xl  px-3 shadow-gray-[#1c2026] flex items-center justify-between h-[60px] z-10`}
       >
-        <div className="flex flex-col gap-5">
-          <div
-            id="Pictures-setting"
-            className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
-          >
-            <h1 className="">مدیریت مانیتورها </h1>
-            <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
-              {videoWalls?.map((videoName, index) => (
-                <li
-                  key={videoName.name}
-                  className="flex justify-between px-1 bg-[#bcc2c9] rounded-lg  w-full"
-                >
-                  <span>{videoName.id}</span>
-                  <span>{videoName.width + "*" + videoName.height}</span>
-                  {/* <span
-                  onClick={() => deletVideoWall(videoName)}
-                  className="cursor-pointer hover:shadow-md shadow-black"
-                >
-                  <FontAwesomeIcon icon={faTrash} className="text-red-900" />
-                </span> */}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div
-            id="Pictures-setting"
-            className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
-          >
-            <h1 className="">مدیریت محتوا </h1>
-            <div className="cursor-pointer">
-              <Button
-                onClick={addContent}
-                className={`${
-                  checkvideo == 4 || checkvideo == 8
-                    ? "bg-slate-500"
-                    : "bg-slate-600  cursor-pointer"
-                } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
-                disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
-              >
-                افزودن محتوا
-              </Button>
-              <input
-                className="absolute left-10 h-[48px] opacity-0 cursor-pointer w-[120px]"
-                type="file"
-                id="fileInput"
-              />
-            </div>
-            {/* <button id="play">Play</button>
-          <button id="pause">Pause</button>
-          <input type="checkbox" id="checkbox" /> */}
-            <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
-              {content.map((videoName, index) => (
-                <li
-                  key={videoName}
-                  className="flex justify-between px-1 bg-slate-500 rounded-lg  w-full"
-                >
-                  <span>{videoName}</span>
-                  <span
-                    onClick={() => deleteContent(videoName)}
-                    className="cursor-pointer hover:shadow-md shadow-black"
-                  >
-                    <FontAwesomeIcon icon={faTrash} className="text-red-900" />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div id="setting">
+        <div id="setting" className="text-black flex items-center">
+          <Setting />
           <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
         </div>
+
+        <div className=" flex right-0 relative">
+          <div>وضعیت اتصال</div>
+          <div class="blob"></div>
+          {/* <div class="blobred"></div> */}
+        </div>
       </div>
-
-      <div
-        id="Video-Wall-Section"
-        className="w-full h-full flex "
-        style={{ marginLeft: "200px" }}
-      >
-        {/* <div className="flex w-[200px] absolute m-5 z-10 gap-3">
-          <div
-            onClick={() => {
-              setScale(scale - 0.1);
-            }}
-            className={`bg-gray-300  opacity-10 hover:opacity-100 cursor-pointer w-[25px] h-[25px]  p-4  flex justify-center items-center text-center text-xl text-black  rounded-full`}
-          >
-            -
-          </div>
-          <div
-            onClick={() => {
-              setScale(scale + 0.1);
-            }}
-            className={`bg-gray-300  opacity-10 hover:opacity-100 cursor-pointer w-[25px] h-[25px]  p-4  flex justify-center items-center text-center text-xl text-black  rounded-full`}
-          >
-            +
-          </div>
-        </div> */}
+      <div className="h-full w-full flex z-50">
         <div
-          onClick={(e) => {
-            con.setIsActiveG("un");
-          }}
-          id="Monitor"
-          className={`${
-            checkvideo == 1 ? " block " : " hidden "
-          } w-full overflow-hidden active:cursor-grabbing relative  h-full border-dashed    bg-slate-500  bg-opacity-30`}
+          id="Options"
+          className={`absolute left-0 h-full z-40 transition-all overflow-auto p-3 pt-5 w-[200px] ${
+            darkMode ? "bg-[#161616] " : "bg-[#bcc2c9] "
+          } flex flex-col shadow-lg shadow-gray-700 justify-between gap-5`}
         >
-          {/* <div
-                    id="b-sec-4"
-                    className={`  absolute !z-10 w-full h-full  flex-col bg-transparent pointer-events-none `}
-                  ></div> */}
-
-          <div
-            id="infiniteDiv"
-            style={{ scale: `${scale}` }}
-            className={`xxx w-full h-full relative`}
-          >
-            <div id="content" className="absolute w-full h-full top-0 left-0">
-              <div
-                className=" z-50 relative "
-                id="containerKonva"
-                onMouseDown={(e) => {
-                  con.setFlagDragging(false);
-                }}
-              >
-                {content.map((contentName, index) => (
-                  <Contents
-                    key={contentName}
-                    videoName={contentName}
-                    index={index}
-                    IAG={con.isActiveG}
-                  />
+          <div className="flex flex-col gap-5 h-full">
+            <div
+              id="Pictures-setting"
+              className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
+            >
+              <h1 className="">مدیریت مانیتورها </h1>
+              <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
+                {videoWalls?.map((videoName, index) => (
+                  <li
+                    key={videoName.name}
+                    className="flex justify-between px-1 bg-[#bcc2c9] rounded-lg  w-full"
+                  >
+                    <span>{videoName.id}</span>
+                    <span>{videoName.width + "*" + videoName.height}</span>
+                  </li>
                 ))}
+              </ul>
+            </div>
+            <div
+              id="Pictures-setting"
+              className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
+            >
+              <h1 className="">مدیریت محتوا </h1>
+              <div className="cursor-pointer">
+                <Button
+                  onClick={addContent}
+                  className={`${
+                    checkvideo == 4 || checkvideo == 8
+                      ? "bg-slate-500"
+                      : "bg-slate-600  cursor-pointer"
+                  } w-[120px] px-3 py-2 rounded-xl text-white m-1`}
+                  disabled={checkvideo == 4 || checkvideo == 8 ? true : false}
+                >
+                  افزودن محتوا
+                </Button>
+                <input
+                  className="absolute left-10 h-[48px] opacity-0 cursor-pointer w-[120px]"
+                  type="file"
+                  id="fileInput"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const fileType = file.type.split("/")[0];
+                      if (fileType === "image") {
+                        handleImage(URL.createObjectURL(file));
+                      } else if (fileType === "video") {
+                        handleVideo(file);
+                      }
+                    }
+                  }}
+                />
               </div>
-              {/* {videoWalls.map((videoName, index) => (
-                <span ref={centerBox} key={index}>
-                  <Block
-                    key={index}
-                    videoName={videoName.name}
-                    index={index}
-                    IAG={con.isActiveG}
-                    customH={videoName.height}
-                    customW={videoName.width}
-                    customX={videoName.x}
-                    customY={videoName.y}
-                  />
-                </span>
-              ))} */}
+              <ul className="w-full px-1 flex flex-col gap-2 p-1 rounded-md h-[180px] overflow-y-auto">
+                {content.map((item, index) => (
+                  <li
+                    key={item.name}
+                    className="flex flex-col  justify-between px-1 bg-slate-500 rounded-lg w-full"
+                  >
+                    <span>name: {item.name}</span>
+                    {item.type === "video" && (
+                      <div className="flex flex-col gap-3">
+                        <button
+                          className="w-full bg-green-400 rounded-md"
+                          onClick={() => playVideo(item.name)}
+                        >
+                          Play
+                        </button>
+                        <button
+                          className="w-full bg-orange-400 rounded-md"
+                          onClick={() => pauseVideo(item.name)}
+                        >
+                          Pause
+                        </button>
+                        <MonitorSelect
+                          className="absolute"
+                          videoName={item.name}
+                          monitors={allDataMonitors}
+                          fitToMonitors={fitToMonitors}
+                        />
+                      </div>
+                    )}
+                    <span
+                      onClick={() => deleteContent(item.name)}
+                      className="cursor-pointer hover:shadow-md shadow-black"
+                    >
+                      <FontAwesomeIcon
+                        icon={faTrash}
+                        className="text-red-900"
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="Video-Wall-Section"
+          className="w-full h-full flex"
+          style={{ marginLeft: "200px" }}
+        >
+          <div
+            onClick={(e) => {
+              con.setIsActiveG("un");
+            }}
+            id="Monitor"
+            className={`${
+              checkvideo == 1 ? " block " : " hidden "
+            } w-full overflow-hidden active:cursor-grabbing relative  h-full border-dashed    bg-slate-500  bg-opacity-30`}
+          >
+            <div
+              id="infiniteDiv"
+              style={{ scale: `${scale}` }}
+              className={`xxx w-full h-full relative`}
+            >
+              <div id="content" className="absolute w-full h-full top-0 left-0">
+                <div
+                  className=" z-50 relative "
+                  id="containerKonva"
+                  onMouseDown={(e) => {
+                    con.setFlagDragging(false);
+                  }}
+                >
+                  {content.map((contentItem, index) => (
+                    <Contents
+                      key={contentItem.name}
+                      videoName={contentItem.name}
+                      index={index}
+                      IAG={con.isActiveG}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
