@@ -18,7 +18,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "autoprefixer": "^10.4.16",
-    "axios": "^1.6.8",
+    "axios": "^1.7.2",
     "child_process": "^1.0.2",
     "electron": "^31.1.0",
     "framer-motion": "^10.16.16",
@@ -34,6 +34,7 @@
     "react-scripts": "5.0.1",
     "react-select": "^5.8.0",
     "react-zoom-pan-pinch": "^3.4.3",
+    "socket.io-client": "^4.7.5",
     "tailwindcss": "^3.4.0",
     "vite": "^5.0.10",
     "web-vitals": "^2.1.4"

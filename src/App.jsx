@@ -16,6 +16,23 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import SwitchCustom from "./components/SwitchCustom";
 import Setting from "./components/Setting";
 import Select from "react-select";
+import io from "socket.io-client";
+const socket = io("http://localhost:4000"); // آدرس سرور خود را اینجا قرار دهید
+
+const uploadVideo = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const response = await axios.post("http://localhost:4000/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    console.log("File uploaded successfully:", response.data.filePath);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  }
+};
 
 const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   <>
@@ -140,6 +157,27 @@ function App() {
     { x: 4 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
     { x: 5 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
   ];
+
+  useEffect(() => {
+    // اتصال به سرور
+    socket.on("connect", () => {
+      console.log("Connected to server");
+    });
+
+    // دریافت پیام‌ها از سرور
+    socket.on("update-event", (data) => {
+      console.log("Update event received:", data);
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("update-event");
+    };
+  }, []);
+
+  const sendControlEvent = (data) => {
+    socket.emit("control-event", data);
+  };
 
   const toggleLoop = (videoName) => {
     setLoopVideos((prev) => ({
@@ -374,6 +412,8 @@ function App() {
           handleImage(imageURL);
         } else if (fileType === "video") {
           // const videoURL = URL.createObjectURL(file);
+
+          uploadVideo(file);
           handleVideo(file);
         } else {
           console.error("Unsupported file type.");
@@ -512,6 +552,7 @@ function App() {
       video.setAttribute("id", videoName);
 
       setContent((prev) => [...prev, { type: "video", name: videoName, videoElement: video }]);
+      sendControlEvent({ type: "ADD_VIDEO", videoName });
 
       video.addEventListener("loadedmetadata", () => {
         const group2 = new Konva.Group({
@@ -824,9 +865,22 @@ function App() {
     document.getElementById("fileInput").click();
   };
 
-  const deleteContent = (videoName) => {
-    setContent(content.filter((item) => item.name !== videoName));
+  const handleDeleteVideo = async (fileName) => {
+    console.log("fileName::: ", fileName);
+    try {
+      const response = await axios.delete("http://localhost:4000/delete", {
+        data: { fileName }, // ارسال پارامتر fileName در بدنه درخواست
+      });
+      console.log("File deleted successfully:", response.data.message);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
+  };
 
+  const deleteContent = async (videoName) => {
+    setContent(content.filter((item) => item.name !== videoName));
+    sendControlEvent({ type: "DELETE_CONTENT", contentName: videoName });
+    handleDeleteVideo(videoName);
     // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
     const groupToRemove = layer.findOne(`#${videoName}`);
     if (groupToRemove) {
@@ -919,7 +973,7 @@ function App() {
               <div className="cursor-pointer mb-4">
                 <Button
                   onClick={addContent}
-                  className={`w-full py-2 rounded-lg text-white ${
+                  className={` py-2 rounded-lg text-white ${
                     checkvideo === 4 || checkvideo === 8
                       ? "bg-gray-500 cursor-not-allowed"
                       : "bg-blue-600"
@@ -929,7 +983,7 @@ function App() {
                   افزودن محتوا
                 </Button>
                 <input
-                  className="absolute left-10 h-12 opacity-0 cursor-pointer w-full"
+                  className="absolute left-10 h-12 opacity-0 cursor-pointer w-[110px]"
                   type="file"
                   id="fileInput"
                   onChange={(e) => {
