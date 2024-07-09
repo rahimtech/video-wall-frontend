@@ -19,11 +19,22 @@ import Select from "react-select";
 import io from "socket.io-client";
 const socket = io("http://localhost:4000"); // آدرس سرور خود را اینجا قرار دهید
 
-const uploadVideo = async (file) => {
+const uploadVideo = async (file, videoName) => {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("videoName", videoName); // اضافه کردن videoName به فرم دیتا
   try {
-    const response = await axios.post("http://localhost:4000/upload", formData, {
+    const response = await axios.get("http://localhost:4000/upload", formData, videoName, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    console.log("File uploaded successfully:", response.data.filePath);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  }
+  try {
+    const response = await axios.post("http://localhost:4000/upload", formData, videoName, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -413,7 +424,6 @@ function App() {
         } else if (fileType === "video") {
           // const videoURL = URL.createObjectURL(file);
 
-          uploadVideo(file);
           handleVideo(file);
         } else {
           console.error("Unsupported file type.");
@@ -553,6 +563,7 @@ function App() {
 
       setContent((prev) => [...prev, { type: "video", name: videoName, videoElement: video }]);
       sendControlEvent({ type: "ADD_VIDEO", videoName });
+      uploadVideo(arrayBuffer, videoName);
 
       video.addEventListener("loadedmetadata", () => {
         const group2 = new Konva.Group({
@@ -639,6 +650,7 @@ function App() {
 
           allData = allData.map((item) => {
             if (item.name === videoName) {
+              handleResizeEnd(videoName, newWidth, newHeight, x, y);
               return {
                 ...item,
                 x: x,
@@ -666,6 +678,7 @@ function App() {
 
           allData = allData.map((item) => {
             if (item.name === videoName) {
+              handleDragEnd(videoName, updatedPosition.x, updatedPosition.y);
               return {
                 ...item,
                 x: updatedPosition.x,
@@ -787,71 +800,26 @@ function App() {
         videoNode.height(height);
         layer.draw();
       }
+
+      socket.emit("video-fit", { videoName, x, y, width, height });
     }
   };
 
-  // useEffect(() => {
-  //   const div = document.getElementById("infiniteDiv");
-  //   const content = document.getElementById("content");
+  const handleDragEnd = (videoName, x, y) => {
+    console.log("videoName::: ", videoName);
 
-  //   let isDragging = false;
-  //   let lastX = 0;
-  //   let lastY = 0;
+    socket.emit("video-move", { videoName, x, y });
+  };
 
-  //   let offsetX = 0;
-  //   let offsetY = 0;
+  const handleResizeEnd = (videoName, width, height, x, y) => {
+    console.log("videoName::: ", videoName);
+    socket.emit("video-resize", { videoName, width, height, x, y });
+  };
 
-  //   function handleMouseDown(event) {
-  //     console.log("flagDragging11::: ", con.flagDragging);
-  //     if (con.flagDragging) {
-  //       isDragging = true;
-  //       lastX = event.clientX;
-  //       lastY = event.clientY;
-  //     }
-  //   }
-
-  //   function handleMouseMove(event) {
-  //     if (isDragging) {
-  //       const newX = event.clientX;
-  //       const newY = event.clientY;
-
-  //       offsetX += newX - lastX;
-  //       offsetY += newY - lastY;
-
-  //       content.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-
-  //       lastX = newX;
-  //       lastY = newY;
-  //     }
-  //   }
-
-  //   function handleMouseUp() {
-  //     isDragging = false;
-  //   }
-  //   if (con.flagDragging) {
-  //     div.addEventListener("mousedown", handleMouseDown);
-  //     div.addEventListener("mousemove", handleMouseMove);
-  //     div.addEventListener("mouseup", handleMouseUp);
-
-  //     // Resize div to match window size
-  //     function resizeDiv() {
-  //       div.style.width = window.innerWidth + "px";
-  //       div.style.height = window.innerHeight + "px";
-  //     }
-
-  //     resizeDiv();
-  //     window.addEventListener("resize", resizeDiv);
-  //   }
-  // }, []);
-
-  // useEffect(() => {
-  //   let x = con.cF[0]?.x - con.cB.x;
-  //   let y = con.cF[0]?.y - con.cB.y;
-  //   setRelativePosition({ x: x, y: y });
-  //   console.log(relativePosition.x);
-  //   console.log(relativePosition.y);
-  //   console.log("________________");
-  // }, [con.cF]);
+  const handleRotateVideo = (videoName, angle) => {
+    sendControlEvent({ type: "ROTATE_VIDEO", videoName, angle });
+    socket.emit("video-rotate", { videoName, angle });
+  };
 
   const lunching = () => {
     var canvas = document.getElementById("All");
@@ -868,9 +836,7 @@ function App() {
   const handleDeleteVideo = async (fileName) => {
     console.log("fileName::: ", fileName);
     try {
-      const response = await axios.delete("http://localhost:4000/delete", {
-        data: { fileName }, // ارسال پارامتر fileName در بدنه درخواست
-      });
+      const response = await axios.delete(`http://localhost:4000/delete/${fileName}`);
       console.log("File deleted successfully:", response.data.message);
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -880,7 +846,8 @@ function App() {
   const deleteContent = async (videoName) => {
     setContent(content.filter((item) => item.name !== videoName));
     sendControlEvent({ type: "DELETE_CONTENT", contentName: videoName });
-    handleDeleteVideo(videoName);
+    await handleDeleteVideo(videoName);
+
     // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
     const groupToRemove = layer.findOne(`#${videoName}`);
     if (groupToRemove) {
@@ -953,7 +920,7 @@ function App() {
           <div className="flex flex-col gap-5 h-full">
             <div
               id="Pictures-setting"
-              className="text-center bg-gray-400 rounded-lg px-1 flex flex-col items-center justify-start w-full"
+              className="text-center bg-gray-300 shadow-md rounded-lg px-1 flex flex-col items-center justify-start w-full"
             >
               <h1 className="">مدیریت مانیتورها </h1>
               <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
