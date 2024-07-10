@@ -17,14 +17,14 @@ import SwitchCustom from "./components/SwitchCustom";
 import Setting from "./components/Setting";
 import Select from "react-select";
 import io from "socket.io-client";
-const socket = io("http://localhost:4000"); // آدرس سرور خود را اینجا قرار دهید
+const socket = io("http://192.168.1.7:4000"); // آدرس سرور خود را اینجا قرار دهید
 
 const uploadVideo = async (file, videoName) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("videoName", videoName); // اضافه کردن videoName به فرم دیتا
   try {
-    const response = await axios.get("http://localhost:4000/upload", formData, videoName, {
+    const response = await axios.get("http://192.168.1.7:4000/upload", formData, videoName, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -34,7 +34,7 @@ const uploadVideo = async (file, videoName) => {
     console.error("Error uploading file:", error);
   }
   try {
-    const response = await axios.post("http://localhost:4000/upload", formData, videoName, {
+    const response = await axios.post("http://192.168.1.7:4000/upload", formData, videoName, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -130,52 +130,14 @@ function App() {
   let counterImages = 0;
   let counterVideos = 0;
   let allData = [];
-  let allDataMonitors = [
-    // مجموعه‌ای از مانیتورها با ابعاد و موقعیت‌های تصادفی
-    // ردیف بالا
-    { x: 0, y: 0, width: 1920, height: 1080 },
-    { x: 1920, y: 0, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 0, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 0, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 0, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 0, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 1080, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-  ];
+  let allDataMonitors = videoWalls;
 
   useEffect(() => {
-    // اتصال به سرور
+    // Your socket initialization code
     socket.on("connect", () => {
       console.log("Connected to server");
     });
 
-    // دریافت پیام‌ها از سرور
     socket.on("update-event", (data) => {
       console.log("Update event received:", data);
     });
@@ -191,10 +153,14 @@ function App() {
   };
 
   const toggleLoop = (videoName) => {
-    setLoopVideos((prev) => ({
-      ...prev,
-      [videoName]: !prev[videoName],
-    }));
+    setLoopVideos((prev) => {
+      const isLooping = !prev[videoName];
+      socket.emit("video-loop", { videoName, isLooping });
+      return {
+        ...prev,
+        [videoName]: isLooping,
+      };
+    });
   };
 
   function updateImagePositionRelativeToVideoWall(image, videoWall) {
@@ -269,322 +235,228 @@ function App() {
     };
   }
 
-  useEffect(async () => {
-    var width = window.innerWidth;
-    var height = window.innerHeight;
-    var GUIDELINE_OFFSET = 5;
-    var WIDTH = 1000;
-    var HEIGHT = 1000;
-    var NUMBER = 2;
-    let group = null;
-    stage = new Konva.Stage({
-      container: "containerKonva",
-      width: width,
-      height: height,
-      draggable: true,
-    });
-
-    layer = new Konva.Layer();
-    stage.add(layer);
-
-    function generateMonitorNode(x, y, width, height, index) {
-      const group = new Konva.Group({
-        x: x,
-        y: y,
-        clip: {
-          x: 0,
-          y: 0,
-          width: width,
-          height: height,
-        },
-      });
-
-      const rect = new Konva.Rect({
-        x: 0,
-        y: 0,
+  useEffect(() => {
+    async function fetchData() {
+      // Your initialization code
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      stage = new Konva.Stage({
+        container: "containerKonva",
         width: width,
         height: height,
-        fill: "#161616",
-        stroke: "white",
-        name: "fillShape",
-        strokeWidth: 3,
-        id: `monitor-${index}`,
-      });
-
-      const text = new Konva.Text({
-        x: width / 2,
-        y: height / 2,
-        text: `Monitor ${index + 1}\n${width}x${height}`,
-        fontSize: 90,
-        fill: "gray",
-        align: "center",
-        verticalAlign: "middle",
-        offsetX: width / 7, // مرکز کردن متن افقی
-        offsetY: 24, // مرکز کردن متن عمودی
-      });
-
-      group.add(rect);
-      group.add(text);
-
-      return group;
-    }
-
-    function generateNode2(x, y, width, height, name) {
-      group = new Konva.Group({
-        clip: {
-          x: 0,
-          y: 0,
-          width: width,
-          height: height,
-          fill: "red",
-        },
-      });
-
-      const rect = new Konva.Rect({
-        x: 0,
-        y: 0,
-        width: width,
-        height: height,
-        fill: "red",
-        stroke: "white",
-        name: "fillShape",
-        strokeWidth: 3,
-        id: name + Math.random(),
         draggable: true,
       });
 
-      group.add(rect);
-      group.moveToTop();
-      layer.add(group);
-      return group;
-    }
+      layer = new Konva.Layer();
+      stage.add(layer);
 
-    for (var i = 0; i < allDataMonitors?.length; i++) {
-      layer.add(
-        generateMonitorNode(
-          allDataMonitors[i].x,
-          allDataMonitors[i].y,
-          allDataMonitors[i].width,
-          allDataMonitors[i].height,
-          i // اضافه کردن شماره مانیتور
-        )
-      );
-    }
+      socket.on("update-monitors", (displays) => {
+        console.log("Displays:", displays);
+        const newVideoWalls = displays.map((display, index) => ({
+          x: display.bounds.x,
+          y: display.bounds.y,
+          width: display.bounds.width,
+          height: display.bounds.height,
+          id: `monitor-${index + 1}`,
+        }));
 
-    layer.draw();
+        setVideoWalls(newVideoWalls);
+        function generateMonitorNode(x, y, width, height, index) {
+          const group = new Konva.Group({
+            x: x,
+            y: y,
+            clip: { x: 0, y: 0, width: width, height: height },
+          });
 
-    var scaleBy = 1.04;
-    stage.on("wheel", (e) => {
-      // stop default scrolling
-      e.evt.preventDefault();
-
-      var oldScale = stage.scaleX();
-      var pointer = stage.getPointerPosition();
-
-      var mousePointTo = {
-        x: (pointer.x - stage.x()) / oldScale,
-        y: (pointer.y - stage.y()) / oldScale,
-      };
-      // how to scale? Zoom in? Or zoom out?
-      let direction = e.evt.deltaY > 0 ? -1 : 1;
-
-      // when we zoom on trackpad, e.evt.ctrlKey is true
-      // in that case lets revert direction
-      if (e.evt.ctrlKey) {
-        direction = -direction;
-      }
-      var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-
-      stage.scale({ x: newScale, y: newScale });
-
-      var newPos = {
-        x: pointer.x - mousePointTo.x * newScale,
-        y: pointer.y - mousePointTo.y * newScale,
-      };
-      stage.position(newPos);
-    });
-    stage.position({ x: 500, y: 400 });
-    stage.scale({ x: 0.17, y: 0.17 });
-
-    anim = new Konva.Animation(function () {
-      // do nothing, animation just need to update the layer
-    }, layer);
-
-    var inputElement = document.getElementById("fileInput");
-
-    inputElement.addEventListener("change", function (e) {
-      const file = e.target.files[0];
-
-      if (file) {
-        const fileType = file.type.split("/")[0];
-
-        if (fileType === "image") {
-          const imageURL = URL.createObjectURL(file);
-          handleImage(imageURL);
-        } else if (fileType === "video") {
-          // const videoURL = URL.createObjectURL(file);
-
-          handleVideo(file);
-        } else {
-          console.error("Unsupported file type.");
-        }
-      }
-    });
-
-    function processImageResize(width, height, group2) {
-      var target = group2;
-      var targetRect = group2.getClientRect();
-      layer.children.forEach(function (group) {
-        if (group === target) {
-          return;
-        }
-        if (haveIntersection(group.getClientRect(), targetRect)) {
-          if (group instanceof Konva.Group) {
-            const shape = group.findOne(".fillShape");
-            if (shape) {
-              shape.stroke("red");
-              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-
-              if (!x) {
-                arrayCollisions.push(shape.getAttr("id"));
-              }
-            }
-          }
-        } else {
-          if (group instanceof Konva.Group) {
-            const shape = group.findOne(".fillShape");
-
-            if (shape) {
-              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-
-              if (x) {
-                let y = arrayCollisions.indexOf(x);
-                if (y !== -1) {
-                  arrayCollisions.splice(y, 1);
-                }
-              }
-              shape.stroke("white");
-            }
-          }
-        }
-      });
-      let searchIndexArray = group2.children[0].getAttr("id");
-
-      allData.find((item) => {
-        if (item && item.name == searchIndexArray) {
-          let updatedPosition = updateImagePositionRelativeToVideoWall(
-            group2,
-            allDataMonitors[1] //سمت چپ ترین مانیتور اخذ شود
-          );
-          item = {
-            monitor: arrayCollisions,
-            x: updatedPosition.x,
-            y: updatedPosition.y,
+          const rect = new Konva.Rect({
+            x: 0,
+            y: 0,
             width: width,
             height: height,
-            name: searchIndexArray,
-          };
+            fill: "#161616",
+            stroke: "white",
+            name: "fillShape",
+            strokeWidth: 3,
+            id: `monitor-${index}`,
+          });
+
+          const text = new Konva.Text({
+            x: width / 2,
+            y: height / 2,
+            text: `Monitor ${index + 1}\n${width}x${height}`,
+            fontSize: 90,
+            fill: "gray",
+            align: "center",
+            verticalAlign: "middle",
+            offsetX: width / 7,
+            offsetY: 24,
+          });
+
+          group.add(rect);
+          group.add(text);
+          return group;
+        }
+
+        for (var i = 0; i < newVideoWalls.length; i++) {
+          if (newVideoWalls[i].x < 0) {
+            newVideoWalls[i].x = newVideoWalls[i].x * -1;
+          }
+          if (newVideoWalls[i].y < 0) {
+            newVideoWalls[i].y = newVideoWalls[i].y * -1;
+          }
+
+          layer.add(
+            generateMonitorNode(
+              newVideoWalls[i].x,
+              newVideoWalls[i].y,
+              newVideoWalls[i].width,
+              newVideoWalls[i].height,
+              i
+            )
+          );
+        }
+
+        layer.draw();
+      });
+
+      var scaleBy = 1.04;
+      stage.on("wheel", (e) => {
+        e.evt.preventDefault();
+        var oldScale = stage.scaleX();
+        var pointer = stage.getPointerPosition();
+        var mousePointTo = {
+          x: (pointer.x - stage.x()) / oldScale,
+          y: (pointer.y - stage.y()) / oldScale,
+        };
+        let direction = e.evt.deltaY > 0 ? -1 : 1;
+        if (e.evt.ctrlKey) direction = -direction;
+        var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+        stage.scale({ x: newScale, y: newScale });
+        var newPos = {
+          x: pointer.x - mousePointTo.x * newScale,
+          y: pointer.y - mousePointTo.y * newScale,
+        };
+        stage.position(newPos);
+      });
+
+      stage.position({ x: 500, y: 400 });
+      stage.scale({ x: 0.17, y: 0.17 });
+
+      anim = new Konva.Animation(() => {}, layer);
+
+      var inputElement = document.getElementById("fileInput");
+
+      inputElement.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (file) {
+          const fileType = file.type.split("/")[0];
+          if (fileType === "image") {
+            const imageURL = URL.createObjectURL(file);
+            handleImage(imageURL);
+          } else if (fileType === "video") {
+            handleVideo(file);
+          } else {
+            console.error("Unsupported file type.");
+          }
         }
       });
-    }
 
-    function handleImage(dataURL) {
-      let img = document.createElement("img");
-      img.src = "/public/logo192.png";
-      counterImages++;
-      setContent([...content, "image" + counterImages]);
+      function processImageResize(width, height, group2) {
+        var target = group2;
+        var targetRect = group2.getClientRect();
+        layer.children.forEach(function (group) {
+          if (group === target) return;
+          if (haveIntersection(group.getClientRect(), targetRect)) {
+            if (group instanceof Konva.Group) {
+              const shape = group.findOne(".fillShape");
+              if (shape) {
+                shape.stroke("red");
+                let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                if (!x) arrayCollisions.push(shape.getAttr("id"));
+              }
+            }
+          } else {
+            if (group instanceof Konva.Group) {
+              const shape = group.findOne(".fillShape");
+              if (shape) {
+                let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                if (x) {
+                  let y = arrayCollisions.indexOf(x);
+                  if (y !== -1) arrayCollisions.splice(y, 1);
+                }
+                shape.stroke("white");
+              }
+            }
+          }
+        });
+        let searchIndexArray = group2.children[0].getAttr("id");
 
-      const group2 = new Konva.Group({
-        draggable: true,
-        x: 0,
-        y: 0,
-        id: "image" + counterImages,
-      });
+        allData.find((item) => {
+          if (item && item.name == searchIndexArray) {
+            let updatedPosition = updateImagePositionRelativeToVideoWall(
+              group2,
+              allDataMonitors[1]
+            );
+            item = {
+              monitor: arrayCollisions,
+              x: updatedPosition.x,
+              y: updatedPosition.y,
+              width: width,
+              height: height,
+              name: searchIndexArray,
+            };
+          }
+        });
+      }
 
-      const image = new Konva.Image({
-        image: img, // استفاده از داده URL برای تصویر
-        name: "object",
-        id: "image" + counterImages,
-        width: img.width,
-        height: img.height,
-      });
-      group2.add(image);
-      layer.add(group2);
+      function handleImage(dataURL) {
+        let img = document.createElement("img");
+        img.src = dataURL;
+        counterImages++;
+        setContent((prevContent) => [...prevContent, "image" + counterImages]);
 
-      const transformer = new Konva.Transformer({
-        nodes: [image],
-        enabledAnchors: [
-          "top-left",
-          "top-right",
-          "top-center",
-          "bottom-left",
-          "bottom-right",
-          "bottom-center",
-          "middle-right",
-          "middle-left",
-        ],
-      });
-
-      group2.add(transformer);
-
-      transformer.on("transform", () => {
-        const scaleX = image.scaleX();
-        const scaleY = image.scaleY();
-        image.width(image.image().width * scaleX);
-        image.height(image.image().height * scaleY);
-        layer.batchDraw();
-        processImageResize(image.width(), image.height(), group2);
-      });
-
-      const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
-        group2,
-        allDataMonitors[0]
-      );
-      group2.position(positionRelativeToVideoWall);
-
-      allData.push([
-        {
-          monitor: [1],
-          x: positionRelativeToVideoWall.x,
-          y: positionRelativeToVideoWall.y,
-          width: image.width(),
-          height: image.height(),
-          name: "image" + counterImages,
-        },
-      ]);
-    }
-
-    function handleVideo(arrayBuffer) {
-      const video = document.createElement("video");
-      video.src = URL.createObjectURL(arrayBuffer);
-
-      const videoName = "video" + counterVideos++;
-      video.setAttribute("id", videoName);
-
-      setContent((prev) => [...prev, { type: "video", name: videoName, videoElement: video }]);
-      sendControlEvent({ type: "ADD_VIDEO", videoName });
-      uploadVideo(arrayBuffer, videoName);
-
-      video.addEventListener("loadedmetadata", () => {
         const group2 = new Konva.Group({
           draggable: true,
           x: 0,
           y: 0,
-          id: videoName,
+          id: "image" + counterImages,
         });
 
         const image = new Konva.Image({
-          image: video,
-          width: video.videoWidth,
-          height: video.videoHeight,
+          image: img,
           name: "object",
-          fill: "gray",
-          id: videoName,
+          id: "image" + counterImages,
+          width: img.width,
+          height: img.height,
         });
 
         group2.add(image);
         layer.add(group2);
-        stage.add(layer);
+
+        const transformer = new Konva.Transformer({
+          nodes: [image],
+          enabledAnchors: [
+            "top-left",
+            "top-right",
+            "top-center",
+            "bottom-left",
+            "bottom-right",
+            "bottom-center",
+            "middle-right",
+            "middle-left",
+          ],
+        });
+
+        group2.add(transformer);
+
+        transformer.on("transform", () => {
+          const scaleX = image.scaleX();
+          const scaleY = image.scaleY();
+          image.width(image.image().width * scaleX);
+          image.height(image.image().height * scaleY);
+          layer.batchDraw();
+          processImageResize(image.width(), image.height(), group2);
+        });
 
         const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
           group2,
@@ -592,182 +464,210 @@ function App() {
         );
         group2.position(positionRelativeToVideoWall);
 
-        layer.draw();
-
-        const transformer = new Konva.Transformer({
-          nodes: [image],
-          enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-          rotateEnabled: true,
-        });
-
-        image.on("click", () => {
-          layer.add(transformer);
-          transformer.attachTo(image);
-          layer.draw();
-        });
-
-        stage.on("click", (e) => {
-          if (e.target === stage || e.target === layer) {
-            transformer.detach();
-            layer.draw();
-          }
-        });
-
         allData.push({
           monitor: [1],
           x: positionRelativeToVideoWall.x,
           y: positionRelativeToVideoWall.y,
           width: image.width(),
           height: image.height(),
-          name: videoName,
-          id: videoName,
+          name: "image" + counterImages,
         });
+      }
 
-        transformer.on("transformend", () => {
-          const scaleX = image.scaleX();
-          const scaleY = image.scaleY();
-          const newWidth = image.width() * scaleX;
-          const newHeight = image.height() * scaleY;
-          const x = image.x();
-          const y = image.y();
+      function handleVideo(arrayBuffer) {
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(arrayBuffer);
 
-          image.width(newWidth);
-          image.height(newHeight);
-          image.scaleX(1);
-          image.scaleY(1);
-          image.x(0);
-          image.y(0);
+        const videoName = "video" + counterVideos++;
+        video.setAttribute("id", videoName);
 
-          const updatedPosition = updateImagePositionRelativeToVideoWall(
+        setContent((prev) => [...prev, { type: "video", name: videoName, videoElement: video }]);
+        sendControlEvent({ type: "ADD_VIDEO", videoName });
+        uploadVideo(arrayBuffer, videoName);
+
+        video.addEventListener("loadedmetadata", () => {
+          const group2 = new Konva.Group({
+            draggable: true,
+            x: 0,
+            y: 0,
+            id: videoName,
+          });
+
+          const image = new Konva.Image({
+            image: video,
+            width: video.videoWidth,
+            height: video.videoHeight,
+            name: "object",
+            fill: "gray",
+            id: videoName,
+          });
+
+          group2.add(image);
+          layer.add(group2);
+          stage.add(layer);
+
+          const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
             group2,
             allDataMonitors[0]
           );
-          console.log(
-            `Updated position and size: (${parseInt(x)}, ${parseInt(y)}, ${parseInt(
-              newWidth
-            )}, ${parseInt(newHeight)})`
-          );
+          group2.position(positionRelativeToVideoWall);
 
-          allData = allData.map((item) => {
-            if (item.name === videoName) {
-              handleResizeEnd(videoName, newWidth, newHeight, x, y);
-              return {
-                ...item,
-                x: x,
-                y: y,
-                width: newWidth,
-                height: newHeight,
-              };
-            }
-            return item;
-          });
-        });
-
-        group2.on("dragstart", () => {
-          group2.opacity(0.2);
-          group2.moveToTop(); // وقتی که درگ شروع می‌شود، گروه به بالاترین لایه منتقل می‌شود.
           layer.draw();
-        });
 
-        group2.on("dragend", (e) => {
-          group2.opacity(1);
-          const updatedPosition = updateImagePositionRelativeToVideoWall(
-            e.target,
-            allDataMonitors[0]
-          );
-
-          allData = allData.map((item) => {
-            if (item.name === videoName) {
-              handleDragEnd(videoName, updatedPosition.x, updatedPosition.y);
-              return {
-                ...item,
-                x: updatedPosition.x,
-                y: updatedPosition.y,
-              };
-            }
-            return item;
+          const transformer = new Konva.Transformer({
+            nodes: [image],
+            enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+            rotateEnabled: true,
           });
-          layer.draw();
+
+          image.on("click", () => {
+            layer.add(transformer);
+            transformer.attachTo(image);
+            layer.draw();
+          });
+
+          stage.on("click", (e) => {
+            if (e.target === stage || e.target === layer) {
+              transformer.detach();
+              layer.draw();
+            }
+          });
+
+          allData.push({
+            monitor: [1],
+            x: positionRelativeToVideoWall.x,
+            y: positionRelativeToVideoWall.y,
+            width: image.width(),
+            height: image.height(),
+            name: videoName,
+            id: videoName,
+          });
+
+          transformer.on("transformend", () => {
+            const scaleX = image.scaleX();
+            const scaleY = image.scaleY();
+            const newWidth = image.width() * scaleX;
+            const newHeight = image.height() * scaleY;
+            const x = image.x();
+            const y = image.y();
+
+            image.width(newWidth);
+            image.height(newHeight);
+            image.scaleX(1);
+            image.scaleY(1);
+            image.x(0);
+            image.y(0);
+
+            const updatedPosition = updateImagePositionRelativeToVideoWall(
+              group2,
+              allDataMonitors[0]
+            );
+            console.log(
+              `Updated position and size: (${parseInt(x)}, ${parseInt(y)}, ${parseInt(
+                newWidth
+              )}, ${parseInt(newHeight)})`
+            );
+
+            allData = allData.map((item) => {
+              if (item.name === videoName) {
+                handleResizeEnd(videoName, newWidth, newHeight, x, y);
+                return {
+                  ...item,
+                  x: x,
+                  y: y,
+                  width: newWidth,
+                  height: newHeight,
+                };
+              }
+              return item;
+            });
+          });
+
+          group2.on("dragstart", () => {
+            group2.opacity(0.2);
+            group2.moveToTop();
+            layer.draw();
+          });
+
+          group2.on("dragend", (e) => {
+            group2.opacity(1);
+            const updatedPosition = updateImagePositionRelativeToVideoWall(
+              e.target,
+              allDataMonitors[0]
+            );
+
+            allData = allData.map((item) => {
+              if (item.name === videoName) {
+                handleDragEnd(videoName, updatedPosition.x, updatedPosition.y);
+                return {
+                  ...item,
+                  x: updatedPosition.x,
+                  y: updatedPosition.y,
+                };
+              }
+              return item;
+            });
+            layer.draw();
+          });
+          video.loop = loopVideos[videoName] || false;
         });
-        video.loop = loopVideos[videoName] || false;
-      });
-    }
+      }
 
-    layer.on("dragmove", function (e) {
-      var absPos = e.target.absolutePosition();
-      e.target.absolutePosition(absPos);
+      layer.on("dragmove", function (e) {
+        var absPos = e.target.absolutePosition();
+        e.target.absolutePosition(absPos);
 
-      var target = e.target;
-      var targetRect = e.target.getClientRect();
-      layer.children.forEach(function (group) {
-        if (group === target) {
-          return;
-        }
-        if (haveIntersection(group.getClientRect(), targetRect)) {
-          if (group instanceof Konva.Group) {
-            const shape = group.findOne(".fillShape");
-            if (shape) {
-              shape.stroke("red");
-              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-
-              if (!x) {
-                arrayCollisions.push(shape.getAttr("id"));
+        var target = e.target;
+        var targetRect = e.target.getClientRect();
+        layer.children.forEach(function (group) {
+          if (group === target) return;
+          if (haveIntersection(group.getClientRect(), targetRect)) {
+            if (group instanceof Konva.Group) {
+              const shape = group.findOne(".fillShape");
+              if (shape) {
+                shape.stroke("red");
+                let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                if (!x) arrayCollisions.push(shape.getAttr("id"));
               }
             }
-          }
-        } else {
-          if (group instanceof Konva.Group) {
-            const shape = group.findOne(".fillShape");
-
-            if (shape) {
-              let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-
-              if (x) {
-                let y = arrayCollisions.indexOf(x);
-                if (y !== -1) {
-                  arrayCollisions.splice(y, 1);
+          } else {
+            if (group instanceof Konva.Group) {
+              const shape = group.findOne(".fillShape");
+              if (shape) {
+                let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                if (x) {
+                  let y = arrayCollisions.indexOf(x);
+                  if (y !== -1) arrayCollisions.splice(y, 1);
                 }
+                shape.stroke("white");
               }
-              shape.stroke("white");
             }
           }
-        }
+        });
+
+        let searchIndexArray = e.target.children[0].getAttr("id");
       });
 
-      let searchIndexArray = e.target.children[0].getAttr("id");
+      layer.on("dragend", function (e) {
+        layer.find(".guid-line").forEach((l) => l.destroy());
+      });
 
-      // allData.find((item) => {
-      //   if (item && item.name == searchIndexArray) {
-      //     let updatedPosition = updateImagePositionRelativeToVideoWall(
-      //       e.target,
-      //       allDataMonitors[1] //سمت چپ ترین مانیتور باید اخذ شود
-      //     );
-      //     item = {
-      //       monitor: arrayCollisions,
-      //       x: updatedPosition.x,
-      //       y: updatedPosition.y,
-      //       width: item.width,
-      //       height: item.height,
-      //       name: searchIndexArray,
-      //       id: item.id,
-      //     };
-      //   }
-      // });
-    });
-
-    layer.on("dragend", function (e) {
-      // clear all previous lines on the screen
-      layer.find(".guid-line").forEach((l) => l.destroy());
-    });
-
-    function haveIntersection(r1, r2) {
-      return !(
-        r2.x > r1.x + r1.width ||
-        r2.x + r2.width < r1.x ||
-        r2.y > r1.y + r1.height ||
-        r2.y + r2.height < r1.y
-      );
+      function haveIntersection(r1, r2) {
+        return !(
+          r2.x > r1.x + r1.width ||
+          r2.x + r2.width < r1.x ||
+          r2.y > r1.y + r1.height ||
+          r2.y + r2.height < r1.y
+        );
+      }
     }
+    fetchData();
+
+    return () => {
+      if (stage) stage.destroy();
+      if (layer) layer.destroy();
+      socket.off("update-monitors");
+    };
   }, []);
 
   useEffect(() => {
@@ -807,7 +707,7 @@ function App() {
 
   const handleDragEnd = (videoName, x, y) => {
     console.log("videoName::: ", videoName);
-
+    y *= -1;
     socket.emit("video-move", { videoName, x, y });
   };
 
@@ -836,7 +736,7 @@ function App() {
   const handleDeleteVideo = async (fileName) => {
     console.log("fileName::: ", fileName);
     try {
-      const response = await axios.delete(`http://localhost:4000/delete/${fileName}`);
+      const response = await axios.delete(`http://192.168.1.7:4000/delete/${fileName}`);
       console.log("File deleted successfully:", response.data.message);
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -877,15 +777,22 @@ function App() {
 
   const playVideo = (videoName) => {
     const video = content.find((item) => item.name === videoName)?.videoElement;
+    console.log("video::: ", video);
     if (video) {
       video.play();
+      // sendControlEvent({ type: "video-play", videoName });
+      socket.emit("video-play", { videoName });
       anim.start();
     }
   };
 
   const pauseVideo = (videoName) => {
     const video = content.find((item) => item.name === videoName)?.videoElement;
-    if (video) video.pause();
+    if (video) {
+      video.pause();
+      // sendControlEvent({ type: "video-pause", videoName });
+      socket.emit("video-pause", { videoName });
+    }
   };
 
   return (
