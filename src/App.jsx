@@ -16,15 +16,15 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import SwitchCustom from "./components/SwitchCustom";
 import Setting from "./components/Setting";
 import Select from "react-select";
-import io from "socket.io-client";
-const socket = io("http://192.168.1.7:4000"); // آدرس سرور خود را اینجا قرار دهید
+import io, { connect } from "socket.io-client";
+const socket = io("http://192.168.3.13:4000"); // آدرس سرور خود را اینجا قرار دهید
 
 const uploadVideo = async (file, videoName) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("videoName", videoName); // اضافه کردن videoName به فرم دیتا
   try {
-    const response = await axios.get("http://192.168.1.7:4000/upload", formData, videoName, {
+    const response = await axios.get("http://192.168.3.13:4000/upload", formData, videoName, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -34,7 +34,7 @@ const uploadVideo = async (file, videoName) => {
     console.error("Error uploading file:", error);
   }
   try {
-    const response = await axios.post("http://192.168.1.7:4000/upload", formData, videoName, {
+    const response = await axios.post("http://192.168.3.13:4000/upload", formData, videoName, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -122,6 +122,7 @@ function App() {
   const [checkvideo, setCheckVideo] = useState(1);
   const [scale, setScale] = useState(1);
   const [darkMode, setDarkMode] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const con = useMyContext();
   const transformComponentRef = useRef(null);
   let arrayCollisions = [];
@@ -136,6 +137,7 @@ function App() {
     // Your socket initialization code
     socket.on("connect", () => {
       console.log("Connected to server");
+      setConnecting(true);
     });
 
     socket.on("update-event", (data) => {
@@ -736,7 +738,7 @@ function App() {
   const handleDeleteVideo = async (fileName) => {
     console.log("fileName::: ", fileName);
     try {
-      const response = await axios.delete(`http://192.168.1.7:4000/delete/${fileName}`);
+      const response = await axios.delete(`http://192.168.3.13:4000/delete/${fileName}`);
       console.log("File deleted successfully:", response.data.message);
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -813,8 +815,8 @@ function App() {
 
         <div className=" flex right-0 relative">
           <div>وضعیت اتصال</div>
-          <div class="blob"></div>
-          {/* <div class="blobred"></div> */}
+          {connecting && <div class="blob"></div>}
+          {!connecting && <div class="blobred"></div>}
         </div>
       </div>
       <div className="h-full w-full flex z-50">
