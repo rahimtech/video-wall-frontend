@@ -821,7 +821,7 @@ function App() {
       <div
         className={` ${
           darkMode ? "bg-[#161616] text-white" : "bg-[#bcc2c9] text-black"
-        } w-full shadow-xl  px-3 shadow-gray-[#1c2026] flex items-center justify-between h-[60px] z-10`}
+        } w-full shadow-xl  px-3 shadow-gray-[#1c2026] flex items-center justify-between h-[7%] z-10`}
       >
         <div id="setting" className="text-black flex items-center">
           <Setting />
@@ -834,7 +834,7 @@ function App() {
           {!connecting && <div class="blobred"></div>}
         </div>
       </div>
-      <div className="h-full w-full flex z-50">
+      <div className="h-[93%] w-full flex z-50">
         <div
           id="Options"
           className={` left-0 h-full z-40 transition-all overflow-auto p-3 pt-5 w-[250px] ${
@@ -864,7 +864,7 @@ function App() {
               <div className="cursor-pointer mb-4">
                 <Button
                   onClick={addContent}
-                  className={` py-2 rounded-lg text-white ${
+                  className={` py-2 rounded-lg text-white z-10 ${
                     checkvideo === 4 || checkvideo === 8
                       ? "bg-gray-500 cursor-not-allowed"
                       : "bg-blue-600"
@@ -874,7 +874,7 @@ function App() {
                   افزودن محتوا
                 </Button>
                 <input
-                  className="absolute left-10 h-12 opacity-0 cursor-pointer w-[110px]"
+                  className="relative left-0 right-0 top-[-34px] mx-auto  h-12 opacity-0 cursor-pointer w-[110px]"
                   type="file"
                   id="fileInput"
                   onChange={(e) => {
