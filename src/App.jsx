@@ -283,6 +283,7 @@ function App() {
 
           layer = new Konva.Layer();
           stage.add(layer);
+          console.log("Listening on update monitors");
           socket.on("update-monitors", (displays) => {
             console.log("Displays:", displays);
             const newVideoWalls = displays.map((display, index) => ({
