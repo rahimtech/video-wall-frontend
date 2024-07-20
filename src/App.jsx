@@ -78,6 +78,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [cameraList, setCameraList] = useState([]);
+  const [fileList, setFileList] = useState([]);
   let host = null;
   let port = 4000;
 
@@ -238,6 +239,27 @@ function App() {
           socket.on("connect", () => {
             console.log("Connected to server");
             setConnecting(true);
+          });
+
+          socket.on("init", (data) => {
+            console.log("INIT DATA: ", data);
+            if (data.inputs) {
+              setCameraList(data.inputs);
+            }
+
+            if (data.files) {
+              setFileList(data.files);
+            }
+
+            if (data.displays) {
+              // List of monitors
+              // setDisplayList(data.displays)
+            }
+
+            if (data.sources) {
+              // List of videos are here
+              // setSources(data.sources)
+            }
           });
 
           socket.on("update-event", (data) => {
