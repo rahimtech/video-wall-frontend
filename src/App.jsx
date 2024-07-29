@@ -126,7 +126,11 @@ function App() {
   const toggleLoop = (videoName) => {
     setLoopVideos((prev) => {
       const isLooping = !prev[videoName];
-      socket.emit("video-loop", { videoName, isLooping });
+      // socket.emit("video-loop", { videoName, isLooping });
+      socket.emit("source", {
+        action: "loop",
+        id: videoName,
+      });
       return {
         ...prev,
         [videoName]: isLooping,
@@ -722,7 +726,11 @@ function App() {
     if (video) {
       video.play();
       // sendControlEvent({ type: "video-play", videoName });
-      socket.emit("video-play", { videoName });
+      // socket.emit("video-play", { videoName });
+      socket.emit("source", {
+        action: "play",
+        id: videoName,
+      });
       anim.start();
     }
   };
@@ -732,7 +740,11 @@ function App() {
     if (video) {
       video.pause();
       // sendControlEvent({ type: "video-pause", videoName });
-      socket.emit("video-pause", { videoName });
+      // socket.emit("video-pause", { videoName });
+      socket.emit("source", {
+        action: "pause",
+        id: videoName,
+      });
     }
   };
 
