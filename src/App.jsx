@@ -18,6 +18,7 @@ import Setting from "./components/Setting";
 import Select from "react-select";
 import io, { connect } from "socket.io-client";
 import config from "../public/config.json";
+import DraggableResizableIframe from "./DraggableResizableIframe";
 const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   <>
     <button onClick={() => zoomIn()}>Zoom In</button>
@@ -78,6 +79,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [cameraList, setCameraList] = useState([]);
+  const [iframList, setIframeList] = useState([]);
   const [fileList, setFileList] = useState([]);
   let host = config.host;
   let port = config.port;
@@ -281,10 +283,20 @@ function App() {
           stage.add(layer);
           console.log("Listening on update monitors");
           socket.on("update-monitors", (displays) => {
-            console.log("Displays:", displays);
-            const newVideoWalls = displays.map((display, index) => ({
+            let newVideoWalls = displays.map((display, index) => ({
               x: display.bounds.x,
               y: display.bounds.y,
+              width: display.bounds.width,
+              height: display.bounds.height,
+              id: `monitor-${index + 1}`,
+            }));
+            console.log("Displays:", displays);
+            minLeftMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.x));
+            minTopMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.y));
+
+            newVideoWalls = displays.map((display, index) => ({
+              x: display.bounds.x - minLeftMonitor,
+              y: display.bounds.y - minTopMonitor,
               width: display.bounds.width,
               height: display.bounds.height,
               id: `monitor-${index + 1}`,
@@ -790,6 +802,7 @@ function App() {
     const modifiedVideoURL = changeBlobURL(`video:http://${host}:${port}`, videoName);
 
     // sendControlEvent({ type: "ADD_VIDEO", videoName });
+
     video.addEventListener("loadedmetadata", () => {
       socket.emit("source", {
         action: "add",
@@ -940,6 +953,95 @@ function App() {
       video.loop = loopVideos[videoName] || false;
     });
   };
+  const addIframe = () => {
+    const iframeGroup = new Konva.Group({
+      x: 100,
+      y: 100,
+      draggable: true,
+      id: `iframe-${Date.now()}`, // یک id منحصر به فرد برای هر آیفریم
+    });
+
+    const iframeRect = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 400,
+      fill: "transparent",
+      stroke: "white",
+      strokeWidth: 3,
+    });
+
+    iframeGroup.add(iframeRect);
+
+    const konvaIframe = document.createElement("iframe");
+    konvaIframe.src = "https://www.easeup.ir"; // آدرس فایل HTML خود را جایگزین کنید
+    konvaIframe.style.width = "200px";
+    konvaIframe.style.height = "100px";
+    konvaIframe.style.position = "absolute";
+    konvaIframe.style.border = "none";
+    konvaIframe.style.pointerEvents = "none"; // Disable iframe interactions to prevent interference with dragging
+    document.body.appendChild(konvaIframe);
+
+    const container = document.getElementById("containerKonva");
+    container.style.position = "relative";
+
+    const updateIframePosition = () => {
+      const { x, y } = iframeGroup.absolutePosition();
+      konvaIframe.style.left = `${x}px`;
+      konvaIframe.style.top = `${y}px`;
+    };
+
+    iframeGroup.on("transform", () => {
+      const scaleX = iframeGroup.scaleX();
+      const scaleY = iframeGroup.scaleY();
+      const newWidth = 800 * scaleX;
+      const newHeight = 400 * scaleY;
+
+      iframeRect.width(newWidth);
+      iframeRect.height(newHeight);
+
+      konvaIframe.style.width = `${newWidth}px`;
+      konvaIframe.style.height = `${newHeight}px`;
+      iframeGroup.scaleX(1);
+      iframeGroup.scaleY(1);
+
+      updateIframePosition();
+    });
+
+    iframeGroup.on("dragmove", () => {
+      updateIframePosition();
+    });
+
+    iframeGroup.on("dragend", () => {
+      updateIframePosition();
+    });
+
+    iframeGroup.on("transformend", () => {
+      updateIframePosition();
+    });
+
+    stage.add(layer);
+    layer.add(iframeGroup);
+
+    const transform = new Konva.Transformer({
+      nodes: [iframeGroup],
+      enabledAnchors: [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+        "middle-left",
+        "middle-right",
+        "top-center",
+        "bottom-center",
+      ],
+    });
+
+    layer.add(transform);
+    layer.draw();
+
+    updateIframePosition(); // Initial position update
+  };
 
   return (
     <main
@@ -1002,6 +1104,21 @@ function App() {
                 >
                   افزودن محتوا
                 </Button>
+                <Button
+                  onClick={() => {
+                    setIframeList((prev) => [...prev, "new"]);
+                  }}
+                  // onClick={addIframe}
+                  className={`py-2 rounded-lg text-white z-10 mt-2 ${
+                    checkvideo === 4 || checkvideo === 8
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-blue-600"
+                  }`}
+                  disabled={checkvideo === 4 || checkvideo === 8}
+                >
+                  افزودن فریم
+                </Button>
+
                 <input
                   className="relative left-0 right-0 top-[-34px] mx-auto  h-12 opacity-0 cursor-pointer w-[110px]"
                   type="file"
@@ -1098,22 +1215,16 @@ function App() {
               className={`xxx w-full h-full relative`}
             >
               <div id="content" className="absolute w-full h-full top-0 left-0">
+                {iframList.map((item) => (
+                  <DraggableResizableIframe key={item} />
+                ))}
                 <div
                   className=" z-50 relative "
                   id="containerKonva"
                   onMouseDown={(e) => {
                     con.setFlagDragging(false);
                   }}
-                >
-                  {content.map((contentItem, index) => (
-                    <Contents
-                      key={contentItem.name}
-                      videoName={contentItem.name}
-                      index={index}
-                      IAG={con.isActiveG}
-                    />
-                  ))}
-                </div>
+                ></div>
               </div>
             </div>
           </div>
