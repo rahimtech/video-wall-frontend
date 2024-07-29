@@ -1,5 +1,5 @@
 import { Rnd } from "react-rnd";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Block from "./components/Block";
 import Box4 from "./components/Box4";
 import Box8 from "./components/Box8";
@@ -17,7 +17,7 @@ import SwitchCustom from "./components/SwitchCustom";
 import Setting from "./components/Setting";
 import Select from "react-select";
 import io, { connect } from "socket.io-client";
-
+import config from "../public/config.json";
 const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   <>
     <button onClick={() => zoomIn()}>Zoom In</button>
@@ -79,8 +79,8 @@ function App() {
   const [connecting, setConnecting] = useState(false);
   const [cameraList, setCameraList] = useState([]);
   const [fileList, setFileList] = useState([]);
-  let host = null;
-  let port = 4000;
+  let host = config.host;
+  let port = config.port;
 
   const con = useMyContext();
   const transformComponentRef = useRef(null);
@@ -91,54 +91,35 @@ function App() {
   let counterVideos = 0;
   let allData = [];
   let allDataMonitors = videoWalls;
+  let minLeftMonitor = 0;
+  let minTopMonitor = 0;
   const sendControlEvent = (data) => {
     socket.emit("control-event", data);
   };
 
-  const uploadVideo = async (file, videoName) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("videoName", videoName); // اضافه کردن videoName به فرم دیتا
-    try {
-      const response = await axios.get(`http://${host}:${port}/upload`, formData, videoName, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      console.log("File uploaded successfully:", response.data.filePath);
-    } catch (error) {
-      console.error("Error uploading file:", error);
-    }
-    try {
-      const response = await axios.post(`http://${host}:${port}/upload`, formData, videoName, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      console.log("File uploaded successfully:", response.data.filePath);
-    } catch (error) {
-      console.error("Error uploading file:", error);
-    }
-  };
-
-  const MonitorSelect = ({ videoName, monitors, fitToMonitors }) => {
+  const MonitorSelect = ({ videoName, monitors, fitToMonitors, onAddToScene }) => {
     const monitorOptions = monitors.map((monitor, index) => ({
       value: index,
       label: `Monitor ${index + 1}`,
     }));
 
     return (
-      <Select
-        isMulti
-        name="monitors"
-        options={monitorOptions}
-        className="basic-multi-select"
-        classNamePrefix="select"
-        onChange={(selectedOptions) => {
-          const selectedMonitors = selectedOptions.map((option) => option.value);
-          fitToMonitors(videoName, selectedMonitors);
-        }}
-      />
+      <>
+        <Select
+          isMulti
+          name="monitors"
+          options={monitorOptions}
+          className="basic-multi-select"
+          classNamePrefix="select"
+          onChange={(selectedOptions) => {
+            const selectedMonitors = selectedOptions.map((option) => option.value);
+            fitToMonitors(videoName, selectedMonitors);
+          }}
+        />
+        <Button variant="flat" color="primary" onClick={onAddToScene}>
+          افزودن به صحنه
+        </Button>
+      </>
     );
   };
 
@@ -157,7 +138,7 @@ function App() {
     const { x, y, width, height } = videoWall;
 
     const newImageX = image.x() - x;
-    const newImageY = -(image.y() + y); // Y باید منفی شود چون در Konva محور Y به سمت پایین است
+    const newImageY = image.y() + y;
 
     const newImageWidth = image.width();
     const newImageHeight = image.height();
@@ -248,7 +229,18 @@ function App() {
             }
 
             if (data.files) {
-              setFileList(data.files);
+              data.files.forEach((items) => {
+                const fileNameWithExtension = items;
+                const fileName = fileNameWithExtension.split(".").slice(0, -1).join(".");
+                const modifiedVideoURL = changeBlobURL(`http://${host}:${port}`, fileName);
+                const makeVideo = document.createElement("video");
+                makeVideo.src = modifiedVideoURL;
+                makeVideo.setAttribute("id", fileName);
+                setContent((prev) => [
+                  ...prev,
+                  { type: "video", name: fileName, videoElement: makeVideo },
+                ]);
+              });
             }
 
             if (data.displays) {
@@ -295,6 +287,7 @@ function App() {
             }));
 
             setVideoWalls(newVideoWalls);
+
             function generateMonitorNode(x, y, width, height, index) {
               const group = new Konva.Group({
                 x: x,
@@ -331,13 +324,15 @@ function App() {
               return group;
             }
 
+            // newVideoWalls.reverse();
             for (var i = 0; i < newVideoWalls.length; i++) {
-              if (newVideoWalls[i].x < 0) {
-                newVideoWalls[i].x = newVideoWalls[i].x * -1;
-              }
-              if (newVideoWalls[i].y < 0) {
-                newVideoWalls[i].y = newVideoWalls[i].y * -1;
-              }
+              console.log("newVideoWalls[i]::: ", newVideoWalls[i]);
+              // if (newVideoWalls[i].x < 0) {
+              //   newVideoWalls[i].x = newVideoWalls[i].x;
+              // }
+              // if (newVideoWalls[i].y < 0) {
+              //   newVideoWalls[i].y = newVideoWalls[i].y;
+              // }
 
               layer.add(
                 generateMonitorNode(
@@ -387,7 +382,17 @@ function App() {
                 const imageURL = URL.createObjectURL(file);
                 handleImage(imageURL);
               } else if (fileType === "video") {
-                handleVideo(file);
+                const video = document.createElement("video");
+                video.src = URL.createObjectURL(file);
+                const videoName = "video" + counterVideos++;
+                // video.setAttribute("id", videoName);
+
+                // handleVideo(file);
+                setContent((prev) => [
+                  ...prev,
+                  { type: "video", name: videoName, videoElement: video },
+                ]);
+                uploadVideo(file, videoName);
               } else {
                 console.error("Unsupported file type.");
               }
@@ -507,148 +512,6 @@ function App() {
             });
           }
 
-          function handleVideo(arrayBuffer) {
-            const video = document.createElement("video");
-            video.src = URL.createObjectURL(arrayBuffer);
-
-            const videoName = "video" + counterVideos++;
-            video.setAttribute("id", videoName);
-
-            setContent((prev) => [
-              ...prev,
-              { type: "video", name: videoName, videoElement: video },
-            ]);
-            sendControlEvent({ type: "ADD_VIDEO", videoName });
-            uploadVideo(arrayBuffer, videoName);
-
-            video.addEventListener("loadedmetadata", () => {
-              const group2 = new Konva.Group({
-                draggable: true,
-                x: 0,
-                y: 0,
-                id: videoName,
-              });
-
-              const image = new Konva.Image({
-                image: video,
-                width: video.videoWidth,
-                height: video.videoHeight,
-                name: "object",
-                fill: "gray",
-                id: videoName,
-              });
-
-              group2.add(image);
-              layer.add(group2);
-              stage.add(layer);
-
-              const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
-                group2,
-                allDataMonitors[0]
-              );
-              group2.position(positionRelativeToVideoWall);
-
-              layer.draw();
-
-              const transformer = new Konva.Transformer({
-                nodes: [image],
-                enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-                rotateEnabled: true,
-              });
-
-              image.on("click", () => {
-                layer.add(transformer);
-                transformer.attachTo(image);
-                layer.draw();
-              });
-
-              stage.on("click", (e) => {
-                if (e.target === stage || e.target === layer) {
-                  transformer.detach();
-                  layer.draw();
-                }
-              });
-
-              allData.push({
-                monitor: [1],
-                x: positionRelativeToVideoWall.x,
-                y: positionRelativeToVideoWall.y,
-                width: image.width(),
-                height: image.height(),
-                name: videoName,
-                id: videoName,
-              });
-
-              transformer.on("transformend", () => {
-                const scaleX = image.scaleX();
-                const scaleY = image.scaleY();
-                const newWidth = image.width() * scaleX;
-                const newHeight = image.height() * scaleY;
-                const x = image.x();
-                const y = image.y();
-
-                image.width(newWidth);
-                image.height(newHeight);
-                image.scaleX(1);
-                image.scaleY(1);
-                image.x(0);
-                image.y(0);
-
-                const updatedPosition = updateImagePositionRelativeToVideoWall(
-                  group2,
-                  allDataMonitors[0]
-                );
-                console.log(
-                  `Updated position and size: (${parseInt(x)}, ${parseInt(y)}, ${parseInt(
-                    newWidth
-                  )}, ${parseInt(newHeight)})`
-                );
-
-                allData = allData.map((item) => {
-                  if (item.name === videoName) {
-                    handleResizeEnd(videoName, newWidth, newHeight, x, y);
-                    return {
-                      ...item,
-                      x: x,
-                      y: y,
-                      width: newWidth,
-                      height: newHeight,
-                    };
-                  }
-                  return item;
-                });
-              });
-
-              group2.on("dragstart", () => {
-                group2.opacity(0.2);
-                group2.moveToTop();
-                layer.draw();
-              });
-
-              group2.on("dragend", (e) => {
-                group2.opacity(1);
-                const updatedPosition = updateImagePositionRelativeToVideoWall(
-                  e.target,
-                  allDataMonitors[0]
-                );
-
-                allData = allData.map((item) => {
-                  if (item.name === videoName) {
-                    handleDragEnd(videoName, updatedPosition.x, updatedPosition.y);
-                    return {
-                      ...item,
-                      x: updatedPosition.x,
-                      y: updatedPosition.y,
-                    };
-                  }
-                  return item;
-                });
-                layer.draw();
-              });
-              video.loop = loopVideos[videoName] || false;
-            });
-          }
-
           layer.on("dragmove", function (e) {
             var absPos = e.target.absolutePosition();
             e.target.absolutePosition(absPos);
@@ -704,13 +567,14 @@ function App() {
     return () => {
       if (stage) stage.destroy();
       if (layer) layer.destroy();
-      socket.off("update-monitors");
-      socket.off("connect");
-      socket.off("update-event");
+      // socket.off("update-monitors");
+      // socket.off("connect");
+      // socket.off("update-event");
     };
   }, []);
 
   useEffect(() => {
+    console.log("content::: ", content);
     content.forEach((item) => {
       if (item.type === "video") {
         const videoElement = item.videoElement;
@@ -722,7 +586,9 @@ function App() {
   }, [loopVideos, content]);
 
   const fitToMonitors = (videoName, selectedMonitors) => {
+    console.log("videoName::: ", videoName);
     const videoGroup = layer.findOne(`#${videoName}`);
+
     if (videoGroup) {
       const firstMonitor = allDataMonitors[selectedMonitors[0]];
       const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
@@ -740,15 +606,40 @@ function App() {
         videoNode.height(height);
         layer.draw();
       }
+      const modifiedVideoURL = changeBlobURL(`video:http://${host}:${port}`, videoName);
 
-      socket.emit("video-fit", { videoName, x, y, width, height });
+      socket.emit("source", {
+        action: "resize",
+        id: videoName,
+        payload: {
+          source: modifiedVideoURL,
+          x: x,
+          y: y,
+          width: width,
+          height: height,
+        },
+      });
+      allData = allData.map((item) => {
+        if (item.name === videoName) {
+          return {
+            ...item,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+          };
+        }
+        return item;
+      });
+
+      // socket.emit("video-fit", { videoName, x, y, width, height });
     }
   };
 
   const handleDragEnd = (videoName, x, y) => {
     console.log("videoName::: ", videoName);
-    y *= -1;
-    socket.emit("video-move", { videoName, x, y });
+    // y *= -1;
+    // socket.emit("video-move", { videoName, x, y });
   };
 
   const handleResizeEnd = (videoName, width, height, x, y) => {
@@ -774,7 +665,6 @@ function App() {
   };
 
   const handleDeleteVideo = async (fileName) => {
-    console.log("fileName::: ", fileName);
     try {
       const response = await axios.delete(`http://${host}:${port}/delete/${fileName}`);
       console.log("File deleted successfully:", response.data.message);
@@ -785,34 +675,45 @@ function App() {
 
   const deleteContent = async (videoName) => {
     setContent(content.filter((item) => item.name !== videoName));
+
     sendControlEvent({ type: "DELETE_CONTENT", contentName: videoName });
     await handleDeleteVideo(videoName);
 
     // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
+    console.log("layer::: ", layer);
+
+    // مطمئن شوید که گروه به درستی پیدا می‌شود
     const groupToRemove = layer.findOne(`#${videoName}`);
-    if (groupToRemove) {
-      // متوقف کردن ویدیو
-      const videoElement = content.find((item) => item.name === videoName)?.videoElement;
-      if (videoElement) {
-        videoElement.pause();
-        videoElement.src = ""; // آزاد کردن منبع ویدیو
-      }
-
-      // حذف Transformer های مرتبط
-      const transformers = layer.find("Transformer");
-      transformers.forEach((transformer) => {
-        const nodes = transformer.nodes();
-        if (nodes.includes(groupToRemove.findOne(".object"))) {
-          transformer.detach();
-          transformer.destroy();
-        }
-      });
-
-      // حذف گروه والد
-      groupToRemove.destroy();
-
-      layer.draw();
+    console.log("groupToRemove::: ", groupToRemove);
+    if (!groupToRemove) {
+      console.error(`Group with id ${videoName} not found`);
+      return;
     }
+
+    console.log("groupToRemove::: ", groupToRemove);
+
+    // متوقف کردن ویدیو
+    const videoElement = content.find((item) => item.name === videoName)?.videoElement;
+    if (videoElement) {
+      videoElement.pause();
+      videoElement.src = ""; // آزاد کردن منبع ویدیو
+    }
+
+    // حذف Transformer های مرتبط
+    const transformers = layer.find("Transformer");
+    transformers.forEach((transformer) => {
+      const nodes = transformer.nodes();
+      if (nodes.includes(groupToRemove.findOne(".object"))) {
+        transformer.detach();
+        transformer.destroy();
+      }
+    });
+
+    // حذف گروه والد
+    groupToRemove.destroy();
+    layer.draw();
+
+    console.log(`Group with id ${videoName} removed successfully`);
   };
 
   const playVideo = (videoName) => {
@@ -833,6 +734,199 @@ function App() {
       // sendControlEvent({ type: "video-pause", videoName });
       socket.emit("video-pause", { videoName });
     }
+  };
+
+  function changeBlobURL(newBaseURL, videoName) {
+    // const blobID = blobURL.substring(blobURL.lastIndexOf("/") + 1);
+
+    const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
+
+    return newBlobURL;
+  }
+
+  const uploadVideo = async (file, videoName) => {
+    console.log("file::: ", file);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("videoName", videoName); // اضافه کردن videoName به فرم دیتا
+    console.log("formData::: ", formData);
+
+    try {
+      const response = await axios.post(`http://${host}:${port}/upload`, formData, videoName, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("File uploaded successfully:", response.data.filePath);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
+  };
+
+  const handleVideo = (videoElement) => {
+    const video = document.createElement("video");
+    let videoName = null; // add New Id
+    counterVideos++;
+    if (videoElement.getAttribute("id") == null) {
+      videoName = "video" + counterVideos;
+    } else {
+      videoName = videoElement.getAttribute("id");
+    }
+
+    video.src = videoElement.src;
+    video.setAttribute("id", videoName);
+    const modifiedVideoURL = changeBlobURL(`video:http://${host}:${port}`, videoName);
+
+    // sendControlEvent({ type: "ADD_VIDEO", videoName });
+    video.addEventListener("loadedmetadata", () => {
+      socket.emit("source", {
+        action: "add",
+        id: videoName,
+        payload: {
+          source: modifiedVideoURL,
+          x: 0,
+          y: 0,
+          width: video.videoWidth,
+          height: video.videoHeight,
+        },
+      });
+
+      const group2 = new Konva.Group({
+        draggable: true,
+        x: 0,
+        y: 0,
+        id: videoName,
+      });
+
+      const image = new Konva.Image({
+        image: videoElement,
+        width: video.videoWidth,
+        height: video.videoHeight,
+        name: "object",
+        fill: "gray",
+        id: videoName,
+      });
+
+      group2.add(image);
+      layer.add(group2);
+      stage.add(layer);
+
+      const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
+        group2,
+        allDataMonitors[0]
+      );
+      // group2.position(positionRelativeToVideoWall);
+
+      layer.draw();
+
+      const transformer = new Konva.Transformer({
+        nodes: [image],
+        enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+        rotateEnabled: true,
+      });
+
+      image.on("click", () => {
+        layer.add(transformer);
+        transformer.attachTo(image);
+        layer.draw();
+      });
+
+      stage.on("click", (e) => {
+        if (e.target === stage || e.target === layer) {
+          transformer.detach();
+          layer.draw();
+        }
+      });
+
+      allData.push({
+        monitor: [1],
+        x: positionRelativeToVideoWall.x,
+        y: positionRelativeToVideoWall.y,
+        width: image.width(),
+        height: image.height(),
+        name: videoName,
+        id: videoName,
+      });
+
+      transformer.on("transformend", () => {
+        const scaleX = image.scaleX();
+        const scaleY = image.scaleY();
+        const newWidth = image.width() * scaleX;
+        const newHeight = image.height() * scaleY;
+
+        image.width(newWidth);
+        image.height(newHeight);
+        image.scaleX(1);
+        image.scaleY(1);
+        image.x(0);
+        image.y(0);
+        const x = group2.x();
+        const y = group2.y();
+
+        allData = allData.map((item) => {
+          if (item.name === videoName) {
+            handleResizeEnd(videoName, newWidth, newHeight, x, y);
+
+            socket.emit("source", {
+              action: "resize",
+              id: videoName,
+              payload: {
+                source: modifiedVideoURL,
+                x: x,
+                y: y,
+                width: newWidth,
+                height: newHeight,
+              },
+            });
+            return {
+              ...item,
+              x: x,
+              y: y,
+              width: newWidth,
+              height: newHeight,
+            };
+          }
+          return item;
+        });
+      });
+
+      group2.on("dragstart", () => {
+        group2.opacity(0.2);
+        group2.moveToTop();
+        layer.draw();
+      });
+
+      group2.on("dragend", (e) => {
+        group2.opacity(1);
+        const updatedPosition = updateImagePositionRelativeToVideoWall(
+          e.target,
+          allDataMonitors[0]
+        );
+
+        allData = allData.map((item) => {
+          if (item.name === videoName) {
+            handleDragEnd(videoName, updatedPosition.x, updatedPosition.y);
+            socket.emit("source", {
+              action: "move",
+              id: videoName,
+              payload: {
+                source: modifiedVideoURL,
+                x: group2.x(),
+                y: group2.y(),
+              },
+            });
+            return {
+              ...item,
+              x: updatedPosition.x,
+              y: updatedPosition.y,
+            };
+          }
+          return item;
+        });
+        layer.draw();
+      });
+      video.loop = loopVideos[videoName] || false;
+    });
   };
 
   return (
@@ -900,17 +994,17 @@ function App() {
                   className="relative left-0 right-0 top-[-34px] mx-auto  h-12 opacity-0 cursor-pointer w-[110px]"
                   type="file"
                   id="fileInput"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const fileType = file.type.split("/")[0];
-                      if (fileType === "image") {
-                        handleImage(URL.createObjectURL(file));
-                      } else if (fileType === "video") {
-                        handleVideo(file);
-                      }
-                    }
-                  }}
+                  // onChange={(e) => {
+                  //   const file = e.target.files[0];
+                  //   if (file) {
+                  //     const fileType = file.type.split("/")[0];
+                  //     if (fileType === "image") {
+                  //       handleImage(URL.createObjectURL(file));
+                  //     } else if (fileType === "video") {
+                  //       // handleVideo(file);
+                  //     }
+                  //   }
+                  // }}
                 />
               </div>
               <ul className="w-full flex flex-col gap-2 overflow-y-auto">
@@ -938,6 +1032,7 @@ function App() {
                           videoName={item.name}
                           monitors={allDataMonitors}
                           fitToMonitors={fitToMonitors}
+                          onAddToScene={() => handleVideo(item.videoElement, item.videoName)}
                         />
                         <div className="flex items-center mt-2">
                           <label className="mr-2">Loop</label>
