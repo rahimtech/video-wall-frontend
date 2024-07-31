@@ -10,6 +10,11 @@ export const MyContextProvider = ({ children }) => {
   const [cB, setCB] = useState(0);
   const [cF, setCF] = useState(0);
 
+  const [state, setState] = useState({
+    isActiveG: "un",
+    flagDragging: false,
+  });
+
   const [vidN, setVidN] = useState("");
   const targetRef = useRef(null);
   const moveable = useRef(null);
@@ -33,6 +38,8 @@ export const MyContextProvider = ({ children }) => {
         setCB,
         cF,
         setCF,
+        state,
+        setState,
       }}
     >
       {children}
