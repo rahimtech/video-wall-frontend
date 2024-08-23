@@ -95,9 +95,6 @@ function App() {
   let allDataMonitors = videoWalls;
   let minLeftMonitor = 0;
   let minTopMonitor = 0;
-  const sendControlEvent = (data) => {
-    socket.emit("control-event", data);
-  };
 
   const MonitorSelect = ({ videoName, monitors, fitToMonitors, onAddToScene }) => {
     const monitorOptions = monitors.map((monitor, index) => ({
@@ -128,7 +125,6 @@ function App() {
   const toggleLoop = (videoName) => {
     setLoopVideos((prev) => {
       const isLooping = !prev[videoName];
-      // socket.emit("video-loop", { videoName, isLooping });
       socket.emit("source", {
         action: "loop",
         id: videoName,
@@ -228,6 +224,11 @@ function App() {
             setConnecting(true);
           });
 
+          socket.on("source_added", ({ actoin, payload }) => {
+            console.log("payload::: ", payload);
+            console.log("actoin::: ", actoin);
+          });
+
           socket.on("init", (data) => {
             console.log("INIT DATA: ", data);
             if (data.inputs) {
@@ -247,16 +248,6 @@ function App() {
                   { type: "video", name: fileName, videoElement: makeVideo },
                 ]);
               });
-            }
-
-            if (data.displays) {
-              // List of monitors
-              // setDisplayList(data.displays)
-            }
-
-            if (data.sources) {
-              // List of videos are here
-              // setSources(data.sources)
             }
           });
 
@@ -290,7 +281,6 @@ function App() {
               height: display.bounds.height,
               id: `monitor-${index + 1}`,
             }));
-            console.log("Displays:", displays);
             minLeftMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.x));
             minTopMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.y));
 
@@ -363,6 +353,7 @@ function App() {
 
             layer.draw();
           });
+
           var scaleBy = 1.04;
           stage.on("wheel", (e) => {
             e.evt.preventDefault();
@@ -401,6 +392,7 @@ function App() {
                 const video = document.createElement("video");
                 video.src = URL.createObjectURL(file);
                 const videoName = "video" + counterVideos++;
+                // const videoName = crypto.randomUUID();
                 // video.setAttribute("id", videoName);
 
                 // handleVideo(file);
@@ -650,25 +642,7 @@ function App() {
         }
         return item;
       });
-
-      // socket.emit("video-fit", { videoName, x, y, width, height });
     }
-  };
-
-  const handleDragEnd = (videoName, x, y) => {
-    console.log("videoName::: ", videoName);
-    // y *= -1;
-    // socket.emit("video-move", { videoName, x, y });
-  };
-
-  const handleResizeEnd = (videoName, width, height, x, y) => {
-    console.log("videoName::: ", videoName);
-    socket.emit("video-resize", { videoName, width, height, x, y });
-  };
-
-  const handleRotateVideo = (videoName, angle) => {
-    sendControlEvent({ type: "ROTATE_VIDEO", videoName, angle });
-    socket.emit("video-rotate", { videoName, angle });
   };
 
   const lunching = () => {
@@ -695,7 +669,6 @@ function App() {
   const deleteContent = async (videoName) => {
     setContent(content.filter((item) => item.name !== videoName));
 
-    sendControlEvent({ type: "DELETE_CONTENT", contentName: videoName });
     await handleDeleteVideo(videoName);
 
     // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
@@ -740,8 +713,6 @@ function App() {
     console.log("video::: ", video);
     if (video) {
       video.play();
-      // sendControlEvent({ type: "video-play", videoName });
-      // socket.emit("video-play", { videoName });
       socket.emit("source", {
         action: "play",
         id: videoName,
@@ -754,8 +725,6 @@ function App() {
     const video = content.find((item) => item.name === videoName)?.videoElement;
     if (video) {
       video.pause();
-      // sendControlEvent({ type: "video-pause", videoName });
-      // socket.emit("video-pause", { videoName });
       socket.emit("source", {
         action: "pause",
         id: videoName,
