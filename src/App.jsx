@@ -232,6 +232,7 @@ function App() {
           socket.on("init", (data) => {
             console.log("INIT DATA: ", data);
             if (data.inputs) {
+              console.log("setting inputs");
               setCameraList(data.inputs);
             }
 
@@ -239,7 +240,7 @@ function App() {
               data.files.forEach((items) => {
                 const fileNameWithExtension = items;
                 const fileName = fileNameWithExtension.split(".").slice(0, -1).join(".");
-                const modifiedVideoURL = changeBlobURL(`http://${host}:${port}`, fileName);
+                const modifiedVideoURL = generateBlobURL(`http://${host}:${port}`, fileName);
                 const makeVideo = document.createElement("video");
                 makeVideo.src = modifiedVideoURL;
                 makeVideo.setAttribute("id", fileName);
@@ -398,7 +399,7 @@ function App() {
                 // handleVideo(file);
                 setContent((prev) => [
                   ...prev,
-                  { type: "video", name: videoName, videoElement: video },
+                  { type: "video", id: "temp", name: videoName, videoElement: video },
                 ]);
                 uploadVideo(file, videoName);
               } else {
@@ -616,7 +617,7 @@ function App() {
 
         layer.draw();
       }
-      const modifiedVideoURL = changeBlobURL(`video:http://${host}:${port}`, videoName);
+      const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, videoName);
 
       socket.emit("source", {
         action: "resize",
@@ -657,35 +658,42 @@ function App() {
     document.getElementById("fileInput").click();
   };
 
-  const handleDeleteVideo = async (fileName) => {
+  const handleDeleteVideo = async (id) => {
+    socket.emit("source", {
+      action: "remove",
+      id,
+      payload: {},
+    });
     try {
-      const response = await axios.delete(`http://${host}:${port}/delete/${fileName}`);
+      // const response = await axios.delete(`http://${host}:${port}/delete/${fileName}`);
       console.log("File deleted successfully:", response.data.message);
     } catch (error) {
       console.error("Error deleting file:", error);
     }
   };
 
-  const deleteContent = async (videoName) => {
-    setContent(content.filter((item) => item.name !== videoName));
+  const deleteContent = async (id) => {
+    console.log("videoName::: ", id);
+    console.log("CONTENTS: ", content);
+    setContent(content.filter((item) => item.id !== id));
 
-    await handleDeleteVideo(videoName);
+    await handleDeleteVideo(id);
 
     // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
     console.log("layer::: ", layer);
 
     // مطمئن شوید که گروه به درستی پیدا می‌شود
-    const groupToRemove = layer.findOne(`#${videoName}`);
+    const groupToRemove = layer.findOne(`#${id}`);
     console.log("groupToRemove::: ", groupToRemove);
     if (!groupToRemove) {
-      console.error(`Group with id ${videoName} not found`);
+      console.error(`Group with id ${id} not found`);
       return;
     }
 
     console.log("groupToRemove::: ", groupToRemove);
 
     // متوقف کردن ویدیو
-    const videoElement = content.find((item) => item.name === videoName)?.videoElement;
+    const videoElement = content.find((item) => item.name === id)?.videoElement;
     if (videoElement) {
       videoElement.pause();
       videoElement.src = ""; // آزاد کردن منبع ویدیو
@@ -705,7 +713,7 @@ function App() {
     groupToRemove.destroy();
     layer.draw();
 
-    console.log(`Group with id ${videoName} removed successfully`);
+    console.log(`Group with id ${id} removed successfully`);
   };
 
   const playVideo = (videoName) => {
@@ -732,7 +740,7 @@ function App() {
     }
   };
 
-  function changeBlobURL(newBaseURL, videoName) {
+  function generateBlobURL(newBaseURL, videoName) {
     // const blobID = blobURL.substring(blobURL.lastIndexOf("/") + 1);
 
     const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
@@ -759,9 +767,10 @@ function App() {
     }
   };
 
-  const handleVideo = (videoElement) => {
+  const createVideo = (videoElement) => {
     const video = document.createElement("video");
     let videoName = null;
+    const id = crypto.randomUUID();
     counterVideos++;
     if (videoElement.getAttribute("id") == null) {
       videoName = "video" + counterVideos;
@@ -770,13 +779,19 @@ function App() {
     }
 
     video.src = videoElement.src;
-    video.setAttribute("id", videoName);
-    const modifiedVideoURL = changeBlobURL(`video:http://${host}:${port}`, videoName);
+    video.setAttribute("id", id);
+    console.log(video);
+    setContent((prev) => {
+      const n = prev.map((c) => (c.name == videoName ? { ...c, id } : c));
+      console.log("NEW SHIT: ", n);
+      return n;
+    });
+    const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, videoName);
 
     video.addEventListener("loadedmetadata", () => {
       socket.emit("source", {
         action: "add",
-        id: videoName,
+        id,
         payload: {
           source: modifiedVideoURL,
           x: 0,
@@ -824,7 +839,7 @@ function App() {
           if (item.name === videoName) {
             socket.emit("source", {
               action: "resize",
-              id: videoName,
+              id,
               payload: {
                 source: modifiedVideoURL,
                 x: 0,
@@ -918,7 +933,7 @@ function App() {
           if (item.name === videoName) {
             socket.emit("source", {
               action: "resize",
-              id: videoName,
+              id,
               payload: {
                 source: modifiedVideoURL,
                 x,
@@ -962,7 +977,7 @@ function App() {
           if (item.name === videoName) {
             socket.emit("source", {
               action: "move",
-              id: videoName,
+              id,
               payload: {
                 source: modifiedVideoURL,
                 x: image.x(),
@@ -984,12 +999,98 @@ function App() {
     });
   };
 
+  const addInput = ({ deviceId, width, height }) => {
+    const x = 0;
+    const y = 0;
+    const id = crypto.randomUUID();
+
+    const inputGroup = new Konva.Group({
+      x: x,
+      y: y,
+      draggable: true,
+      id: `input-${deviceId}`,
+    });
+
+    const rect = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: width,
+      height: height,
+      fill: "blue",
+      stroke: "white",
+      strokeWidth: 2,
+    });
+
+    inputGroup.add(rect);
+
+    layer.add(inputGroup);
+    layer.draw();
+
+    const transformer = new Konva.Transformer({
+      nodes: [inputGroup],
+      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      rotateEnabled: true,
+    });
+
+    layer.add(transformer);
+    layer.draw();
+
+    transformer.on("transformend", (e) => {
+      const scaleX = e.target.attrs.scaleX;
+      const scaleY = e.target.attrs.scaleY;
+      const newWidth = rect.width() * scaleX;
+      const newHeight = rect.height() * scaleY;
+
+      socket.emit("source", {
+        action: "resize",
+        id,
+        payload: {
+          x: e.target.attrs.x,
+          y: e.target.attrs.y,
+          width: newWidth,
+          height: newHeight,
+          rotation: e.target.attrs.rotation,
+        },
+      });
+    });
+
+    inputGroup.on("dragend", (e) => {
+      console.log("e::: ", e);
+      socket.emit("source", {
+        action: "move",
+        id,
+        payload: {
+          x: e.target.attrs.x,
+          y: e.target.attrs.y,
+        },
+      });
+    });
+
+    inputGroup.on("click", () => {
+      transformer.attachTo(inputGroup);
+      layer.draw();
+    });
+
+    stage.on("click", (e) => {
+      if (e.target === stage || e.target === layer) {
+        transformer.detach();
+        layer.draw();
+      }
+    });
+
+    socket.emit("source", {
+      action: "add",
+      id,
+      payload: { x, y, width, height, source: `input:${deviceId}` },
+    });
+  };
+
   const addIframe = () => {
     const iframeGroup = new Konva.Group({
       x: 100,
       y: 100,
       draggable: true,
-      id: `iframe-${Date.now()}`, // یک id منحصر به فرد برای هر آیفریم
+      id: `iframe-${Date.now()}`,
     });
 
     const iframeRect = new Konva.Rect({
@@ -1192,7 +1293,7 @@ function App() {
                           videoName={item.name}
                           monitors={allDataMonitors}
                           fitToMonitors={fitToMonitors}
-                          onAddToScene={() => handleVideo(item.videoElement, item.videoName)}
+                          onAddToScene={() => createVideo(item.videoElement, item.videoName)}
                         />
                         <div className="flex items-center mt-2">
                           <label className="mr-2">Loop</label>
@@ -1205,7 +1306,7 @@ function App() {
                       </div>
                     )}
                     <span
-                      onClick={() => deleteContent(item.name)}
+                      onClick={() => deleteContent(item.id)}
                       className="cursor-pointer hover:shadow-md shadow-black mt-2"
                     >
                       <FontAwesomeIcon icon={faTrash} className="text-red-600" />
@@ -1223,6 +1324,9 @@ function App() {
                     className="flex flex-col justify-between p-2 bg-gray-200 rounded-lg shadow-sm"
                   >
                     <span className="font-semibold">name: {item.deviceId}</span>
+                    <Button variant="flat" color="primary" onClick={() => addInput(item)}>
+                      افزودن به صحنه
+                    </Button>
                   </li>
                 ))}
               </ul>
