@@ -250,6 +250,101 @@ function App() {
                 ]);
               });
             }
+
+            if (data.sources) {
+              console.log("sdss");
+              data.sources.forEach((item) => {
+                const video = document.createElement("video");
+                video.src = item.source;
+                video.setAttribute("id", "video_0");
+                console.log("video::1312313323: ", video);
+                createVideo(video);
+              });
+
+              // createVideo
+            }
+
+            if (data.displays) {
+              const displays = data.displays;
+              let newVideoWalls = displays.map((display, index) => ({
+                x: display.bounds.x,
+                y: display.bounds.y,
+                width: display.bounds.width,
+                height: display.bounds.height,
+                id: `monitor-${index + 1}`,
+              }));
+              minLeftMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.x));
+              minTopMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.y));
+
+              newVideoWalls = displays.map((display, index) => ({
+                x: display.bounds.x - minLeftMonitor,
+                y: display.bounds.y - minTopMonitor,
+                width: display.bounds.width,
+                height: display.bounds.height,
+                id: `monitor-${index + 1}`,
+              }));
+
+              setVideoWalls(newVideoWalls);
+
+              function generateMonitorNode(x, y, width, height, index) {
+                const group = new Konva.Group({
+                  x: x,
+                  y: y,
+                  clip: { x: 0, y: 0, width: width, height: height },
+                });
+
+                const rect = new Konva.Rect({
+                  x: 0,
+                  y: 0,
+                  width: width,
+                  height: height,
+                  fill: "#161616",
+                  stroke: "white",
+                  name: "fillShape",
+                  strokeWidth: 3,
+                  id: `monitor-${index}`,
+                });
+
+                const text = new Konva.Text({
+                  x: width / 2,
+                  y: height / 2,
+                  text: `Monitor ${index + 1}\n${width}x${height}`,
+                  fontSize: 90,
+                  fill: "gray",
+                  align: "center",
+                  verticalAlign: "middle",
+                  offsetX: width / 7,
+                  offsetY: 24,
+                });
+
+                group.add(rect);
+                group.add(text);
+                return group;
+              }
+
+              // newVideoWalls.reverse();
+              for (var i = 0; i < newVideoWalls.length; i++) {
+                console.log("newVideoWalls[i]::: ", newVideoWalls[i]);
+                // if (newVideoWalls[i].x < 0) {
+                //   newVideoWalls[i].x = newVideoWalls[i].x;
+                // }
+                // if (newVideoWalls[i].y < 0) {
+                //   newVideoWalls[i].y = newVideoWalls[i].y;
+                // }
+
+                layer.add(
+                  generateMonitorNode(
+                    newVideoWalls[i].x,
+                    newVideoWalls[i].y,
+                    newVideoWalls[i].width,
+                    newVideoWalls[i].height,
+                    i
+                  )
+                );
+              }
+
+              layer.draw();
+            }
           });
 
           socket.on("update-event", (data) => {
@@ -274,86 +369,6 @@ function App() {
           layer = new Konva.Layer();
           stage.add(layer);
           console.log("Listening on update monitors");
-          socket.on("update-monitors", (displays) => {
-            let newVideoWalls = displays.map((display, index) => ({
-              x: display.bounds.x,
-              y: display.bounds.y,
-              width: display.bounds.width,
-              height: display.bounds.height,
-              id: `monitor-${index + 1}`,
-            }));
-            minLeftMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.x));
-            minTopMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.y));
-
-            newVideoWalls = displays.map((display, index) => ({
-              x: display.bounds.x - minLeftMonitor,
-              y: display.bounds.y - minTopMonitor,
-              width: display.bounds.width,
-              height: display.bounds.height,
-              id: `monitor-${index + 1}`,
-            }));
-
-            setVideoWalls(newVideoWalls);
-
-            function generateMonitorNode(x, y, width, height, index) {
-              const group = new Konva.Group({
-                x: x,
-                y: y,
-                clip: { x: 0, y: 0, width: width, height: height },
-              });
-
-              const rect = new Konva.Rect({
-                x: 0,
-                y: 0,
-                width: width,
-                height: height,
-                fill: "#161616",
-                stroke: "white",
-                name: "fillShape",
-                strokeWidth: 3,
-                id: `monitor-${index}`,
-              });
-
-              const text = new Konva.Text({
-                x: width / 2,
-                y: height / 2,
-                text: `Monitor ${index + 1}\n${width}x${height}`,
-                fontSize: 90,
-                fill: "gray",
-                align: "center",
-                verticalAlign: "middle",
-                offsetX: width / 7,
-                offsetY: 24,
-              });
-
-              group.add(rect);
-              group.add(text);
-              return group;
-            }
-
-            // newVideoWalls.reverse();
-            for (var i = 0; i < newVideoWalls.length; i++) {
-              console.log("newVideoWalls[i]::: ", newVideoWalls[i]);
-              // if (newVideoWalls[i].x < 0) {
-              //   newVideoWalls[i].x = newVideoWalls[i].x;
-              // }
-              // if (newVideoWalls[i].y < 0) {
-              //   newVideoWalls[i].y = newVideoWalls[i].y;
-              // }
-
-              layer.add(
-                generateMonitorNode(
-                  newVideoWalls[i].x,
-                  newVideoWalls[i].y,
-                  newVideoWalls[i].width,
-                  newVideoWalls[i].height,
-                  i
-                )
-              );
-            }
-
-            layer.draw();
-          });
 
           var scaleBy = 1.04;
           stage.on("wheel", (e) => {
