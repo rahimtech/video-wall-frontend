@@ -439,7 +439,7 @@ function App() {
             let searchIndexArray = group2.children[0].getAttr("id");
 
             allData.find((item) => {
-              if (item && item.name == searchIndexArray) {
+              if (item && item.id == searchIndexArray) {
                 let updatedPosition = updateImagePositionRelativeToVideoWall(
                   group2,
                   allDataMonitors[1]
@@ -588,15 +588,15 @@ function App() {
       if (item.type === "video") {
         const videoElement = item.videoElement;
         if (videoElement) {
-          videoElement.loop = loopVideos[item.name] || false;
+          videoElement.loop = loopVideos[item.id] || false;
         }
       }
     });
   }, [loopVideos, content]);
 
-  const fitToMonitors = (videoName, selectedMonitors) => {
-    console.log("videoName::: ", videoName);
-    const videoGroup = layer.findOne(`#${videoName}`);
+  const fitToMonitors = (id, selectedMonitors) => {
+    console.log("id::: ", id);
+    const videoGroup = layer.findOne(`#${id}`);
     console.log("videoGroup::: ", videoGroup);
 
     if (videoGroup) {
@@ -617,11 +617,11 @@ function App() {
 
         layer.draw();
       }
-      const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, videoName);
+      const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, id);
 
       socket.emit("source", {
         action: "resize",
-        id: videoName,
+        id: id,
         payload: {
           source: modifiedVideoURL,
           x: x,
@@ -632,7 +632,7 @@ function App() {
         },
       });
       allData = allData.map((item) => {
-        if (item.name === videoName) {
+        if (item.id === id) {
           return {
             ...item,
             x: x,
@@ -672,52 +672,38 @@ function App() {
     }
   };
 
-  const deleteContent = async (id) => {
-    console.log("videoName::: ", id);
-    console.log("CONTENTS: ", content);
-    setContent(content.filter((item) => item.id !== id));
+  const deleteContent = async ({ id, name }) => {
+    console.log("Deleting content with id:", id);
 
+    // حذف از لیست محتوا
+    console.log(content);
+    // ارسال درخواست حذف ویدیو به سرور
     await handleDeleteVideo(id);
 
-    // پیدا کردن و حذف گروه مربوط به ویدیو از لایه
-    console.log("layer::: ", layer);
-
-    // مطمئن شوید که گروه به درستی پیدا می‌شود
+    // پیدا کردن گروه مرتبط با ID در لایه
     const groupToRemove = layer.findOne(`#${id}`);
-    console.log("groupToRemove::: ", groupToRemove);
-    if (!groupToRemove) {
-      console.error(`Group with id ${id} not found`);
-      return;
-    }
 
     console.log("groupToRemove::: ", groupToRemove);
-
-    // متوقف کردن ویدیو
-    const videoElement = content.find((item) => item.name === id)?.videoElement;
-    if (videoElement) {
-      videoElement.pause();
-      videoElement.src = ""; // آزاد کردن منبع ویدیو
-    }
-
-    // حذف Transformer های مرتبط
-    const transformers = layer.find("Transformer");
-    transformers.forEach((transformer) => {
-      const nodes = transformer.nodes();
-      if (nodes.includes(groupToRemove.findOne(".object"))) {
-        transformer.detach();
-        transformer.destroy();
+    if (groupToRemove) {
+      // توقف ویدیو و آزادسازی منابع
+      const videoElement = content.find((item) => item.id == id)?.videoElement;
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.src = ""; // آزاد کردن منبع ویدیو
       }
-    });
 
-    // حذف گروه والد
-    groupToRemove.destroy();
-    layer.draw();
+      // حذف گروه از لایه
+      groupToRemove.destroy();
+      layer.draw(); // به‌روزرسانی لایه برای نمایش تغییرات
+    } else {
+      console.error(`Group with id ${id} not found`);
+    }
 
-    console.log(`Group with id ${id} removed successfully`);
+    setContent((prevContent) => prevContent.filter((item) => item.id !== id));
   };
 
   const playVideo = (videoName) => {
-    const video = content.find((item) => item.name === videoName)?.videoElement;
+    const video = content.find((item) => item.id === videoName)?.videoElement;
     console.log("video::: ", video);
     if (video) {
       video.play();
@@ -730,7 +716,7 @@ function App() {
   };
 
   const pauseVideo = (videoName) => {
-    const video = content.find((item) => item.name === videoName)?.videoElement;
+    const video = content.find((item) => item.id === videoName)?.videoElement;
     if (video) {
       video.pause();
       socket.emit("source", {
@@ -768,6 +754,7 @@ function App() {
   };
 
   const createVideo = (videoElement) => {
+    console.log("videoElement::: ", videoElement);
     const video = document.createElement("video");
     let videoName = null;
     const id = crypto.randomUUID();
@@ -807,7 +794,7 @@ function App() {
         height: video.videoHeight,
         name: "object",
         fill: "gray",
-        id: videoName,
+        id: id,
         draggable: true,
       });
 
@@ -836,7 +823,7 @@ function App() {
         layer.draw();
         image.setAttr("rotation", 0);
         allData = allData.map((item) => {
-          if (item.name === videoName) {
+          if (item.id === id) {
             socket.emit("source", {
               action: "resize",
               id,
@@ -862,8 +849,6 @@ function App() {
       });
 
       layer.add(image);
-      layer.add(positionText);
-      layer.add(resetIcon);
       stage.add(layer);
 
       layer.draw();
@@ -894,7 +879,7 @@ function App() {
         width: video.videoWidth,
         height: video.videoHeight,
         name: videoName,
-        id: videoName,
+        id: id,
       });
 
       let rotateStack = 0;
@@ -930,7 +915,7 @@ function App() {
         );
 
         allData = allData.map((item) => {
-          if (item.name === videoName) {
+          if (item.id === id) {
             socket.emit("source", {
               action: "resize",
               id,
@@ -974,7 +959,7 @@ function App() {
       image.on("dragend", (e) => {
         image.opacity(1);
         allData = allData.map((item) => {
-          if (item.name === videoName) {
+          if (item.id === id) {
             socket.emit("source", {
               action: "move",
               id,
@@ -1193,8 +1178,8 @@ function App() {
 
         <div className=" flex right-0 relative">
           <div>وضعیت اتصال</div>
-          {connecting && <div class="blob"></div>}
-          {!connecting && <div class="blobred"></div>}
+          {connecting && <div className="blob"></div>}
+          {!connecting && <div className="blobred"></div>}
         </div>
       </div>
       <div className="h-[93%] w-full flex z-50">
@@ -1211,13 +1196,29 @@ function App() {
             >
               <h1 className="">مدیریت مانیتورها </h1>
               <ul className="w-full px-1 flex flex-col gap-2  p-1 rounded-md h-[180px] overflow-y-auto">
-                {videoWalls?.map((videoName, index) => (
+                {videoWalls?.map((item, index) => (
                   <li
-                    key={videoName.name}
+                    key={item.name}
                     className="flex justify-between px-1 bg-[#bcc2c9] rounded-lg  w-full"
                   >
-                    <span>{videoName.id}</span>
-                    <span>{videoName.width + "*" + videoName.height}</span>
+                    <span>{item.id}</span>
+                    <span>{item.width + "*" + item.height}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="text-center bg-gray-300 rounded-lg p-4 flex flex-col items-center shadow-md">
+              <h2 className="text-lg font-semibold mb-4">مدیریت ورودی</h2>
+              <ul className="w-full flex flex-col gap-2 overflow-y-auto">
+                {cameraList.map((item, index) => (
+                  <li
+                    key={index}
+                    className="flex flex-col justify-between p-2 bg-gray-200 rounded-lg shadow-sm"
+                  >
+                    <span className="font-semibold text-sm">{item.label}</span>
+                    <Button variant="flat" color="primary" onClick={() => addInput(item)}>
+                      افزودن به صحنه
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -1236,7 +1237,7 @@ function App() {
                 >
                   افزودن محتوا
                 </Button>
-                <Button
+                {/* <Button
                   onClick={() => {
                     setIframeList((prev) => [...prev, "new"]);
                   }}
@@ -1249,7 +1250,7 @@ function App() {
                   disabled={checkvideo === 4 || checkvideo === 8}
                 >
                   افزودن فریم
-                </Button>
+                </Button> */}
 
                 <input
                   className="relative left-0 right-0 top-[-34px] mx-auto  h-12 opacity-0 cursor-pointer w-[110px]"
@@ -1279,54 +1280,38 @@ function App() {
                       <div className="flex flex-col gap-3 mt-2">
                         <button
                           className="w-full bg-green-500 rounded-md py-1 text-white"
-                          onClick={() => playVideo(item.name)}
+                          onClick={() => playVideo(item.id)}
                         >
                           Play
                         </button>
                         <button
                           className="w-full bg-orange-500 rounded-md py-1 text-white"
-                          onClick={() => pauseVideo(item.name)}
+                          onClick={() => pauseVideo(item.id)}
                         >
                           Pause
                         </button>
                         <MonitorSelect
-                          videoName={item.name}
+                          videoName={item.id}
                           monitors={allDataMonitors}
                           fitToMonitors={fitToMonitors}
-                          onAddToScene={() => createVideo(item.videoElement, item.videoName)}
+                          onAddToScene={() => createVideo(item.videoElement)}
                         />
                         <div className="flex items-center mt-2">
                           <label className="mr-2">Loop</label>
                           <input
                             type="checkbox"
-                            checked={loopVideos[item.name] || false}
-                            onChange={() => toggleLoop(item.name)}
+                            checked={loopVideos[item.id] || false}
+                            onChange={() => toggleLoop(item.id)}
                           />
                         </div>
                       </div>
                     )}
                     <span
-                      onClick={() => deleteContent(item.id)}
+                      onClick={() => deleteContent(item)}
                       className="cursor-pointer hover:shadow-md shadow-black mt-2"
                     >
                       <FontAwesomeIcon icon={faTrash} className="text-red-600" />
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="text-center bg-gray-300 rounded-lg p-4 flex flex-col items-center shadow-md">
-              <h2 className="text-lg font-semibold mb-4">مدیریت ورودی</h2>
-              <ul className="w-full flex flex-col gap-2 overflow-y-auto">
-                {cameraList.map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex flex-col justify-between p-2 bg-gray-200 rounded-lg shadow-sm"
-                  >
-                    <span className="font-semibold">name: {item.deviceId}</span>
-                    <Button variant="flat" color="primary" onClick={() => addInput(item)}>
-                      افزودن به صحنه
-                    </Button>
                   </li>
                 ))}
               </ul>
