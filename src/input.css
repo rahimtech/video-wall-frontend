@@ -35,6 +35,11 @@
   }
 }
 
+@font-face {
+  font-family: vazir;
+  src: url("../public/Vazirmatn-Regular.woff2");
+}
+
 .blobred {
   background: red;
   border-radius: 50%;
@@ -89,4 +94,9 @@
 /* برای اینترنت اکسپلورر و اج */
 body {
   -ms-overflow-style: -ms-autohiding-scrollbar;
+  font-family: vazir;
+}
+
+.vazir {
+  font-family: vazir;
 }

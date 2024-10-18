@@ -19,6 +19,8 @@ import Select from "react-select";
 import io, { connect } from "socket.io-client";
 import config from "../public/config.json";
 import DraggableResizableIframe from "./DraggableResizableIframe";
+import { Html } from "react-konva-utils";
+
 const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
   <>
     <button onClick={() => zoomIn()}>Zoom In</button>
@@ -610,9 +612,7 @@ function App() {
   }, [loopVideos, content]);
 
   const fitToMonitors = (id, selectedMonitors) => {
-    console.log("id::: ", id);
     const videoGroup = layer.findOne(`#${id}`);
-    console.log("videoGroup::: ", videoGroup);
 
     if (videoGroup) {
       const firstMonitor = allDataMonitors[selectedMonitors[0]];
@@ -690,26 +690,19 @@ function App() {
   const deleteContent = async ({ id, name }) => {
     console.log("Deleting content with id:", id);
 
-    // حذف از لیست محتوا
-    console.log(content);
-    // ارسال درخواست حذف ویدیو به سرور
     await handleDeleteVideo(id);
-
-    // پیدا کردن گروه مرتبط با ID در لایه
     const groupToRemove = layer.findOne(`#${id}`);
 
     console.log("groupToRemove::: ", groupToRemove);
     if (groupToRemove) {
-      // توقف ویدیو و آزادسازی منابع
       const videoElement = content.find((item) => item.id == id)?.videoElement;
       if (videoElement) {
         videoElement.pause();
-        videoElement.src = ""; // آزاد کردن منبع ویدیو
+        videoElement.src = "";
       }
 
-      // حذف گروه از لایه
       groupToRemove.destroy();
-      layer.draw(); // به‌روزرسانی لایه برای نمایش تغییرات
+      layer.draw();
     } else {
       console.error(`Group with id ${id} not found`);
     }
@@ -769,7 +762,6 @@ function App() {
   };
 
   const createVideo = (videoElement) => {
-    console.log("videoElement::: ", videoElement);
     const video = document.createElement("video");
     let videoName = null;
     const id = crypto.randomUUID();
@@ -1106,16 +1098,13 @@ function App() {
     iframeGroup.add(iframeRect);
 
     const konvaIframe = document.createElement("iframe");
-    konvaIframe.src = "https://www.easeup.ir"; // آدرس فایل HTML خود را جایگزین کنید
-    konvaIframe.style.width = "200px";
-    konvaIframe.style.height = "100px";
+    konvaIframe.src = "https://www.digikala.com"; // آدرس سایت خود را اینجا قرار دهید
+    konvaIframe.style.width = "800px";
+    konvaIframe.style.height = "400px";
     konvaIframe.style.position = "absolute";
     konvaIframe.style.border = "none";
     konvaIframe.style.pointerEvents = "none"; // Disable iframe interactions to prevent interference with dragging
     document.body.appendChild(konvaIframe);
-
-    const container = document.getElementById("containerKonva");
-    container.style.position = "relative";
 
     const updateIframePosition = () => {
       const { x, y } = iframeGroup.absolutePosition();
@@ -1152,7 +1141,6 @@ function App() {
       updateIframePosition();
     });
 
-    stage.add(layer);
     layer.add(iframeGroup);
 
     const transform = new Konva.Transformer({
@@ -1173,6 +1161,65 @@ function App() {
     layer.draw();
 
     updateIframePosition(); // Initial position update
+  };
+
+  const addIframeToKonva = (url) => {
+    const iframeGroup = new Konva.Group({
+      x: 100,
+      y: 100,
+      draggable: true,
+      id: `iframe-${Date.now()}`,
+    });
+
+    const konvaIframe = (
+      <Html
+        group={iframeGroup}
+        divProps={{
+          style: {
+            width: "800px",
+            height: "400px",
+            position: "absolute",
+            pointerEvents: "none", // To make sure the iframe cannot be interacted with directly
+          },
+        }}
+      >
+        <iframe src={url} style={{ width: "100%", height: "100%", border: "none" }} />
+      </Html>
+    );
+
+    layer.add(iframeGroup);
+    layer.draw();
+
+    // استفاده از Transformer برای قابلیت تغییر اندازه و موقعیت
+    const transformer = new Konva.Transformer({
+      nodes: [iframeGroup],
+      enabledAnchors: [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+        "middle-left",
+        "middle-right",
+        "top-center",
+        "bottom-center",
+      ],
+      rotateEnabled: true,
+    });
+
+    layer.add(transformer);
+    layer.draw();
+
+    iframeGroup.on("click", () => {
+      transformer.attachTo(iframeGroup);
+      layer.draw();
+    });
+
+    stage.on("click", (e) => {
+      if (e.target === stage || e.target === layer) {
+        transformer.detach();
+        layer.draw();
+      }
+    });
   };
 
   return (
@@ -1252,20 +1299,9 @@ function App() {
                 >
                   افزودن محتوا
                 </Button>
-                {/* <Button
-                  onClick={() => {
-                    setIframeList((prev) => [...prev, "new"]);
-                  }}
-                  // onClick={addIframe}
-                  className={`py-2 rounded-lg text-white z-10 mt-2 ${
-                    checkvideo === 4 || checkvideo === 8
-                      ? "bg-gray-500 cursor-not-allowed"
-                      : "bg-blue-600"
-                  }`}
-                  disabled={checkvideo === 4 || checkvideo === 8}
-                >
+                <Button onClick={addIframe} className="py-2 rounded-lg text-white z-10 bg-blue-600">
                   افزودن فریم
-                </Button> */}
+                </Button>
 
                 <input
                   className="relative left-0 right-0 top-[-34px] mx-auto  h-12 opacity-0 cursor-pointer w-[110px]"
