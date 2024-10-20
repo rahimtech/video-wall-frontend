@@ -1,33 +1,38 @@
-import { Rnd } from "react-rnd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import Block from "./components/Block";
-import Box4 from "./components/Box4";
-import Box8 from "./components/Box8";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faL, faTrash } from "@fortawesome/free-solid-svg-icons";
 import ModalCustom from "./components/ModalCustom";
-import { Button } from "@nextui-org/react";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Tooltip,
+} from "@nextui-org/react";
+import {
+  FaPlus,
+  FaMoon,
+  FaSun,
+  FaTrashAlt,
+  FaArrowUp,
+  FaArrowDown,
+  FaAngleDown,
+  FaAngleUp,
+  FaSyncAlt,
+} from "react-icons/fa";
+import Swal from "sweetalert2";
+import { Add } from "@mui/icons-material";
+import { motion } from "framer-motion";
 import { useMyContext } from "./context/MyContext";
-import { MyContextProvider } from "./context/MyContext";
-import Contents from "./components/Contents";
 import axios from "axios";
-import { Rnd as ReactRnd } from "react-rnd";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import SwitchCustom from "./components/SwitchCustom";
 import Setting from "./components/Setting";
 import Select from "react-select";
 import io, { connect } from "socket.io-client";
 import config from "../public/config.json";
 import DraggableResizableIframe from "./DraggableResizableIframe";
-import { Html } from "react-konva-utils";
-
-const Controls = ({ zoomIn, zoomOut, resetTransform }) => (
-  <>
-    <button onClick={() => zoomIn()}>Zoom In</button>
-    <button onClick={() => zoomOut()}>Zoom Out</button>
-    <button onClick={() => resetTransform()}>Reset</button>
-  </>
-);
 
 let anim;
 let layer;
@@ -82,21 +87,50 @@ function App() {
   const [connecting, setConnecting] = useState(false);
   const [cameraList, setCameraList] = useState([]);
   const [iframList, setIframeList] = useState([]);
-  const [fileList, setFileList] = useState([]);
   let host = config.host;
   let port = config.port;
 
   const con = useMyContext();
-  const transformComponentRef = useRef(null);
   let arrayCollisions = [];
-  let setData2 = [];
-  let updatedPosition = 0;
   let counterImages = 0;
   let counterVideos = 0;
   let allData = [];
   let allDataMonitors = videoWalls;
   let minLeftMonitor = 0;
   let minTopMonitor = 0;
+
+  //New-Commands
+  const [scenes, setScenes] = useState([{ id: 1, name: "Scene 1", resources: [] }]);
+  const [selectedScene, setSelectedScene] = useState(1);
+  const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
+  const [editingSceneId, setEditingSceneId] = useState(null);
+
+  const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
+
+  const addScene = () => {
+    const newScene = {
+      id: Date.now(),
+      name: `Scene ${scenes.length + 1}`,
+      resources: [],
+    };
+    setScenes([...scenes, newScene]);
+    setSelectedScene(newScene.id);
+  };
+
+  const deleteScene = (id) => {
+    const updatedScenes = scenes.filter((scene) => scene.id !== id);
+    setScenes(updatedScenes);
+    if (selectedScene === id && updatedScenes.length > 0) {
+      setSelectedScene(updatedScenes[0].id);
+    }
+  };
+
+  const handleEditSceneName = (id, newName) => {
+    setScenes((prevScenes) =>
+      prevScenes.map((scene) => (scene.id === id ? { ...scene, name: newName } : scene))
+    );
+    setEditingSceneId(null);
+  };
 
   const MonitorSelect = ({ videoName, monitors, fitToMonitors, onAddToScene }) => {
     const monitorOptions = monitors.map((monitor, index) => ({
@@ -124,19 +158,11 @@ function App() {
     );
   };
 
-  const toggleLoop = (videoName) => {
-    setLoopVideos((prev) => {
-      const isLooping = !prev[videoName];
-      socket.emit("source", {
-        action: "loop",
-        id: videoName,
-      });
-      return {
-        ...prev,
-        [videoName]: isLooping,
-      };
-    });
-  };
+  function generateBlobURL(newBaseURL, videoName) {
+    const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
+
+    return newBlobURL;
+  }
 
   function updateImagePositionRelativeToVideoWall(image, videoWall) {
     const { x, y, width, height } = videoWall;
@@ -151,62 +177,6 @@ function App() {
       y: newImageY,
       width: newImageWidth,
       height: newImageHeight,
-    };
-  }
-
-  function getCorner(pivotX, pivotY, diffX, diffY, angle) {
-    const distance = Math.sqrt(diffX * diffX + diffY * diffY);
-
-    /// find angle from pivot to corner
-    angle += Math.atan2(diffY, diffX);
-
-    /// get new x and y and round it off to integer
-    const x = pivotX + distance * Math.cos(angle);
-    const y = pivotY + distance * Math.sin(angle);
-
-    return { x: x, y: y };
-  }
-
-  function getClientRect(rotatedBox) {
-    const { x, y, width, height } = rotatedBox;
-    const rad = rotatedBox.rotation;
-
-    const p1 = getCorner(x, y, 0, 0, rad);
-    const p2 = getCorner(x, y, width, 0, rad);
-    const p3 = getCorner(x, y, width, height, rad);
-    const p4 = getCorner(x, y, 0, height, rad);
-
-    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
-    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
-    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
-    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
-  }
-
-  function getTotalBox(boxes) {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    boxes.forEach((box) => {
-      minX = Math.min(minX, box.x);
-      minY = Math.min(minY, box.y);
-      maxX = Math.max(maxX, box.x + box.width);
-      maxY = Math.max(maxY, box.y + box.height);
-    });
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
     };
   }
 
@@ -246,8 +216,12 @@ function App() {
                 const makeVideo = document.createElement("video");
                 makeVideo.src = modifiedVideoURL;
                 makeVideo.setAttribute("id", fileName);
-                setContent((prev) => [
-                  ...prev,
+                // setContent((prev) => [
+                //   ...prev,
+                //   { type: "video", name: fileName, videoElement: makeVideo },
+                // ]);
+                updateSceneResources([
+                  ...getSelectedScene(),
                   { type: "video", name: fileName, videoElement: makeVideo },
                 ]);
               });
@@ -259,11 +233,10 @@ function App() {
                 const video = document.createElement("video");
                 video.src = item.source;
                 video.setAttribute("id", "video_0");
-                console.log("video::1312313323: ", video);
-                createVideo(video);
+                addVideo(video);
               });
 
-              // createVideo
+              // addVideo
             }
 
             if (data.displays) {
@@ -397,34 +370,6 @@ function App() {
 
           anim = new Konva.Animation(() => {}, layer);
 
-          var inputElement = document.getElementById("fileInput");
-
-          inputElement.addEventListener("change", function (e) {
-            const file = e.target.files[0];
-            if (file) {
-              const fileType = file.type.split("/")[0];
-              if (fileType === "image") {
-                const imageURL = URL.createObjectURL(file);
-                handleImage(imageURL);
-              } else if (fileType === "video") {
-                const video = document.createElement("video");
-                video.src = URL.createObjectURL(file);
-                const videoName = "video" + counterVideos++;
-                // const videoName = crypto.randomUUID();
-                // video.setAttribute("id", videoName);
-
-                // handleVideo(file);
-                setContent((prev) => [
-                  ...prev,
-                  { type: "video", id: "temp", name: videoName, videoElement: video },
-                ]);
-                uploadVideo(file, videoName);
-              } else {
-                console.error("Unsupported file type.");
-              }
-            }
-          });
-
           function processImageResize(width, height, group2) {
             var target = group2;
             var targetRect = group2.getClientRect();
@@ -477,7 +422,7 @@ function App() {
             let img = document.createElement("img");
             img.src = dataURL;
             counterImages++;
-            setContent((prevContent) => [...prevContent, "image" + counterImages]);
+            // setContent((prevContent) => [...prevContent, "image" + counterImages]);
 
             const group2 = new Konva.Group({
               draggable: true,
@@ -600,7 +545,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    console.log("content::: ", content);
     content.forEach((item) => {
       if (item.type === "video") {
         const videoElement = item.videoElement;
@@ -661,39 +605,114 @@ function App() {
     }
   };
 
-  const lunching = () => {
-    var canvas = document.getElementById("All");
-    if (canvas.getContext) {
-      var ctx = canvas.getContext("2d");
-      ctx.fillRect(50, 50, 200, 200);
+  const addResource = (type) => {
+    if (type === "video" || type === "image") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = type === "video" ? "video/*" : "image/*";
+      input.onchange = (e) => handleFileInput(e);
+      input.click();
+    } else if (type === "text") {
+      Swal.fire({
+        title: "Enter your text:",
+        input: "text",
+        showCancelButton: true,
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          newResource.content = result.value;
+          updateSceneResources([...getSelectedScene().resources, newResource]);
+        }
+      });
+    } else if (type === "web") {
+      Swal.fire({
+        title: "Enter the URL:",
+        input: "text",
+        showCancelButton: true,
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          newResource.content = result.value;
+          updateSceneResources([...getSelectedScene().resources, newResource]);
+        }
+      });
+    } else if (type === "input") {
+      console.log("hi Input");
     }
   };
 
-  const addContent = () => {
-    document.getElementById("fileInput").click();
+  const deleteResource = (id) => {
+    updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
   };
 
-  const handleDeleteVideo = async (id) => {
-    socket.emit("source", {
-      action: "remove",
-      id,
-      payload: {},
-    });
-    try {
-      // const response = await axios.delete(`http://${host}:${port}/delete/${fileName}`);
-      console.log("File deleted successfully:", response.data.message);
-    } catch (error) {
-      console.error("Error deleting file:", error);
+  const moveResource = (id, direction) => {
+    const resources = getSelectedScene()?.resources;
+    const index = resources.findIndex((res) => res.id === id);
+    if (index === -1) return;
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= resources.length) return;
+
+    const updatedResources = [...resources];
+    const [movedResource] = updatedResources.splice(index, 1);
+    updatedResources.splice(newIndex, 0, movedResource);
+
+    updateSceneResources(updatedResources);
+  };
+
+  const handleFileInput = (e) => {
+    const file = e.target.files[0];
+
+    if (file) {
+      const fileType = file.type.split("/")[0];
+      if (fileType === "image") {
+        const imageURL = URL.createObjectURL(file);
+        handleImage(imageURL);
+      } else if (fileType === "video") {
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(file);
+        const videoName = "video" + counterVideos++;
+
+        let newResource = {
+          type: "video",
+          id: Date.now(),
+          name: videoName,
+          videoElement: video,
+          content: "",
+        };
+
+        // const reader = new FileReader();
+        // console.log("reader::: ", reader);
+        // reader.onload = (event) => {
+        //   console.log("22s");
+        //   newResource.content = event.target.result;
+        //   console.log("newResource::: ", newResource);
+        // };
+        // reader.readAsDataURL(file);
+
+        // setContent((prev) => [
+        //   ...prev,
+        //   { type: "video", id: "temp", name: videoName, videoElement: video },
+        // ]);
+
+        updateSceneResources([...getSelectedScene().resources, newResource]);
+
+        // uploadVideo(file, videoName);
+      } else {
+        console.error("Unsupported file type.");
+      }
     }
+  };
+
+  const updateSceneResources = (updatedResources) => {
+    setScenes((prevScenes) =>
+      prevScenes.map((scene) =>
+        scene.id === selectedScene ? { ...scene, resources: updatedResources } : scene
+      )
+    );
   };
 
   const deleteContent = async ({ id, name }) => {
-    console.log("Deleting content with id:", id);
-
-    await handleDeleteVideo(id);
+    await deleteVideo(id);
     const groupToRemove = layer.findOne(`#${id}`);
 
-    console.log("groupToRemove::: ", groupToRemove);
     if (groupToRemove) {
       const videoElement = content.find((item) => item.id == id)?.videoElement;
       if (videoElement) {
@@ -710,44 +729,10 @@ function App() {
     setContent((prevContent) => prevContent.filter((item) => item.id !== id));
   };
 
-  const playVideo = (videoName) => {
-    const video = content.find((item) => item.id === videoName)?.videoElement;
-    console.log("video::: ", video);
-    if (video) {
-      video.play();
-      socket.emit("source", {
-        action: "play",
-        id: videoName,
-      });
-      anim.start();
-    }
-  };
-
-  const pauseVideo = (videoName) => {
-    const video = content.find((item) => item.id === videoName)?.videoElement;
-    if (video) {
-      video.pause();
-      socket.emit("source", {
-        action: "pause",
-        id: videoName,
-      });
-    }
-  };
-
-  function generateBlobURL(newBaseURL, videoName) {
-    // const blobID = blobURL.substring(blobURL.lastIndexOf("/") + 1);
-
-    const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
-
-    return newBlobURL;
-  }
-
   const uploadVideo = async (file, videoName) => {
-    console.log("file::: ", file);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("videoName", videoName); // اضافه کردن videoName به فرم دیتا
-    console.log("formData::: ", formData);
+    formData.append("videoName", videoName);
 
     try {
       const response = await axios.post(`http://${host}:${port}/upload`, formData, videoName, {
@@ -761,7 +746,9 @@ function App() {
     }
   };
 
-  const createVideo = (videoElement) => {
+  //---------------Start-Video-Segment-----------------
+
+  const addVideo = (videoElement) => {
     const video = document.createElement("video");
     let videoName = null;
     const id = crypto.randomUUID();
@@ -991,7 +978,60 @@ function App() {
     });
   };
 
-  const addInput = ({ deviceId, width, height }) => {
+  const deleteVideo = async (id) => {
+    socket.emit("source", {
+      action: "remove",
+      id,
+      payload: {},
+    });
+    try {
+      // const response = await axios.delete(`http://${host}:${port}/delete/${fileName}`);
+      console.log("File deleted successfully:", response.data.message);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
+  };
+
+  const playVideo = (videoName) => {
+    const video = content.find((item) => item.id === videoName)?.videoElement;
+    if (video) {
+      video.play();
+      socket.emit("source", {
+        action: "play",
+        id: videoName,
+      });
+      anim.start();
+    }
+  };
+
+  const pauseVideo = (videoName) => {
+    const video = content.find((item) => item.id === videoName)?.videoElement;
+    if (video) {
+      video.pause();
+      socket.emit("source", {
+        action: "pause",
+        id: videoName,
+      });
+    }
+  };
+
+  const toggleLoopVideo = (videoName) => {
+    setLoopVideos((prev) => {
+      const isLooping = !prev[videoName];
+      socket.emit("source", {
+        action: "loop",
+        id: videoName,
+      });
+      return {
+        ...prev,
+        [videoName]: isLooping,
+      };
+    });
+  };
+
+  //---------------End-Video-Segment-----------------
+
+  const addToScene = ({ deviceId, width, height }) => {
     const x = 0;
     const y = 0;
     const id = crypto.randomUUID();
@@ -1047,7 +1087,6 @@ function App() {
     });
 
     inputGroup.on("dragend", (e) => {
-      console.log("e::: ", e);
       socket.emit("source", {
         action: "move",
         id,
@@ -1074,151 +1113,6 @@ function App() {
       action: "add",
       id,
       payload: { x, y, width, height, source: `input:${deviceId}` },
-    });
-  };
-
-  const addIframe = () => {
-    const iframeGroup = new Konva.Group({
-      x: 100,
-      y: 100,
-      draggable: true,
-      id: `iframe-${Date.now()}`,
-    });
-
-    const iframeRect = new Konva.Rect({
-      x: 0,
-      y: 0,
-      width: 800,
-      height: 400,
-      fill: "transparent",
-      stroke: "white",
-      strokeWidth: 3,
-    });
-
-    iframeGroup.add(iframeRect);
-
-    const konvaIframe = document.createElement("iframe");
-    konvaIframe.src = "https://www.digikala.com"; // آدرس سایت خود را اینجا قرار دهید
-    konvaIframe.style.width = "800px";
-    konvaIframe.style.height = "400px";
-    konvaIframe.style.position = "absolute";
-    konvaIframe.style.border = "none";
-    konvaIframe.style.pointerEvents = "none"; // Disable iframe interactions to prevent interference with dragging
-    document.body.appendChild(konvaIframe);
-
-    const updateIframePosition = () => {
-      const { x, y } = iframeGroup.absolutePosition();
-      konvaIframe.style.left = `${x}px`;
-      konvaIframe.style.top = `${y}px`;
-    };
-
-    iframeGroup.on("transform", () => {
-      const scaleX = iframeGroup.scaleX();
-      const scaleY = iframeGroup.scaleY();
-      const newWidth = 800 * scaleX;
-      const newHeight = 400 * scaleY;
-
-      iframeRect.width(newWidth);
-      iframeRect.height(newHeight);
-
-      konvaIframe.style.width = `${newWidth}px`;
-      konvaIframe.style.height = `${newHeight}px`;
-      iframeGroup.scaleX(1);
-      iframeGroup.scaleY(1);
-
-      updateIframePosition();
-    });
-
-    iframeGroup.on("dragmove", () => {
-      updateIframePosition();
-    });
-
-    iframeGroup.on("dragend", () => {
-      updateIframePosition();
-    });
-
-    iframeGroup.on("transformend", () => {
-      updateIframePosition();
-    });
-
-    layer.add(iframeGroup);
-
-    const transform = new Konva.Transformer({
-      nodes: [iframeGroup],
-      enabledAnchors: [
-        "top-left",
-        "top-right",
-        "bottom-left",
-        "bottom-right",
-        "middle-left",
-        "middle-right",
-        "top-center",
-        "bottom-center",
-      ],
-    });
-
-    layer.add(transform);
-    layer.draw();
-
-    updateIframePosition(); // Initial position update
-  };
-
-  const addIframeToKonva = (url) => {
-    const iframeGroup = new Konva.Group({
-      x: 100,
-      y: 100,
-      draggable: true,
-      id: `iframe-${Date.now()}`,
-    });
-
-    const konvaIframe = (
-      <Html
-        group={iframeGroup}
-        divProps={{
-          style: {
-            width: "800px",
-            height: "400px",
-            position: "absolute",
-            pointerEvents: "none", // To make sure the iframe cannot be interacted with directly
-          },
-        }}
-      >
-        <iframe src={url} style={{ width: "100%", height: "100%", border: "none" }} />
-      </Html>
-    );
-
-    layer.add(iframeGroup);
-    layer.draw();
-
-    // استفاده از Transformer برای قابلیت تغییر اندازه و موقعیت
-    const transformer = new Konva.Transformer({
-      nodes: [iframeGroup],
-      enabledAnchors: [
-        "top-left",
-        "top-right",
-        "bottom-left",
-        "bottom-right",
-        "middle-left",
-        "middle-right",
-        "top-center",
-        "bottom-center",
-      ],
-      rotateEnabled: true,
-    });
-
-    layer.add(transformer);
-    layer.draw();
-
-    iframeGroup.on("click", () => {
-      transformer.attachTo(iframeGroup);
-      layer.draw();
-    });
-
-    stage.on("click", (e) => {
-      if (e.target === stage || e.target === layer) {
-        transformer.detach();
-        layer.draw();
-      }
     });
   };
 
@@ -1278,7 +1172,7 @@ function App() {
                     className="flex flex-col justify-between p-2 bg-gray-200 rounded-lg shadow-sm"
                   >
                     <span className="font-semibold text-sm">{item.label}</span>
-                    <Button variant="flat" color="primary" onClick={() => addInput(item)}>
+                    <Button variant="flat" color="primary" onClick={() => addToScene(item)}>
                       افزودن به صحنه
                     </Button>
                   </li>
@@ -1289,7 +1183,7 @@ function App() {
               <h2 className="text-lg font-semibold mb-4">مدیریت محتوا</h2>
               <div className="cursor-pointer mb-4">
                 <Button
-                  onClick={addContent}
+                  onClick={addResource}
                   className={` py-2 rounded-lg text-white z-10 ${
                     checkvideo === 4 || checkvideo === 8
                       ? "bg-gray-500 cursor-not-allowed"
@@ -1299,26 +1193,11 @@ function App() {
                 >
                   افزودن محتوا
                 </Button>
-                <Button onClick={addIframe} className="py-2 rounded-lg text-white z-10 bg-blue-600">
-                  افزودن فریم
-                </Button>
-
-                <input
+                {/* <input
                   className="relative left-0 right-0 top-[-34px] mx-auto  h-12 opacity-0 cursor-pointer w-[110px]"
                   type="file"
                   id="fileInput"
-                  // onChange={(e) => {
-                  //   const file = e.target.files[0];
-                  //   if (file) {
-                  //     const fileType = file.type.split("/")[0];
-                  //     if (fileType === "image") {
-                  //       handleImage(URL.createObjectURL(file));
-                  //     } else if (fileType === "video") {
-                  //       // handleVideo(file);
-                  //     }
-                  //   }
-                  // }}
-                />
+                /> */}
               </div>
               <ul className="w-full flex flex-col gap-2 overflow-y-auto">
                 {content.map((item, index) => (
@@ -1345,14 +1224,14 @@ function App() {
                           videoName={item.id}
                           monitors={allDataMonitors}
                           fitToMonitors={fitToMonitors}
-                          onAddToScene={() => createVideo(item.videoElement)}
+                          onAddToScene={() => addVideo(item.videoElement)}
                         />
                         <div className="flex items-center mt-2">
                           <label className="mr-2">Loop</label>
                           <input
                             type="checkbox"
                             checked={loopVideos[item.id] || false}
-                            onChange={() => toggleLoop(item.id)}
+                            onChange={() => toggleLoopVideo(item.id)}
                           />
                         </div>
                       </div>
@@ -1400,6 +1279,190 @@ function App() {
             </div>
           </div>
         </div>
+      </div>
+      <motion.div
+        className="flex w-full h-[230px] border-t overflow-y-auto items-center"
+        style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
+        animate={{ height: isBottomControlsVisible ? "230px" : "0px" }}
+        transition={{ duration: 0.5 }}
+      >
+        {isBottomControlsVisible && (
+          <>
+            {/* Scenes Sidebar */}
+            <div
+              dir="rtl"
+              className="w-1/4 p-2 border-r h-full overflow-auto"
+              style={{ backgroundColor: darkMode ? "#333" : "#f4f4f4" }}
+            >
+              <div className="flex justify-between px-2 items-center mb-5">
+                <h2 className="text-md font-semibold">Scenes</h2>
+                <Button
+                  auto
+                  color="default"
+                  className="block p-0 text-sm  min-w-fit w-fit h-fit rounded-sm"
+                  onClick={addScene}
+                >
+                  <Add />
+                </Button>
+              </div>
+              <ul>
+                {scenes.map((scene) => (
+                  <li key={scene.id} className="mb-1 flex items-center justify-between">
+                    {editingSceneId === scene.id ? (
+                      <input
+                        type="text"
+                        defaultValue={scene.name}
+                        onBlur={(e) => handleEditSceneName(scene.id, e.target.value)}
+                        className="p-2 rounded-md bg-gray-700 text-white w-full"
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className={`p-2 cursor-pointer flex justify-between rounded-md transition-colors duration-200 flex-grow ${
+                          selectedScene === scene.id
+                            ? "bg-blue-500 text-white"
+                            : darkMode
+                            ? "bg-gray-700 hover:bg-gray-600"
+                            : "bg-gray-300 hover:bg-gray-400"
+                        }`}
+                        onDoubleClick={() => setEditingSceneId(scene.id)}
+                        onClick={() => setSelectedScene(scene.id)}
+                      >
+                        {scene.name}
+                        <div className="flex gap-1">
+                          <Tooltip content="Delete Scene">
+                            <Button
+                              className="min-w-fit h-fit p-1"
+                              size="sm"
+                              variant="flat"
+                              color="default"
+                              onClick={() => deleteScene(scene.id)}
+                              disabled={scenes.length === 1}
+                            >
+                              <FaTrashAlt size={14} />
+                            </Button>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Sources Sidebar */}
+            <div
+              dir="rtl"
+              className="w-1/4 p-2 h-full"
+              style={{ backgroundColor: darkMode ? "#333" : "#f4f4f4" }}
+            >
+              <div className="flex justify-between px-2 items-center mb-5">
+                <h2 className="text-md font-semibold">منابع</h2>
+
+                <Dropdown dir="rtl" className="vazir">
+                  <DropdownTrigger>
+                    <Button
+                      auto
+                      color="default"
+                      className="block p-0 text-sm  min-w-fit w-fit h-fit rounded-sm"
+                    >
+                      <Add />
+                    </Button>
+                  </DropdownTrigger>
+
+                  <DropdownMenu aria-label="Static Actions">
+                    <DropdownItem onClick={() => addResource("video")} key="video">
+                      ویدیو
+                    </DropdownItem>
+                    <DropdownItem onClick={() => addResource("image")} key="image">
+                      تصویر
+                    </DropdownItem>
+                    <DropdownItem onClick={() => addResource("text")} key="text">
+                      متن
+                    </DropdownItem>
+                    <DropdownItem onClick={() => addResource("web")} key="web">
+                      وب
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
+              </div>
+
+              <div className="mt-2">
+                <ul>
+                  {getSelectedScene()?.resources.map((resource) => (
+                    <li
+                      key={resource.id}
+                      className={`mb-1 text-sm flex items-center justify-between ${
+                        darkMode ? "bg-gray-600" : "bg-gray-200"
+                      }  p-2 rounded-lg`}
+                    >
+                      <div className="flex items-center">
+                        <span className="mr-2">{resource.type.toUpperCase()}</span>
+                        <span className="text-xs text-gray-500">
+                          {resource.content ? "Loaded" : "Not Loaded"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          className="text-red-500 min-w-fit h-fit p-1"
+                          size="sm"
+                          variant="flat"
+                          color="default"
+                          onClick={() => deleteResource(resource.id)}
+                          title="Delete Resource"
+                        >
+                          <FaTrashAlt />
+                        </Button>
+                        <Button
+                          className=" min-w-fit h-fit p-1"
+                          size="sm"
+                          variant="flat"
+                          color="default"
+                          onClick={() => moveResource(resource.id, -1)}
+                          title="Move Up"
+                        >
+                          <FaArrowUp />
+                        </Button>
+                        <Button
+                          className=" min-w-fit h-fit p-1"
+                          size="sm"
+                          variant="flat"
+                          color="default"
+                          onClick={() => moveResource(resource.id, 1)}
+                          title="Move Down"
+                        >
+                          <FaArrowDown />
+                        </Button>
+                        <Button
+                          className="text-green-500 min-w-fit h-fit p-1"
+                          size="sm"
+                          variant="flat"
+                          color="default"
+                          onClick={() => rotateResource(resource.id, 15)}
+                          title="Rotate"
+                        >
+                          <FaSyncAlt />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </>
+        )}
+      </motion.div>
+
+      {/* Toggle Bottom Controls Button */}
+      <div className="absolute right-0 bottom-0 transform -translate-x-1/2 mb-2 z-[100]">
+        <Button
+          auto
+          ghost
+          className="min-w-fit h-fit p-2"
+          onClick={() => setIsBottomControlsVisible(!isBottomControlsVisible)}
+        >
+          {isBottomControlsVisible ? <FaAngleDown /> : <FaAngleUp />}
+        </Button>
       </div>
     </main>
   );

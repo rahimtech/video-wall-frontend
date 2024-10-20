@@ -1,71 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
   <head>
-    <script src="https://cdn.jsdelivr.net/npm/konva@8.3.0/konva.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تشخیص چهره‌ها و احساسات با face-api.js</title>
+    <style>
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
   </head>
   <body>
-    <div id="container"></div>
-    <div
-      id="myDiv"
-      style="width: 50px; height: 50px; background-color: blue"
-    ></div>
+    <h1>تشخیص چندین چهره و احساسات</h1>
+    <video id="video" width="720" height="560" autoplay muted></video>
+    <canvas id="overlay" width="720" height="560"></canvas>
+
+    <!-- بارگذاری TensorFlow.js و Face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.0"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+    ></script>
 
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        // ایجاد stage و layer در Konva.js
-        var width = window.innerWidth;
-        var height = window.innerHeight;
-        var stage = new Konva.Stage({
-          container: "container",
-          width: width,
-          height: height,
+      // گرفتن ویدیو از دوربین
+      async function setupCamera() {
+        const video = document.getElementById("video");
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        video.srcObject = stream;
+        return new Promise((resolve) => {
+          video.onloadedmetadata = () => {
+            resolve(video);
+          };
         });
-        var layer = new Konva.Layer();
+      }
 
-        // ایجاد چند مستطیل (box) به عنوان نمونه
-        var box1 = new Konva.Rect({
-          x: 50,
-          y: 50,
-          width: 100,
-          height: 100,
-          fill: "red",
-        });
-        var box2 = new Konva.Rect({
-          x: 200,
-          y: 150,
-          width: 150,
-          height: 100,
-          fill: "green",
-        });
+      // بارگذاری مدل‌ها از CDN
+      async function loadModels() {
+        const MODEL_URL =
+          "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights";
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL); // Tiny Face Detector
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL); // Face Landmarks
+        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL); // Face Expressions
+      }
 
-        // اضافه کردن مستطیل‌ها به لایه
-        layer.add(box1);
-        layer.add(box2);
-        stage.add(layer);
+      // تشخیص چندین چهره و حالات آن‌ها
+      async function detectFaces() {
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("overlay");
+        const displaySize = { width: video.width, height: video.height };
+        faceapi.matchDimensions(canvas, displaySize);
 
-        // پیدا کردن مکان div مورد نظر
-        var divElement = document.getElementById("myDiv");
-        if (divElement) {
-          var divPos = divElement.getBoundingClientRect();
+        setInterval(async () => {
+          const detections = await faceapi
+            .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceExpressions();
 
-          // چک کردن مکان div نسبت به boxها
-          layer.find("Rect").each(function (box) {
-            if (
-              divPos.left >= box.x() &&
-              divPos.right <= box.x() + box.width() &&
-              divPos.top >= box.y() &&
-              divPos.bottom <= box.y() + box.height()
-            ) {
-              console.log("Div is inside this box!");
+          const resizedDetections = faceapi.resizeResults(detections, displaySize);
+          canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+
+          resizedDetections.forEach((detection) => {
+            const { expressions } = detection;
+            const box = detection.detection.box;
+
+            // شناسایی احساس غالب
+            const dominantExpression = Object.keys(expressions).reduce((a, b) =>
+              expressions[a] > expressions[b] ? a : b
+            );
+
+            // انتخاب رنگ بر اساس احساس
+            let drawBoxColor;
+            switch (dominantExpression) {
+              case "happy":
+                drawBoxColor = "green"; // خوشحالی
+                break;
+              case "angry":
+                drawBoxColor = "red"; // عصبانیت
+                break;
+              case "sad":
+                drawBoxColor = "blue"; // ناراحتی
+                break;
+              case "surprised":
+                drawBoxColor = "orange"; // شگفتی
+                break;
+              case "fearful":
+                drawBoxColor = "purple"; // ترس
+                break;
+              case "disgusted":
+                drawBoxColor = "brown"; // انزجار
+                break;
+              case "neutral":
+              default:
+                drawBoxColor = "yellow"; // بی‌تفاوتی یا دیگر حالات
+                break;
             }
-          });
 
-          // بروزرسانی لایه
-          layer.batchDraw();
-        } else {
-          console.error('Element with id "myDiv" not found.');
-        }
-      });
+            // رسم جعبه با رنگ مناسب
+            const drawBox = new faceapi.draw.DrawBox(box, {
+              label: dominantExpression,
+              boxColor: drawBoxColor,
+            });
+            drawBox.draw(canvas);
+          });
+        }, 100);
+      }
+
+      // اجرای برنامه
+      async function run() {
+        await loadModels(); // بارگذاری مدل‌ها
+        await setupCamera(); // فعال کردن دوربین
+        detectFaces(); // شروع تشخیص چندین چهره
+      }
+
+      window.onload = () => {
+        run();
+      };
     </script>
   </body>
 </html>
