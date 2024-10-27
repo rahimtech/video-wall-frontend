@@ -7,7 +7,7 @@ const HeaderBar = ({ darkMode, setDarkMode, connecting }) => {
     <div
       className={` ${
         darkMode ? " text-white" : " text-black"
-      } w-full  px-3 py-2  flex items-center justify-between h-fit z-10`}
+      } w-full absolute top-0  px-3 py-2  flex items-center justify-between h-fit z-[100]`}
     >
       <div id="setting" className="flex items-center">
         {/* <Setting /> */}

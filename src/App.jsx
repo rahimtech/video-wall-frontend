@@ -39,8 +39,8 @@ import DraggableResizableIframe from "./DraggableResizableIframe";
 import ModalMonitorSelection from "./components/ModalMonitorSelection";
 import { IoIosAddCircle } from "react-icons/io";
 import { MdAdd, MdAddBox } from "react-icons/md";
-import ResourcesSidebar from "./components/ResourcesSidebar";
-import ScenesSidebar from "./components/ScenesSidebar";
+import ResourcesSidebar from "./components/sidebar/ResourcesSidebar";
+import ScenesSidebar from "./components/sidebar/ScenesSidebar";
 import HeaderBar from "./components/HeaderBar";
 
 let anim;
@@ -141,31 +141,31 @@ function App() {
     setEditingSceneId(null);
   };
 
-  const MonitorSelect = ({ videoName, monitors, fitToMonitors, onAddToScene }) => {
-    const monitorOptions = monitors.map((monitor, index) => ({
-      value: index,
-      label: `Monitor ${index + 1}`,
-    }));
+  // const MonitorSelect = ({ videoName, monitors, fitToMonitors, onAddToScene }) => {
+  //   const monitorOptions = monitors.map((monitor, index) => ({
+  //     value: index,
+  //     label: `Monitor ${index + 1}`,
+  //   }));
 
-    return (
-      <>
-        <Select
-          isMulti
-          name="monitors"
-          options={monitorOptions}
-          className="basic-multi-select"
-          classNamePrefix="select"
-          onChange={(selectedOptions) => {
-            const selectedMonitors = selectedOptions.map((option) => option.value);
-            fitToMonitors(videoName, selectedMonitors);
-          }}
-        />
-        <Button variant="flat" color="primary" onClick={onAddToScene}>
-          افزودن به صحنه
-        </Button>
-      </>
-    );
-  };
+  //   return (
+  //     <>
+  //       <Select
+  //         isMulti
+  //         name="monitors"
+  //         options={monitorOptions}
+  //         className="basic-multi-select"
+  //         classNamePrefix="select"
+  //         onChange={(selectedOptions) => {
+  //           const selectedMonitors = selectedOptions.map((option) => option.value);
+  //           fitToMonitors(videoName, selectedMonitors);
+  //         }}
+  //       />
+  //       <Button variant="flat" color="primary" onClick={onAddToScene}>
+  //         افزودن به صحنه
+  //       </Button>
+  //     </>
+  //   );
+  // };
 
   function generateBlobURL(newBaseURL, videoName) {
     const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
@@ -564,6 +564,15 @@ function App() {
     });
   }, [loopVideos, getSelectedScene()?.resources]);
 
+  useEffect(() => {
+    stage?.on("click", (e) => {
+      if (e.target === stage || e.target === layer) {
+        layer.find("Transformer").forEach((tr) => tr.detach());
+        layer.draw();
+      }
+    });
+  }, []);
+
   const fitToMonitors = (id, selectedMonitors) => {
     const videoGroup = layer.findOne(`#${id}`);
 
@@ -615,64 +624,100 @@ function App() {
   };
 
   //---------------Start-Resource-Segment-----------------
-
   const addResource = (type) => {
     if (type === "video" || type === "image") {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = type === "video" ? "video/*" : "image/*";
-      input.onchange = (e) => handleFileInput(e);
+      input.onchange = (e) => handleFileInput(e, type);
       input.click();
     } else if (type === "text") {
       Swal.fire({
-        title: "Enter your text:",
+        title: "متن خود را وارد کنید:",
         input: "text",
         showCancelButton: true,
+        confirmButtonColor: "green",
+        cancelButtonColor: "gray",
       }).then((result) => {
         if (result.isConfirmed && result.value) {
-          newResource.content = result.value;
+          const id = crypto.randomUUID();
+
+          let newResource = {
+            type: "text",
+            id,
+            color: "black",
+            name: result.value,
+            textContent: result.value,
+          };
+
           updateSceneResources([...getSelectedScene().resources, newResource]);
         }
       });
     } else if (type === "web") {
       Swal.fire({
         title: "Enter the URL:",
-        input: "text",
+        input: "url",
+        inputPlaceholder: "https://example.com",
         showCancelButton: true,
+        confirmButtonColor: "green",
+        cancelButtonColor: "gray",
       }).then((result) => {
         if (result.isConfirmed && result.value) {
-          newResource.content = result.value;
+          const id = crypto.randomUUID();
+          const webURL = result.value;
+
+          let newResource = {
+            type: "web",
+            id,
+            name: webURL,
+            webURL, // ذخیره کردن URL
+          };
+
           updateSceneResources([...getSelectedScene().resources, newResource]);
         }
       });
-    } else if (type === "input") {
-      console.log("hi Input");
     }
   };
 
   const deleteResource = (id) => {
-    socket.emit("source", {
-      action: "remove",
-      id,
-      payload: {},
+    Swal.fire({
+      title: "آیا مطمئن هستید؟",
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "خیر",
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "بله",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        socket.emit("source", {
+          action: "remove",
+          id,
+          payload: {},
+        });
+
+        updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
+
+        const groupToRemove = layer.findOne(`#${id}`);
+        console.log("groupToRemove::: ", groupToRemove);
+        if (groupToRemove) {
+          groupToRemove.destroy();
+          layer.draw();
+        } else {
+          console.error(`Group with id ${id} not found`);
+        }
+
+        const videoElement = getSelectedScene()?.resources.find(
+          (item) => item.id === id
+        )?.videoElement;
+        if (videoElement) {
+          videoElement.pause();
+          videoElement.src = "";
+        }
+      } else {
+        return;
+      }
     });
-
-    updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
-
-    const groupToRemove = layer.findOne(`#${id}`);
-    console.log("groupToRemove::: ", groupToRemove);
-    if (groupToRemove) {
-      groupToRemove.destroy();
-      layer.draw();
-    } else {
-      console.error(`Group with id ${id} not found`);
-    }
-
-    const videoElement = getSelectedScene()?.resources.find((item) => item.id === id)?.videoElement;
-    if (videoElement) {
-      videoElement.pause();
-      videoElement.src = "";
-    }
   };
 
   const moveResource = (id, direction) => {
@@ -689,15 +734,28 @@ function App() {
     updateSceneResources(updatedResources);
   };
 
-  const handleFileInput = (e) => {
+  const handleFileInput = (e, type) => {
     const file = e.target.files[0];
 
     if (file) {
       const fileType = file.type.split("/")[0];
-      if (fileType === "image") {
+      if (fileType === "image" && type === "image") {
         const imageURL = URL.createObjectURL(file);
-        handleImage(imageURL);
-      } else if (fileType === "video") {
+        let img = new Image();
+        img.src = imageURL;
+        const id = crypto.randomUUID();
+        const imageName = "image" + counterImages++;
+
+        let newResource = {
+          type: "image",
+          id,
+          name: imageName,
+          imageElement: img,
+          content: "",
+        };
+
+        updateSceneResources([...getSelectedScene().resources, newResource]);
+      } else if (fileType === "video" && type === "video") {
         const video = document.createElement("video");
         video.src = URL.createObjectURL(file);
         const id = crypto.randomUUID();
@@ -713,23 +771,7 @@ function App() {
           content: "",
         };
 
-        // const reader = new FileReader();
-        // console.log("reader::: ", reader);
-        // reader.onload = (event) => {
-        //   console.log("22s");
-        //   newResource.content = event.target.result;
-        //   console.log("newResource::: ", newResource);
-        // };
-        // reader.readAsDataURL(file);
-
-        // setContent((prev) => [
-        //   ...prev,
-        //   { type: "video", id: "temp", name: videoName, videoElement: video },
-        // ]);
-
         updateSceneResources([...getSelectedScene().resources, newResource]);
-
-        // uploadVideo(file, videoName);
       } else {
         console.error("Unsupported file type.");
       }
@@ -748,57 +790,352 @@ function App() {
 
   // -------------------------------------------------------------------------------------
 
+  const addImage = (img) => {
+    const image = new Konva.Image({
+      image: img.imageElement,
+      width: img.imageElement.width,
+      height: img.imageElement.height,
+      name: "object",
+      id: img.id,
+      draggable: true,
+    });
+    const transformer = new Konva.Transformer({
+      nodes: [image],
+      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      rotateEnabled: true,
+    });
+    console.log("22w");
+
+    image.on("click", () => {
+      layer.add(transformer);
+      transformer.attachTo(image);
+      layer.draw();
+    });
+
+    image.on("dragend", (e) => {
+      const x = e.target.x();
+      const y = e.target.y();
+      console.log(`Image position: x=${x}, y=${y}`);
+    });
+
+    image.on("transformend", (e) => {
+      const newWidth = image.width() * image.scaleX();
+      const newHeight = image.height() * image.scaleY();
+
+      image.width(newWidth);
+      image.height(newHeight);
+      image.scaleX(1);
+      image.scaleY(1);
+    });
+
+    layer.add(image);
+    stage.add(layer);
+    layer.draw();
+  };
+
+  //---------------Start-Web-Segment-----------------
+
+  const addWeb = (webResource) => {
+    const { id, webURL } = webResource;
+
+    // ایجاد یک گروه برای قرار دادن مستطیل و متن
+    const group = new Konva.Group({
+      x: (stage.width() - 1920) / 2, // قرار دادن در مرکز صفحه
+      y: (stage.height() - 1080) / 2,
+      draggable: true,
+      id: id,
+    });
+
+    // مستطیل 1920x1080
+    const webRect = new Konva.Rect({
+      width: 1920,
+      height: 1080,
+      fill: "lightgray",
+      stroke: "black",
+      strokeWidth: 2,
+    });
+
+    // متن برای نمایش URL
+    const webText = new Konva.Text({
+      text: webURL,
+      fontSize: 30,
+      fontFamily: "Arial",
+      fill: "black",
+      align: "center",
+      verticalAlign: "middle",
+      width: 1920,
+      height: 1080,
+      padding: 10,
+      wrap: "word",
+    });
+
+    // اضافه کردن مستطیل و متن به گروه
+    group.add(webRect);
+    group.add(webText);
+    layer.add(group);
+    stage.add(layer);
+    layer.draw();
+
+    // تنظیم یک Transformer برای تغییر اندازه و چرخش
+    const transformer = new Konva.Transformer({
+      nodes: [group],
+      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      rotateEnabled: true,
+    });
+    layer.add(transformer);
+    transformer.attachTo(group);
+
+    // اطمینان از این که مقیاس‌دهی به درستی انجام شود
+    group.on("transformend", () => {
+      const scaleX = group.scaleX();
+      const scaleY = group.scaleY();
+
+      // به روز رسانی اندازه مستطیل و متن براساس مقیاس جدید
+      webRect.width(1920 * scaleX);
+      webRect.height(1080 * scaleY);
+      webText.width(1920 * scaleX);
+      webText.height(1080 * scaleY);
+
+      // بازنشانی مقیاس گروه به ۱ برای حفظ مقیاس واقعی عناصر داخلی
+      group.scaleX(1);
+      group.scaleY(1);
+    });
+
+    // اطمینان از اینکه متن در مرکز مستطیل باقی بماند
+    webText.on("resize", () => {
+      webText.width(webRect.width());
+      webText.height(webRect.height());
+    });
+
+    // // حذف گروه با دوبار کلیک
+    // group.on("dblclick", () => {
+    //   group.destroy();
+    //   transformer.destroy();
+    //   layer.draw();
+    // });
+  };
+
+  const editWeb = (webResource) => {
+    Swal.fire({
+      title: "ویرایش URL:",
+      input: "url",
+      inputValue: webResource.webURL,
+      showCancelButton: true,
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "ذخیره",
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        setScenes((prevScenes) =>
+          prevScenes.map((scene) => {
+            if (scene.id === selectedScene) {
+              return {
+                ...scene,
+                resources: scene.resources.map((resource) =>
+                  resource.id === webResource.id
+                    ? { ...resource, webURL: result.value, name: result.value }
+                    : resource
+                ),
+              };
+            }
+            return scene;
+          })
+        );
+      }
+    });
+  };
+
+  //---------------End-Web-Segment-----------------
+
+  //---------------Start-Text-Segment-----------------
+
+  const addText = (text) => {
+    const textNode = new Konva.Text({
+      text: text.textContent,
+      fontSize: 100,
+      fontFamily: "Arial",
+      fill: text.color || "black", // استفاده از رنگ ذخیره شده یا رنگ پیش‌فرض
+      x: 50,
+      y: 50,
+      draggable: true,
+      id: text.id,
+    });
+
+    const transformer = new Konva.Transformer({
+      nodes: [textNode],
+      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      boundBoxFunc: (oldBox, newBox) => {
+        newBox.width = Math.max(30, newBox.width);
+        return newBox;
+      },
+    });
+
+    textNode.on("click", () => {
+      layer.add(transformer);
+      transformer.attachTo(textNode);
+      layer.draw();
+    });
+
+    textNode.on("dblclick", () => {
+      const textPosition = textNode.absolutePosition();
+      const stageBox = stage.container().getBoundingClientRect();
+      const areaPosition = {
+        x: stageBox.left + textPosition.x,
+        y: stageBox.top + textPosition.y,
+      };
+
+      const textarea = document.createElement("textarea");
+      document.body.appendChild(textarea);
+
+      textarea.value = textNode.text();
+      textarea.style.position = "absolute";
+      textarea.style.top = `${areaPosition.y}px`;
+      textarea.style.left = `${areaPosition.x}px`;
+      textarea.style.width = `${textNode.width() - textNode.padding() * 2}px`;
+      textarea.style.fontSize = "24px";
+      textarea.style.border = "1px solid black";
+      textarea.style.padding = "0px";
+      textarea.style.margin = "0px";
+      textarea.style.overflow = "hidden";
+      textarea.style.background = "none";
+      textarea.style.outline = "none";
+      textarea.style.resize = "none";
+      textarea.style.lineHeight = textNode.lineHeight();
+      textarea.style.fontFamily = textNode.fontFamily();
+      textarea.style.transformOrigin = "left top";
+
+      textarea.style.textAlign = textNode.align();
+      textarea.style.color = textNode.fill();
+      const rotation = textNode.rotation();
+      let transform = "";
+      if (rotation) {
+        transform += `rotateZ(${rotation}deg)`;
+      }
+
+      textarea.style.transform = transform;
+      textarea.style.height = "auto";
+      textarea.focus();
+
+      function removeTextarea() {
+        textarea.parentNode.removeChild(textarea);
+        window.removeEventListener("click", handleOutsideClick);
+        textNode.show();
+        transformer.show();
+        transformer.forceUpdate();
+        layer.draw();
+      }
+
+      textarea.addEventListener("keydown", function (e) {
+        if (e.keyCode === 13) {
+          textNode.text(textarea.value);
+          removeTextarea();
+        }
+      });
+
+      function handleOutsideClick(e) {
+        if (e.target !== textarea) {
+          textNode.text(textarea.value);
+          removeTextarea();
+        }
+      }
+
+      textarea.addEventListener("keydown", function (e) {
+        if (e.keyCode === 27) {
+          removeTextarea();
+        }
+      });
+
+      setTimeout(() => {
+        window.addEventListener("click", handleOutsideClick);
+      });
+
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
+
+    layer.add(textNode);
+    stage.add(layer);
+    layer.draw();
+  };
+
+  const editText = (text) => {
+    Swal.fire({
+      title: "ویرایش متن:",
+      input: "text",
+      inputValue: text.textContent,
+      showCancelButton: true,
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "ذخیره",
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        setScenes((prevScenes) =>
+          prevScenes.map((scene) => {
+            if (scene.id === selectedScene) {
+              return {
+                ...scene,
+                resources: scene.resources.map((resource) =>
+                  resource.id === text.id
+                    ? { ...resource, textContent: result.value, name: result.value }
+                    : resource
+                ),
+              };
+            }
+            return scene;
+          })
+        );
+
+        const textNode = layer.findOne(`#${text.id}`);
+        if (textNode) {
+          textNode.text(result.value);
+          layer.draw();
+        }
+      }
+    });
+  };
+
+  const updateResourceName = (resourceId, newName) => {
+    setScenes((prevScenes) =>
+      prevScenes.map((scene) => {
+        if (scene.id === selectedScene) {
+          const updatedResources = scene.resources.map((resource) =>
+            resource.id === resourceId
+              ? { ...resource, name: newName, textContent: newName }
+              : resource
+          );
+          return { ...scene, resources: updatedResources };
+        }
+        return scene;
+      })
+    );
+  };
+
+  const updateResourceColor = (resourceId, color) => {
+    setScenes((prevScenes) =>
+      prevScenes.map((scene) =>
+        scene.id === selectedScene
+          ? {
+              ...scene,
+              resources: scene.resources.map((resource) =>
+                resource.id === resourceId ? { ...resource, color } : resource
+              ),
+            }
+          : scene
+      )
+    );
+
+    const textNode = layer.findOne(`#${resourceId}`);
+    if (textNode) {
+      textNode.fill(color);
+      layer.draw();
+    }
+  };
+
+  //---------------End-Text-Segment-----------------
+
   //---------------Start-Video-Segment-----------------
 
   const addVideo = (videoElement) => {
     const id = videoElement.getAttribute("id");
-    // const video = document.createElement("video");
-    // let videoName = null;
-    // const id = crypto.randomUUID();
-    // counterVideos++;
-
-    // if (!videoElement.getAttribute("id")) {
-    //   videoName = "video" + counterVideos;
-    // } else {
-    //   videoName = videoElement.getAttribute("id");
-    // }
-
-    // video.src = videoElement.src;
-    // video.setAttribute("id", id);
-
-    // const sceneId = getSelectedScene().id;
-
-    // setScenes((prevScenes) =>
-    //   prevScenes.map((scene) => {
-    //     if (scene.id == sceneId) {
-    //       console.log("scene.resources::: ", scene.resources);
-    //       console.log("videoName::: ", videoName);
-    //       const existingResourceIndex = scene.resources.findIndex(
-    //         (resource) => resource.name == videoName
-    //       );
-    //       console.log("existingResourceIndex::: ", existingResourceIndex);
-
-    //       if (existingResourceIndex != -1) {
-    //         const updatedResources = [...scene.resources];
-    //         updatedResources[existingResourceIndex].id = id;
-    //         return {
-    //           ...scene,
-    //           resources: updatedResources,
-    //         };
-    //       } else {
-    //         return {
-    //           ...scene,
-    //           resources: [...scene.resources, { type: "video", id, name: videoName, videoElement }],
-    //         };
-    //       }
-    //     }
-    //     return scene;
-    //   })
-    // );
-
-    // console.log(scenes);
-
-    // const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, videoName);
 
     const modifiedVideoURL = generateBlobURL(
       `video:http://${host}:${port}`,
@@ -908,7 +1245,7 @@ function App() {
       y: 0,
       width: videoElement.videoWidth,
       height: videoElement.videoHeight,
-      name: videoName,
+      name: videoElement.name,
       id: id,
     });
 
@@ -1010,7 +1347,7 @@ function App() {
       layer.draw();
     });
 
-    videoElement.loop = loopVideos[videoName] || false;
+    videoElement.loop = loopVideos[videoElement.name] || false;
   };
 
   const playVideo = (videoName) => {
@@ -1161,7 +1498,7 @@ function App() {
       }  h-screen w-full flex flex-col z-50  items-center `}
     >
       <HeaderBar darkMode={darkMode} setDarkMode={setDarkMode} connecting={connecting} />
-      <div className="h-[93%] w-full flex z-50">
+      <div className="h-full w-full flex z-50">
         <div id="Video-Wall-Section" className="w-full h-full flex">
           <div
             onClick={(e) => {
@@ -1193,8 +1530,12 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Bottom-Contorlls */}
       <motion.div
-        className="flex w-full h-[260px] border-t overflow-y-auto items-center"
+        className={`flex w-full h-[350px] border-t overflow-y-auto items-center ${
+          darkMode ? "" : "shadow-custome"
+        } `}
         style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
         animate={{ height: isBottomControlsVisible ? "350px" : "0px" }}
         transition={{ duration: 0.5 }}
@@ -1228,6 +1569,13 @@ function App() {
               deleteResource={deleteResource}
               loopVideos={loopVideos}
               addResource={addResource}
+              addText={addText}
+              addImage={addImage}
+              editText={editText}
+              updateResourceName={updateResourceName}
+              updateResourceColor={updateResourceColor}
+              addWeb={addWeb}
+              editWeb={editWeb}
             />
           </>
         )}

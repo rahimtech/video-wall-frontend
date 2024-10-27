@@ -24,7 +24,7 @@ const ScenesSidebar = ({
       }}
     >
       <div className="flex justify-between px-2 items-center mb-4">
-        <h2 className="text-md font-semibold">Scenes</h2>
+        <h2 className="text-md font-semibold">صحنه‌ها</h2>
         <Button
           auto
           color="default"
