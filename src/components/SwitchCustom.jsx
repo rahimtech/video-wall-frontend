@@ -6,14 +6,8 @@ import { MoonIcon } from "./MoonIcon";
 import { SunIcon } from "./SunIcon";
 
 const ThemeSwitch = (props) => {
-  const {
-    Component,
-    slots,
-    isSelected,
-    getBaseProps,
-    getInputProps,
-    getWrapperProps,
-  } = useSwitch(props);
+  const { Component, slots, isSelected, getBaseProps, getInputProps, getWrapperProps } =
+    useSwitch(props);
 
   useEffect(() => {
     props.setDarkMode(!isSelected);
@@ -28,11 +22,7 @@ const ThemeSwitch = (props) => {
         <div
           {...getWrapperProps()}
           className={slots.wrapper({
-            class: [
-              "w-8 h-8",
-              "flex items-center justify-center",
-              "rounded-lg bg-default-100 hover:bg-default-200",
-            ],
+            class: ["w-8 h-8 bg-gray-500", "flex items-center justify-center", "rounded-lg  "],
           })}
         >
           {isSelected ? <SunIcon /> : <MoonIcon />}

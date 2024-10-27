@@ -1,6 +1,6 @@
 import React from "react";
-import { AppBar, Toolbar, Typography, IconButton, Button, Switch } from "@mui/material";
-import { Menu as MenuIcon } from "@mui/icons-material";
+// import { AppBar, Toolbar, Typography, IconButton, Button, Switch } from "@mui/material";
+// import { Menu as MenuIcon } from "@mui/icons-material";
 
 const Navbar = ({ darkMode, setDarkMode, onAddContent }) => {
   return (

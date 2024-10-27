@@ -12,8 +12,8 @@ import {
   VisuallyHidden,
   useSwitch,
 } from "@nextui-org/react";
-import { MoonIcon } from "./MoonIcon";
-import { SunIcon } from "./SunIcon";
+import { MoonIcon } from "../MoonIcon";
+import { SunIcon } from "../SunIcon";
 
 export default function Setting() {
   return (
@@ -37,11 +37,7 @@ export default function Setting() {
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                <g
-                  id="SVGRepo_tracerCarrier"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                ></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
                 <g id="SVGRepo_iconCarrier">
                   {" "}
                   <path

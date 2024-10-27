@@ -8,7 +8,7 @@ import {
   Button,
   useDisclosure,
 } from "@nextui-org/react";
-import { useMyContext } from "../context/MyContext";
+import { useMyContext } from "../../context/MyContext";
 import { Input } from "@nextui-org/react";
 
 export default function ModalCustom() {

@@ -2,21 +2,13 @@ import { Rnd } from "react-rnd";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@nextui-org/react";
 import Moveable from "react-moveable";
-import { useMyContext } from "../context/MyContext";
+import { useMyContext } from "../../context/MyContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCrop } from "@fortawesome/free-solid-svg-icons";
 
 // import VidVid from "../../public/1.mp4";
 // import Video from "../";
-export default function Block({
-  videoName,
-  index,
-  IAG,
-  customH,
-  customW,
-  customX,
-  customY,
-}) {
+export default function Block({ videoName, index, IAG, customH, customW, customX, customY }) {
   const [checkVideo, setCheckVideo] = useState(false);
   const [isActiveCrop, setIsActiveCrop] = useState(true);
   const con = useMyContext();

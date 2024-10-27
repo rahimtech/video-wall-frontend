@@ -19,16 +19,13 @@ import {
   DropdownTrigger,
   Tooltip,
 } from "@nextui-org/react";
-import "./App.css";
-import Swal from "sweetalert2";
-import { Add } from "@mui/icons-material";
 import "./input.css";
+import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 
 const VideoWallController = () => {
   const [scenes, setScenes] = useState([{ id: 1, name: "Scene 1", resources: [] }]);
   const [selectedScene, setSelectedScene] = useState(1);
-  const [showSelectBox, setShowSelectBox] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
@@ -92,7 +89,6 @@ const VideoWallController = () => {
         }
       });
     }
-    setShowSelectBox(false);
   };
 
   const handleFileInput = (e, resource) => {
@@ -326,7 +322,7 @@ const VideoWallController = () => {
                   className="block p-0 text-sm  min-w-fit w-fit h-fit rounded-sm"
                   onClick={addScene}
                 >
-                  <Add />
+                  {/* <Add /> */}ss
                 </Button>
               </div>
               <ul>

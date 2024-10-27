@@ -2,7 +2,7 @@ import { Rnd } from "react-rnd";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@nextui-org/react";
 import Moveable from "react-moveable";
-import { useMyContext } from "../context/MyContext";
+import { useMyContext } from "../../context/MyContext";
 // import VidVid from "../../public/1.mp4";
 // import Video from "../";
 export default function Contents({ videoName, index, IAG }) {
@@ -53,14 +53,12 @@ export default function Contents({ videoName, index, IAG }) {
         snapDirections={{ top: true, left: true, bottom: true, right: true }}
         // snapThreshold={snapThreshold}
         verticalGuidelines={[
-          50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700,
-          750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300,
-          1350, 1400,
+          50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900,
+          950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400,
         ]}
         horizontalGuidelines={[
-          50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700,
-          750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300,
-          1350, 1400,
+          50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900,
+          950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400,
         ]}
       />
 
