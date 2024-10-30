@@ -111,7 +111,7 @@ const ResourcesSidebar = ({
 
       <div className="mt-2 flex-1 overflow-y-auto">
         <ul className="flex flex-col gap-2">
-          {resources.map((resource) => (
+          {resources?.map((resource) => (
             <li
               key={resource.id}
               className={`text-sm flex flex-wrap items-center justify-between ${
@@ -132,7 +132,7 @@ const ResourcesSidebar = ({
                   <span
                     className="mr-2 truncate"
                     onDoubleClick={() => handleDoubleClick(resource)}
-                    style={{ color: resource.color || "#000000" }} // تنظیم رنگ متن بر اساس رنگ انتخاب شده
+                    style={{ color: resource.color || "#000000" }}
                   >
                     {resource.name}
                   </span>
@@ -190,6 +190,7 @@ const ResourcesSidebar = ({
                     <DropdownItem key="moveDown" onClick={() => moveResource(resource.id, 1)}>
                       پایین
                     </DropdownItem>
+
                     {resource.type === "video" ? (
                       <DropdownItem key="add-video" onClick={() => addVideo(resource.videoElement)}>
                         افزودن به صحنه

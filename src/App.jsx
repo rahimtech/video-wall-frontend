@@ -1,44 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faL, faTrash } from "@fortawesome/free-solid-svg-icons";
-import ModalCustom from "./components/OLD/ModalCustom";
-import {
-  Button,
-  Checkbox,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  Tooltip,
-} from "@nextui-org/react";
-import {
-  FaPlus,
-  FaMoon,
-  FaSun,
-  FaTrashAlt,
-  FaArrowUp,
-  FaArrowDown,
-  FaAngleDown,
-  FaAngleUp,
-  FaSyncAlt,
-  FaPlay,
-  FaPause,
-  FaAndroid,
-} from "react-icons/fa";
+import { Button } from "@nextui-org/react";
+import { FaAngleDown, FaAngleUp } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 import { useMyContext } from "./context/MyContext";
 import axios from "axios";
-import SwitchCustom from "./components/SwitchCustom";
-import Setting from "./components/OLD/Setting";
-import Select from "react-select";
 import io, { connect } from "socket.io-client";
 import config from "../public/config.json";
-import DraggableResizableIframe from "./DraggableResizableIframe";
-import ModalMonitorSelection from "./components/ModalMonitorSelection";
-import { IoIosAddCircle } from "react-icons/io";
-import { MdAdd, MdAddBox } from "react-icons/md";
 import ResourcesSidebar from "./components/sidebar/ResourcesSidebar";
 import ScenesSidebar from "./components/sidebar/ScenesSidebar";
 import HeaderBar from "./components/HeaderBar";
@@ -89,15 +58,12 @@ function App() {
 
   const [loopVideos, setLoopVideos] = useState({});
 
-  const [content, setContent] = useState([]);
-  const [checkvideo, setCheckVideo] = useState(1);
-  const [scale, setScale] = useState(1);
   const [darkMode, setDarkMode] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [cameraList, setCameraList] = useState([]);
-  const [iframList, setIframeList] = useState([]);
   //New-Commands
-  const [scenes, setScenes] = useState([{ id: 1, name: "Scene 1", resources: [] }]);
+  const [scenes, setScenes] = useState([{ id: 1, name: "صحنه 1", resources: [], stageData: null }]);
+
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
@@ -116,14 +82,55 @@ function App() {
 
   const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
 
+  const createNewStage = (newId) => {
+    const stage = new Konva.Stage({
+      container: `containerKonva-${newId ?? selectedScene}`,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      draggable: true,
+    });
+    const newLayer = new Konva.Layer();
+
+    var scaleBy = 1.04;
+    stage.on("wheel", (e) => {
+      e.evt.preventDefault();
+      var oldScale = stage.scaleX();
+      var pointer = stage.getPointerPosition();
+      var mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+      let direction = e.evt.deltaY > 0 ? -1 : 1;
+      if (e.evt.ctrlKey) direction = -direction;
+      var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      stage.scale({ x: newScale, y: newScale });
+      var newPos = {
+        x: pointer.x - mousePointTo.x * newScale,
+        y: pointer.y - mousePointTo.y * newScale,
+      };
+      stage.position(newPos);
+    });
+
+    stage.position({ x: 20, y: 20 });
+    stage.scale({ x: 0.37, y: 0.37 });
+
+    anim = new Konva.Animation(() => {}, newLayer);
+
+    stage.add(newLayer);
+    return { stage, layer: newLayer };
+  };
+
   const addScene = () => {
+    const newId = scenes.length > 0 ? Math.max(...scenes.map((scene) => scene.id)) + 1 : 1;
+
     const newScene = {
-      id: Date.now(),
-      name: `Scene ${scenes.length + 1}`,
+      id: newId,
+      name: `صحنه ${newId} `,
       resources: [],
     };
+
     setScenes([...scenes, newScene]);
-    setSelectedScene(newScene.id);
+    setSelectedScene(newId);
   };
 
   const deleteScene = (id) => {
@@ -225,13 +232,10 @@ function App() {
                 const makeVideo = document.createElement("video");
                 makeVideo.src = modifiedVideoURL;
                 makeVideo.setAttribute("id", fileName);
-                // setContent((prev) => [
-                //   ...prev,
-                //   { type: "video", name: fileName, videoElement: makeVideo },
-                // ]);
+
                 updateSceneResources([
-                  ...getSelectedScene(),
                   { type: "video", name: fileName, videoElement: makeVideo },
+                  ...getSelectedScene(),
                 ]);
               });
             }
@@ -340,7 +344,6 @@ function App() {
             setCameraList(data);
           });
 
-          // Your initialization code
           var width = window.innerWidth;
           var height = window.innerHeight;
           stage = new Konva.Stage({
@@ -354,143 +357,7 @@ function App() {
           stage.add(layer);
           console.log("Listening on update monitors");
 
-          var scaleBy = 1.04;
-          stage.on("wheel", (e) => {
-            e.evt.preventDefault();
-            var oldScale = stage.scaleX();
-            var pointer = stage.getPointerPosition();
-            var mousePointTo = {
-              x: (pointer.x - stage.x()) / oldScale,
-              y: (pointer.y - stage.y()) / oldScale,
-            };
-            let direction = e.evt.deltaY > 0 ? -1 : 1;
-            if (e.evt.ctrlKey) direction = -direction;
-            var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-            stage.scale({ x: newScale, y: newScale });
-            var newPos = {
-              x: pointer.x - mousePointTo.x * newScale,
-              y: pointer.y - mousePointTo.y * newScale,
-            };
-            stage.position(newPos);
-          });
-
-          stage.position({ x: 500, y: 400 });
-          stage.scale({ x: 0.17, y: 0.17 });
-
           anim = new Konva.Animation(() => {}, layer);
-
-          function processImageResize(width, height, group2) {
-            var target = group2;
-            var targetRect = group2.getClientRect();
-            layer.children.forEach(function (group) {
-              if (group === target) return;
-              if (haveIntersection(group.getClientRect(), targetRect)) {
-                if (group instanceof Konva.Group) {
-                  const shape = group.findOne(".fillShape");
-                  if (shape) {
-                    shape.stroke("red");
-                    let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-                    if (!x) arrayCollisions.push(shape.getAttr("id"));
-                  }
-                }
-              } else {
-                if (group instanceof Konva.Group) {
-                  const shape = group.findOne(".fillShape");
-                  if (shape) {
-                    let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-                    if (x) {
-                      let y = arrayCollisions.indexOf(x);
-                      if (y !== -1) arrayCollisions.splice(y, 1);
-                    }
-                    shape.stroke("white");
-                  }
-                }
-              }
-            });
-            let searchIndexArray = group2.children[0].getAttr("id");
-
-            allData.find((item) => {
-              if (item && item.id == searchIndexArray) {
-                let updatedPosition = updateImagePositionRelativeToVideoWall(
-                  group2,
-                  allDataMonitors[1]
-                );
-                item = {
-                  monitor: arrayCollisions,
-                  x: updatedPosition.x,
-                  y: updatedPosition.y,
-                  width: width,
-                  height: height,
-                  name: searchIndexArray,
-                };
-              }
-            });
-          }
-
-          function handleImage(dataURL) {
-            let img = document.createElement("img");
-            img.src = dataURL;
-            counterImages++;
-            // setContent((prevContent) => [...prevContent, "image" + counterImages]);
-
-            const group2 = new Konva.Group({
-              draggable: true,
-              x: 0,
-              y: 0,
-              id: "image" + counterImages,
-            });
-
-            const image = new Konva.Image({
-              image: img,
-              name: "object",
-              id: "image" + counterImages,
-              width: img.width,
-              height: img.height,
-            });
-
-            group2.add(image);
-            layer.add(group2);
-
-            // const transformer = new Konva.Transformer({
-            //   nodes: [image],
-            //   enabledAnchors: [
-            //     "top-left",
-            //     "top-right",
-            //     "top-center",
-            //     "bottom-left",
-            //     "bottom-right",
-            //     "bottom-center",
-            //     "middle-right",
-            //     "middle-left",
-            //   ],
-            // });
-
-            // group2.add(transformer);
-
-            // transformer.on("transform", () => {
-            //   const scaleX = image.scaleX();
-            //   const scaleY = image.scaleY();
-            //   image.width(image.image().width * scaleX);
-            //   image.height(image.image().height * scaleY);
-            //   layer.batchDraw();
-            //   processImageResize(image.width(), image.height(), group2);
-            // });
-
-            // const positionRelativeToVideoWall = updateImagePositionRelativeToVideoWall(
-            //   group2,
-            //   allDataMonitors[0]
-            // );
-            // group2.position(positionRelativeToVideoWall);
-
-            // allData.push({
-            //   monitor: [1],
-            //   x: positionRelativeToVideoWall.x,
-            //   y: positionRelativeToVideoWall.y,
-            //   width: image.width(),
-            //   height: image.height(),
-            //   name: "image" + counterImages,
-            // });
-          }
 
           layer.on("dragmove", function (e) {
             var absPos = e.target.absolutePosition();
@@ -545,7 +412,7 @@ function App() {
     fetchData();
 
     return () => {
-      if (stage) stage.destroy();
+      if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
       if (layer) layer.destroy();
       // socket.off("update-monitors");
       // socket.off("connect");
@@ -565,16 +432,37 @@ function App() {
   }, [loopVideos, getSelectedScene()?.resources]);
 
   useEffect(() => {
-    stage?.on("click", (e) => {
-      if (e.target === stage || e.target === layer) {
-        layer.find("Transformer").forEach((tr) => tr.detach());
-        layer.draw();
+    const selectedSceneLayer = getSelectedScene()?.layer;
+
+    getSelectedScene()?.stageData?.on("click", (e) => {
+      if (e.target === getSelectedScene()?.stageData || e.target === selectedSceneLayer) {
+        selectedSceneLayer.find("Transformer").forEach((tr) => tr.detach());
+        selectedSceneLayer.draw();
       }
     });
-  }, []);
+  }, [getSelectedScene()?.stageData, getSelectedScene()?.layer]);
+
+  useEffect(() => {
+    const selectedScene = getSelectedScene();
+
+    if (!selectedScene || selectedScene.stageData) return;
+
+    const containerId = `containerKonva-${selectedScene.id}`;
+    const container = document.getElementById(containerId);
+
+    if (container) {
+      const { stage, layer } = createNewStage();
+
+      setScenes((prevScenes) =>
+        prevScenes.map((scene) =>
+          scene.id === selectedScene.id ? { ...scene, stageData: stage, layer } : scene
+        )
+      );
+    }
+  }, [scenes, selectedScene]);
 
   const fitToMonitors = (id, selectedMonitors) => {
-    const videoGroup = layer.findOne(`#${id}`);
+    const videoGroup = getSelectedScene()?.layer.findOne(`#${id}`);
 
     if (videoGroup) {
       const firstMonitor = allDataMonitors[selectedMonitors[0]];
@@ -592,7 +480,7 @@ function App() {
         videoGroup.height(height);
         videoGroup.setAttr("rotation", 0);
 
-        layer.draw();
+        getSelectedScene()?.layer.draw();
       }
       const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, id);
 
@@ -650,7 +538,7 @@ function App() {
             textContent: result.value,
           };
 
-          updateSceneResources([...getSelectedScene().resources, newResource]);
+          updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
       });
     } else if (type === "web") {
@@ -673,7 +561,7 @@ function App() {
             webURL, // ذخیره کردن URL
           };
 
-          updateSceneResources([...getSelectedScene().resources, newResource]);
+          updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
       });
     }
@@ -698,11 +586,10 @@ function App() {
 
         updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
 
-        const groupToRemove = layer.findOne(`#${id}`);
-        console.log("groupToRemove::: ", groupToRemove);
+        const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
         if (groupToRemove) {
           groupToRemove.destroy();
-          layer.draw();
+          getSelectedScene()?.layer.draw();
         } else {
           console.error(`Group with id ${id} not found`);
         }
@@ -732,6 +619,16 @@ function App() {
     updatedResources.splice(newIndex, 0, movedResource);
 
     updateSceneResources(updatedResources);
+
+    const resourceNode = getSelectedScene()?.layer.findOne(`#${id}`);
+    if (resourceNode) {
+      if (direction > 0) {
+        resourceNode.moveDown();
+      } else {
+        resourceNode.moveUp();
+      }
+      getSelectedScene()?.layer.draw();
+    }
   };
 
   const handleFileInput = (e, type) => {
@@ -754,7 +651,7 @@ function App() {
           content: "",
         };
 
-        updateSceneResources([...getSelectedScene().resources, newResource]);
+        updateSceneResources([newResource, ...getSelectedScene().resources]);
       } else if (fileType === "video" && type === "video") {
         const video = document.createElement("video");
         video.src = URL.createObjectURL(file);
@@ -771,7 +668,7 @@ function App() {
           content: "",
         };
 
-        updateSceneResources([...getSelectedScene().resources, newResource]);
+        updateSceneResources([newResource, ...getSelectedScene().resources]);
       } else {
         console.error("Unsupported file type.");
       }
@@ -791,6 +688,9 @@ function App() {
   // -------------------------------------------------------------------------------------
 
   const addImage = (img) => {
+    const selectedSceneLayer = getSelectedScene()?.layer;
+    if (!selectedSceneLayer) return;
+
     const image = new Konva.Image({
       image: img.imageElement,
       width: img.imageElement.width,
@@ -799,54 +699,39 @@ function App() {
       id: img.id,
       draggable: true,
     });
+
     const transformer = new Konva.Transformer({
       nodes: [image],
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
       rotateEnabled: true,
     });
-    console.log("22w");
 
     image.on("click", () => {
-      layer.add(transformer);
+      selectedSceneLayer.add(transformer);
       transformer.attachTo(image);
-      layer.draw();
+      selectedSceneLayer.draw();
     });
 
-    image.on("dragend", (e) => {
-      const x = e.target.x();
-      const y = e.target.y();
-      console.log(`Image position: x=${x}, y=${y}`);
-    });
-
-    image.on("transformend", (e) => {
-      const newWidth = image.width() * image.scaleX();
-      const newHeight = image.height() * image.scaleY();
-
-      image.width(newWidth);
-      image.height(newHeight);
-      image.scaleX(1);
-      image.scaleY(1);
-    });
-
-    layer.add(image);
-    stage.add(layer);
-    layer.draw();
+    selectedSceneLayer.add(image);
+    selectedSceneLayer.draw();
   };
 
   //---------------Start-Web-Segment-----------------
 
   const addWeb = (webResource) => {
     const { id, webURL } = webResource;
+    const selectedSceneLayer = getSelectedScene()?.layer;
+    const selectedStage = getSelectedScene()?.stageData;
 
-    // ایجاد یک گروه برای قرار دادن مستطیل و متن
+    if (!selectedSceneLayer || !selectedStage) return;
+
     const group = new Konva.Group({
-      x: (stage.width() - 1920) / 2, // قرار دادن در مرکز صفحه
-      y: (stage.height() - 1080) / 2,
+      x: (selectedStage.width() - 1920) / 2,
+      y: (selectedStage.height() - 1080) / 2,
       draggable: true,
       id: id,
     });
 
-    // مستطیل 1920x1080
     const webRect = new Konva.Rect({
       width: 1920,
       height: 1080,
@@ -855,7 +740,6 @@ function App() {
       strokeWidth: 2,
     });
 
-    // متن برای نمایش URL
     const webText = new Konva.Text({
       text: webURL,
       fontSize: 30,
@@ -869,50 +753,23 @@ function App() {
       wrap: "word",
     });
 
-    // اضافه کردن مستطیل و متن به گروه
-    group.add(webRect);
-    group.add(webText);
-    layer.add(group);
-    stage.add(layer);
-    layer.draw();
-
-    // تنظیم یک Transformer برای تغییر اندازه و چرخش
     const transformer = new Konva.Transformer({
       nodes: [group],
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
       rotateEnabled: true,
     });
-    layer.add(transformer);
-    transformer.attachTo(group);
 
-    // اطمینان از این که مقیاس‌دهی به درستی انجام شود
-    group.on("transformend", () => {
-      const scaleX = group.scaleX();
-      const scaleY = group.scaleY();
-
-      // به روز رسانی اندازه مستطیل و متن براساس مقیاس جدید
-      webRect.width(1920 * scaleX);
-      webRect.height(1080 * scaleY);
-      webText.width(1920 * scaleX);
-      webText.height(1080 * scaleY);
-
-      // بازنشانی مقیاس گروه به ۱ برای حفظ مقیاس واقعی عناصر داخلی
-      group.scaleX(1);
-      group.scaleY(1);
+    group.on("click", () => {
+      selectedSceneLayer.add(transformer);
+      transformer.attachTo(group);
+      selectedSceneLayer.draw();
     });
 
-    // اطمینان از اینکه متن در مرکز مستطیل باقی بماند
-    webText.on("resize", () => {
-      webText.width(webRect.width());
-      webText.height(webRect.height());
-    });
-
-    // // حذف گروه با دوبار کلیک
-    // group.on("dblclick", () => {
-    //   group.destroy();
-    //   transformer.destroy();
-    //   layer.draw();
-    // });
+    group.add(webRect);
+    group.add(webText);
+    selectedSceneLayer.add(group);
+    selectedStage.add(selectedSceneLayer);
+    selectedSceneLayer.draw();
   };
 
   const editWeb = (webResource) => {
@@ -950,11 +807,16 @@ function App() {
   //---------------Start-Text-Segment-----------------
 
   const addText = (text) => {
+    const selectedSceneLayer = getSelectedScene()?.layer;
+    const selectedStage = getSelectedScene()?.stageData;
+
+    if (!selectedSceneLayer || !selectedStage) return;
+
     const textNode = new Konva.Text({
       text: text.textContent,
       fontSize: 100,
       fontFamily: "Arial",
-      fill: text.color || "black", // استفاده از رنگ ذخیره شده یا رنگ پیش‌فرض
+      fill: text.color || "black",
       x: 50,
       y: 50,
       draggable: true,
@@ -971,14 +833,14 @@ function App() {
     });
 
     textNode.on("click", () => {
-      layer.add(transformer);
+      selectedSceneLayer.add(transformer);
       transformer.attachTo(textNode);
-      layer.draw();
+      selectedSceneLayer.draw();
     });
 
     textNode.on("dblclick", () => {
       const textPosition = textNode.absolutePosition();
-      const stageBox = stage.container().getBoundingClientRect();
+      const stageBox = selectedStage.container().getBoundingClientRect();
       const areaPosition = {
         x: stageBox.left + textPosition.x,
         y: stageBox.top + textPosition.y,
@@ -1022,7 +884,7 @@ function App() {
         textNode.show();
         transformer.show();
         transformer.forceUpdate();
-        layer.draw();
+        selectedSceneLayer.draw();
       }
 
       textarea.addEventListener("keydown", function (e) {
@@ -1052,9 +914,9 @@ function App() {
       textarea.style.height = `${textarea.scrollHeight}px`;
     });
 
-    layer.add(textNode);
-    stage.add(layer);
-    layer.draw();
+    selectedSceneLayer.add(textNode);
+    selectedStage.add(selectedSceneLayer);
+    selectedSceneLayer.draw();
   };
 
   const editText = (text) => {
@@ -1084,10 +946,10 @@ function App() {
           })
         );
 
-        const textNode = layer.findOne(`#${text.id}`);
+        const textNode = getSelectedScene()?.layer.findOne(`#${text.id}`);
         if (textNode) {
           textNode.text(result.value);
-          layer.draw();
+          getSelectedScene()?.layer.draw();
         }
       }
     });
@@ -1123,10 +985,10 @@ function App() {
       )
     );
 
-    const textNode = layer.findOne(`#${resourceId}`);
+    const textNode = getSelectedScene()?.layer.findOne(`#${resourceId}`);
     if (textNode) {
       textNode.fill(color);
-      layer.draw();
+      getSelectedScene()?.layer.draw();
     }
   };
 
@@ -1136,11 +998,12 @@ function App() {
 
   const addVideo = (videoElement) => {
     const id = videoElement.getAttribute("id");
+    const selectedSceneLayer = getSelectedScene()?.layer;
+    const selectedStage = getSelectedScene()?.stageData;
 
-    const modifiedVideoURL = generateBlobURL(
-      `video:http://${host}:${port}`,
-      videoElement.getAttribute("id")
-    );
+    if (!selectedSceneLayer || !selectedStage) return;
+
+    const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, id);
 
     socket.emit("source", {
       action: "add",
@@ -1153,6 +1016,7 @@ function App() {
         height: videoElement.videoHeight,
       },
     });
+
     const image = new Konva.Image({
       image: videoElement,
       width: videoElement.videoWidth,
@@ -1174,8 +1038,6 @@ function App() {
     const resetIcon = new Konva.Text({
       x: 0,
       y: -100,
-      width: 50,
-      height: 50,
       text: "🔄",
       fontSize: 34,
     });
@@ -1187,8 +1049,9 @@ function App() {
       positionText.text(
         `x: 0, y: 0, width: ${videoElement.videoWidth}, height: ${videoElement.videoHeight}`
       );
-      layer.draw();
+      selectedSceneLayer.draw();
       image.setAttr("rotation", 0);
+
       allData = allData.map((item) => {
         if (item.id === id) {
           socket.emit("source", {
@@ -1203,22 +1066,14 @@ function App() {
               rotation: "0",
             },
           });
-          return {
-            ...item,
-            x: 0,
-            y: 0,
-            width: image.width(),
-            height: image.height(),
-          };
+          return { ...item, x: 0, y: 0, width: image.width(), height: image.height() };
         }
         return item;
       });
     });
 
-    layer.add(image);
-    stage.add(layer);
-
-    layer.draw();
+    selectedSceneLayer.add(image);
+    selectedStage.add(selectedSceneLayer);
 
     const transformer = new Konva.Transformer({
       nodes: [image],
@@ -1227,16 +1082,9 @@ function App() {
     });
 
     image.on("click", () => {
-      layer.add(transformer);
+      selectedSceneLayer.add(transformer);
       transformer.attachTo(image);
-      layer.draw();
-    });
-
-    stage.on("click", (e) => {
-      if (e.target === stage || e.target === layer) {
-        transformer.detach();
-        layer.draw();
-      }
+      selectedSceneLayer.draw();
     });
 
     allData.push({
@@ -1249,36 +1097,20 @@ function App() {
       id: id,
     });
 
-    let rotateStack = 0;
-    let StackScaleY = 0;
-    let StackScaleX = 0;
-    transformer.on("transformend", (e) => {
-      const scaleX = image.scaleX();
-      const scaleY = image.scaleY();
-      const newWidth = image.width() * scaleX;
-      const newHeight = image.height() * scaleY;
-
+    transformer.on("transformend", () => {
+      const newWidth = image.width() * image.scaleX();
+      const newHeight = image.height() * image.scaleY();
       image.width(newWidth);
       image.height(newHeight);
       image.scaleX(1);
       image.scaleY(1);
 
-      let rotation = Math.round(image.getAttr("rotation"));
-      let x,
-        y = 0;
-      if (Math.round(rotation) != Math.round(rotateStack)) {
-        rotateStack = rotation;
-        x = image.x();
-        y = image.y();
-      } else {
-        x = image.x();
-        y = image.y();
-      }
+      const rotation = Math.round(image.getAttr("rotation"));
+      const x = image.x();
+      const y = image.y();
 
       positionText.text(
-        `x: ${Math.round(x)}, y: ${Math.round(y)}, width: ${Math.round(
-          newWidth
-        )}, height: ${Math.round(newHeight)}, rotation:${rotation}`
+        `x: ${x}, y: ${y}, width: ${newWidth}, height: ${newHeight}, rotation: ${rotation}`
       );
 
       allData = allData.map((item) => {
@@ -1292,16 +1124,10 @@ function App() {
               y,
               width: newWidth,
               height: newHeight,
-              rotation: rotation,
+              rotation,
             },
           });
-          return {
-            ...item,
-            x,
-            y,
-            width: newWidth,
-            height: newHeight,
-          };
+          return { ...item, x, y, width: newWidth, height: newHeight };
         }
         return item;
       });
@@ -1310,41 +1136,22 @@ function App() {
     image.on("dragmove", (e) => {
       const x = e.target.x();
       const y = e.target.y();
-      positionText.text(
-        `x: ${Math.floor(x)}, y: ${Math.floor(y)}, width: ${Math.round(
-          image.width()
-        )}, height: ${Math.round(image.height())}`
-      );
+      positionText.text(`x: ${x}, y: ${y}, width: ${image.width()}, height: ${image.height()}`);
     });
 
-    image.on("dragstart", () => {
-      image.opacity(0.2);
-      image.moveToTop();
-      layer.draw();
-    });
-
-    image.on("dragend", (e) => {
-      image.opacity(1);
+    image.on("dragend", () => {
       allData = allData.map((item) => {
         if (item.id === id) {
           socket.emit("source", {
             action: "move",
             id,
-            payload: {
-              source: modifiedVideoURL,
-              x: image.x(),
-              y: image.y(),
-            },
+            payload: { source: modifiedVideoURL, x: image.x(), y: image.y() },
           });
-          return {
-            ...item,
-            x: image.x(),
-            y: image.y(),
-          };
+          return { ...item, x: image.x(), y: image.y() };
         }
         return item;
       });
-      layer.draw();
+      selectedSceneLayer.draw();
     });
 
     videoElement.loop = loopVideos[videoElement.name] || false;
@@ -1358,6 +1165,7 @@ function App() {
         action: "play",
         id: videoName,
       });
+
       anim.start();
     }
   };
@@ -1406,90 +1214,90 @@ function App() {
 
   //---------------End-Video-Segment-----------------
 
-  const addToScene = ({ deviceId, width, height }) => {
-    const x = 0;
-    const y = 0;
-    const id = crypto.randomUUID();
+  // const addToScene = ({ deviceId, width, height }) => {
+  //   const x = 0;
+  //   const y = 0;
+  //   const id = crypto.randomUUID();
 
-    const inputGroup = new Konva.Group({
-      x: x,
-      y: y,
-      draggable: true,
-      id: `input-${deviceId}`,
-    });
+  //   const inputGroup = new Konva.Group({
+  //     x: x,
+  //     y: y,
+  //     draggable: true,
+  //     id: `input-${deviceId}`,
+  //   });
 
-    const rect = new Konva.Rect({
-      x: 0,
-      y: 0,
-      width: width,
-      height: height,
-      fill: "blue",
-      stroke: "white",
-      strokeWidth: 2,
-    });
+  //   const rect = new Konva.Rect({
+  //     x: 0,
+  //     y: 0,
+  //     width: width,
+  //     height: height,
+  //     fill: "blue",
+  //     stroke: "white",
+  //     strokeWidth: 2,
+  //   });
 
-    inputGroup.add(rect);
+  //   inputGroup.add(rect);
 
-    layer.add(inputGroup);
-    layer.draw();
+  //   layer.add(inputGroup);
+  //   layer.draw();
 
-    const transformer = new Konva.Transformer({
-      nodes: [inputGroup],
-      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-      rotateEnabled: true,
-    });
+  //   const transformer = new Konva.Transformer({
+  //     nodes: [inputGroup],
+  //     enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+  //     rotateEnabled: true,
+  //   });
 
-    layer.add(transformer);
-    layer.draw();
+  //   layer.add(transformer);
+  //   layer.draw();
 
-    transformer.on("transformend", (e) => {
-      const scaleX = e.target.attrs.scaleX;
-      const scaleY = e.target.attrs.scaleY;
-      const newWidth = rect.width() * scaleX;
-      const newHeight = rect.height() * scaleY;
+  //   transformer.on("transformend", (e) => {
+  //     const scaleX = e.target.attrs.scaleX;
+  //     const scaleY = e.target.attrs.scaleY;
+  //     const newWidth = rect.width() * scaleX;
+  //     const newHeight = rect.height() * scaleY;
 
-      socket.emit("source", {
-        action: "resize",
-        id,
-        payload: {
-          x: e.target.attrs.x,
-          y: e.target.attrs.y,
-          width: newWidth,
-          height: newHeight,
-          rotation: e.target.attrs.rotation,
-        },
-      });
-    });
+  //     socket.emit("source", {
+  //       action: "resize",
+  //       id,
+  //       payload: {
+  //         x: e.target.attrs.x,
+  //         y: e.target.attrs.y,
+  //         width: newWidth,
+  //         height: newHeight,
+  //         rotation: e.target.attrs.rotation,
+  //       },
+  //     });
+  //   });
 
-    inputGroup.on("dragend", (e) => {
-      socket.emit("source", {
-        action: "move",
-        id,
-        payload: {
-          x: e.target.attrs.x,
-          y: e.target.attrs.y,
-        },
-      });
-    });
+  //   inputGroup.on("dragend", (e) => {
+  //     socket.emit("source", {
+  //       action: "move",
+  //       id,
+  //       payload: {
+  //         x: e.target.attrs.x,
+  //         y: e.target.attrs.y,
+  //       },
+  //     });
+  //   });
 
-    inputGroup.on("click", () => {
-      transformer.attachTo(inputGroup);
-      layer.draw();
-    });
+  //   inputGroup.on("click", () => {
+  //     transformer.attachTo(inputGroup);
+  //     layer.draw();
+  //   });
 
-    stage.on("click", (e) => {
-      if (e.target === stage || e.target === layer) {
-        transformer.detach();
-        layer.draw();
-      }
-    });
+  //   stage.on("click", (e) => {
+  //     if (e.target === stage || e.target === layer) {
+  //       transformer.detach();
+  //       layer.draw();
+  //     }
+  //   });
 
-    socket.emit("source", {
-      action: "add",
-      id,
-      payload: { x, y, width, height, source: `input:${deviceId}` },
-    });
-  };
+  //   socket.emit("source", {
+  //     action: "add",
+  //     id,
+  //     payload: { x, y, width, height, source: `input:${deviceId}` },
+  //   });
+  // };
 
   return (
     <main
@@ -1505,26 +1313,17 @@ function App() {
               con.setIsActiveG("un");
             }}
             id="Monitor"
-            className={`${
-              checkvideo == 1 ? " block " : " hidden "
-            } w-full overflow-hidden active:cursor-grabbing relative h-full `}
+            className={`block w-full overflow-hidden active:cursor-grabbing relative h-full `}
           >
-            <div
-              id="infiniteDiv"
-              style={{ scale: `${scale}` }}
-              className={`xxx w-full h-full relative`}
-            >
+            <div id="infiniteDiv" style={{ scale: 1 }} className={`xxx w-full h-full relative`}>
               <div id="content" className="absolute w-full h-full top-0 left-0">
-                {/* {iframList.map((item) => (
-                  <DraggableResizableIframe key={item} />
-                ))} */}
-                <div
-                  className=" z-50 relative "
-                  id="containerKonva"
-                  onMouseDown={(e) => {
-                    con.setFlagDragging(false);
-                  }}
-                ></div>
+                {scenes.map((scene) => (
+                  <div
+                    key={scene.id}
+                    id={`containerKonva-${scene.id}`}
+                    style={{ display: selectedScene === scene.id ? "block" : "none" }}
+                  ></div>
+                ))}
               </div>
             </div>
           </div>
