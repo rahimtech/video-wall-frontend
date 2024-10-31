@@ -3,13 +3,11 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./input.css";
 import { MyContextProvider } from "./context/MyContext";
-import Test from "./Test.jsx";
-import App3 from "./v1/App.jsx";
-import VideoWallController from "./VideoWallController.jsx";
+import Auth from "./components/auth/Auth.jsx";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <MyContextProvider>
-    <App />
+    <Auth />
   </MyContextProvider>
 );
 

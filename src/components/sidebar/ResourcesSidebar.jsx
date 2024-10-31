@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@nextui-org/react";
-import { FaPlay, FaPause, FaArrowUp, FaArrowDown, FaTrashAlt, FaCog } from "react-icons/fa";
-import ModalMonitorSelection from "../ModalMonitorSelection"; // فرض کنید کامپوننت مودال شما اینجاست
+import { FaPlay, FaPause, FaTrashAlt, FaCog } from "react-icons/fa";
+import ModalMonitorSelection from "../ModalMonitorSelection";
 import { MdAddBox } from "react-icons/md";
-import { SketchPicker } from "react-color"; // استفاده از یک Color Picker مانند react-color
+import { SketchPicker } from "react-color";
 
 const ResourcesSidebar = ({
   resources,

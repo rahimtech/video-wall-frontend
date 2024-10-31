@@ -11,6 +11,7 @@ import config from "../public/config.json";
 import ResourcesSidebar from "./components/sidebar/ResourcesSidebar";
 import ScenesSidebar from "./components/sidebar/ScenesSidebar";
 import HeaderBar from "./components/HeaderBar";
+import Konva from "konva";
 
 let anim;
 let layer;

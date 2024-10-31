@@ -1,5 +1,4 @@
 import React from "react";
-import Setting from "./OLD/Setting";
 import SwitchCustom from "./SwitchCustom";
 
 const HeaderBar = ({ darkMode, setDarkMode, connecting }) => {
