@@ -22,7 +22,7 @@ const ThemeSwitch = (props) => {
         <div
           {...getWrapperProps()}
           className={slots.wrapper({
-            class: ["w-8 h-8 bg-gray-500", "flex items-center justify-center", "rounded-lg  "],
+            class: ["w-8 h-8 dark", "flex items-center justify-center", "rounded-lg  "],
           })}
         >
           {isSelected ? <SunIcon /> : <MoonIcon />}

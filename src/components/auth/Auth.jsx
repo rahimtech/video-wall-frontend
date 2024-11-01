@@ -44,7 +44,7 @@ export default function Auth() {
     }
   };
   return (
-    <div className="flex justify-between min-h-screen">
+    <div className="flex justify-between min-h-screen max-sm:flex-wrap">
       {loading && (
         <div className="w-full z-50 absolute backdrop-blur-lg min-h-screen flex items-center justify-center">
           <CircularProgress aria-label="Loading..." />

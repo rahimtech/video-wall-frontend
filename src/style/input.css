@@ -6,6 +6,10 @@
   overflow: hidden;
 }
 
+body::-webkit-scrollbar {
+  display: none;
+}
+
 .blob {
   background: green;
   border-radius: 50%;

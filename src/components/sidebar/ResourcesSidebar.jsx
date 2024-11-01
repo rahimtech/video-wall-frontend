@@ -42,7 +42,7 @@ const ResourcesSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
-    updateResourceName(resourceId, newName); // ذخیره نام جدید
+    updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
   };
@@ -50,14 +50,14 @@ const ResourcesSidebar = ({
   const handleColorChange = (color) => {
     setSelectedColor(color.hex);
     if (colorPickerResourceId) {
-      updateResourceColor(colorPickerResourceId, color.hex); // ذخیره رنگ انتخابی برای آیتم خاص
+      updateResourceColor(colorPickerResourceId, color.hex);
     }
   };
 
   return (
     <div
       dir="rtl"
-      className={`w-1/4 p-3 h-full border-r border-white flex flex-col justify-between bg-gray-800 overflow-hidden`}
+      className={` p-3 h-full border-r border-white flex flex-col justify-between bg-gray-800 overflow-hidden`}
       style={{
         backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",
@@ -84,9 +84,10 @@ const ResourcesSidebar = ({
         <Dropdown dir="rtl" className="vazir">
           <DropdownTrigger>
             <Button
-              auto
+              className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
+              size="lg"
+              variant="light"
               color="default"
-              className="block p-0 text-xl min-w-fit w-fit h-fit rounded-sm"
             >
               <MdAddBox />
             </Button>
@@ -109,14 +110,14 @@ const ResourcesSidebar = ({
         </Dropdown>
       </div>
 
-      <div className="mt-2 flex-1 overflow-y-auto">
+      <div className=" flex-1 overflow-y-auto">
         <ul className="flex flex-col gap-2">
           {resources?.map((resource) => (
             <li
               key={resource.id}
               className={`text-sm flex flex-wrap items-center justify-between ${
                 darkMode ? "bg-gray-700" : "bg-gray-300"
-              } p-3 rounded-md shadow-sm`}
+              } p-2 rounded-md shadow-sm`}
             >
               <div className="flex items-center w-[50%]">
                 {editingResourceId === resource.id ? (
@@ -125,14 +126,13 @@ const ResourcesSidebar = ({
                     value={newName}
                     onChange={handleNameChange}
                     onBlur={() => handleNameSave(resource.id)}
-                    className="p-1 rounded-sm"
+                    className={` ${darkMode ? "text-black" : "text-white"} p-1 rounded-sm`}
                     autoFocus
                   />
                 ) : (
                   <span
-                    className="mr-2 truncate"
+                    className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
                     onDoubleClick={() => handleDoubleClick(resource)}
-                    style={{ color: resource.color || "#000000" }}
                   >
                     {resource.name}
                   </span>
@@ -179,7 +179,12 @@ const ResourcesSidebar = ({
                 </Button>
                 <Dropdown>
                   <DropdownTrigger>
-                    <Button className="min-w-[20px] h-[20px] p-[2px]" variant="light">
+                    <Button
+                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                      size="sm"
+                      variant="light"
+                      color="default"
+                    >
                       <FaCog />
                     </Button>
                   </DropdownTrigger>
@@ -211,7 +216,7 @@ const ResourcesSidebar = ({
                           key="edit-color"
                           onClick={() => {
                             setColorPickerVisible(!colorPickerVisible);
-                            setColorPickerResourceId(resource.id); // ست کردن آیتمی که قرار است رنگ آن تغییر کند
+                            setColorPickerResourceId(resource.id);
                           }}
                         >
                           انتخاب رنگ متن

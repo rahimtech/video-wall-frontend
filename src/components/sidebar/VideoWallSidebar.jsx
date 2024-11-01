@@ -3,7 +3,7 @@ import { Button, Tooltip } from "@nextui-org/react";
 import { FaTrashAlt } from "react-icons/fa";
 import { MdAddBox } from "react-icons/md";
 
-const ScenesSidebar = ({
+const VideoWallSidebar = ({
   scenes,
   darkMode,
   selectedScene,
@@ -24,16 +24,16 @@ const ScenesSidebar = ({
       }}
     >
       <div className="flex justify-between px-2 items-center mb-4">
-        <h2 className="text-md font-semibold">صحنه‌ها</h2>
-        <Button
+        <h2 className="text-md font-semibold">اطلاعات نمایشگرها</h2>
+        {/* <Button
           className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
-          size="lg"
-          variant="light"
-          color="default"
+              size="lg"
+              variant="light"
+              color="default"
           onClick={addScene}
         >
           <MdAddBox />
-        </Button>
+        </Button> */}
       </div>
 
       <ul className="flex flex-col gap-2">
@@ -83,4 +83,4 @@ const ScenesSidebar = ({
   );
 };
 
-export default ScenesSidebar;
+export default VideoWallSidebar;

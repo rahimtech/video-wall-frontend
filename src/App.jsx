@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 
-import { Button } from "@nextui-org/react";
-import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { Button, Modal, ModalBody, ModalContent, Tooltip } from "@nextui-org/react";
+import { FaAngleDown, FaAngleUp, FaTools, FaCogs, FaFileAlt, FaVideo } from "react-icons/fa";
 import Swal from "sweetalert2";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMyContext } from "./context/MyContext";
 import axios from "axios";
 import io, { connect } from "socket.io-client";
@@ -12,6 +12,10 @@ import ResourcesSidebar from "./components/sidebar/ResourcesSidebar";
 import ScenesSidebar from "./components/sidebar/ScenesSidebar";
 import HeaderBar from "./components/HeaderBar";
 import Konva from "konva";
+import VideoWallSidebar from "./components/sidebar/VideoWallSidebar";
+import CollectionsSidebar from "./components/sidebar/CollectionsSidebar";
+import Settings from "./components/sidebar/Settings";
+import { MdCollections, MdCollectionsBookmark } from "react-icons/md";
 
 let anim;
 let layer;
@@ -57,6 +61,11 @@ function App() {
     { x: 5 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
   ]);
 
+  const [activeModal, setActiveModal] = useState(null);
+  const openModal = (modalType) => setActiveModal(modalType);
+  const closeModal = () => setActiveModal(null);
+  const [isToggleLayout, setIsToggleLayout] = useState(false);
+
   const [loopVideos, setLoopVideos] = useState({});
 
   const [darkMode, setDarkMode] = useState(false);
@@ -68,6 +77,7 @@ function App() {
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
+  const [collections, setCollections] = useState([]);
 
   let host = config.host;
   let port = config.port;
@@ -1300,13 +1310,68 @@ function App() {
   //   });
   // };
 
+  const IconSidebar = ({ modals, openModal }) => (
+    <div className="absolute left-[10px] flex flex-col gap-2 top-[50px] z-[100] h-fit">
+      <Tooltip showArrow={true} placement="right-start" content="منابع">
+        <Button
+          className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
+          size="sm"
+          variant="solid"
+          color="default"
+          onClick={() => openModal("resources")}
+        >
+          <FaFileAlt size={17} />
+        </Button>
+      </Tooltip>
+      <Tooltip showArrow={true} placement="right-start" content="صحنه‌ها">
+        <Button
+          className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
+          size="sm"
+          variant="solid"
+          color="default"
+          onClick={() => openModal("scenes")}
+        >
+          <FaVideo size={17} />
+        </Button>
+      </Tooltip>
+      <Tooltip showArrow={true} placement="right-start" content="مجموعه‌ها">
+        <Button
+          className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
+          size="sm"
+          variant="solid"
+          color="default"
+          onClick={() => openModal("collections")}
+        >
+          <MdCollectionsBookmark size={17} />
+        </Button>
+      </Tooltip>
+      <Tooltip showArrow={true} placement="right-start" content="تنظیمات">
+        <Button
+          className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
+          size="sm"
+          variant="solid"
+          color="default"
+          onClick={() => openModal("settings")}
+        >
+          <FaTools size={17} />
+        </Button>
+      </Tooltip>
+    </div>
+  );
+
   return (
     <main
       className={`${
         darkMode ? "bg-[#1E232A]" : "bg-[#e3e4e4]"
       }  h-screen w-full flex flex-col z-50  items-center `}
     >
-      <HeaderBar darkMode={darkMode} setDarkMode={setDarkMode} connecting={connecting} />
+      <HeaderBar
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        connecting={connecting}
+        toggleLayout={() => setIsToggleLayout(!isToggleLayout)}
+        isToggleLayout={isToggleLayout}
+      />
       <div className="h-full w-full flex z-50">
         <div id="Video-Wall-Section" className="w-full h-full flex">
           <div
@@ -1331,19 +1396,65 @@ function App() {
         </div>
       </div>
 
-      {/* Bottom-Contorlls */}
-      <motion.div
-        className={`flex w-full h-[350px] border-t overflow-y-auto items-center ${
-          darkMode ? "" : "shadow-custome"
-        } `}
-        style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
-        animate={{ height: isBottomControlsVisible ? "350px" : "0px" }}
-        transition={{ duration: 0.5 }}
-      >
-        {isBottomControlsVisible && (
-          <>
-            {/* Scenes Sidebar */}
-            <ScenesSidebar
+      {isToggleLayout ? (
+        <motion.div
+          className="absolute top-0 left-[-20px] z-[100]"
+          style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
+          animate={{ x: "20px" }}
+          transition={{ duration: 0.2 }}
+        >
+          <IconSidebar openModal={openModal} />
+        </motion.div>
+      ) : (
+        <>
+          <motion.div
+            className={`grid grid-cols-4 w-full h-[350px] border-t overflow-y-auto items-center ${
+              darkMode ? "" : "shadow-custome"
+            } `}
+            style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
+            animate={{ height: isBottomControlsVisible ? "350px" : "0px" }}
+            transition={{ duration: 0.5 }}
+          >
+            {isBottomControlsVisible && (
+              <>
+                {/* Scenes Sidebar */}
+                <ScenesSidebar
+                  scenes={scenes}
+                  darkMode={darkMode}
+                  selectedScene={selectedScene}
+                  setSelectedScene={setSelectedScene}
+                  addScene={addScene}
+                  editingSceneId={editingSceneId}
+                  setEditingSceneId={setEditingSceneId}
+                  handleEditSceneName={handleEditSceneName}
+                  deleteScene={deleteScene}
+                />
+
+                {/* Sources Sidebar */}
+                <ResourcesSidebar
+                  resources={getSelectedScene()?.resources}
+                  darkMode={darkMode}
+                  allDataMonitors={allDataMonitors}
+                  fitToMonitors={fitToMonitors}
+                  addVideo={addVideo}
+                  playVideo={playVideo}
+                  pauseVideo={pauseVideo}
+                  toggleLoopVideo={toggleLoopVideo}
+                  moveResource={moveResource}
+                  deleteResource={deleteResource}
+                  loopVideos={loopVideos}
+                  addResource={addResource}
+                  addText={addText}
+                  addImage={addImage}
+                  editText={editText}
+                  updateResourceName={updateResourceName}
+                  updateResourceColor={updateResourceColor}
+                  addWeb={addWeb}
+                  editWeb={editWeb}
+                />
+
+                {/* videoWall Sidebar
+            <VideoWallSidebar
               scenes={scenes}
               darkMode={darkMode}
               selectedScene={selectedScene}
@@ -1353,9 +1464,53 @@ function App() {
               setEditingSceneId={setEditingSceneId}
               handleEditSceneName={handleEditSceneName}
               deleteScene={deleteScene}
-            />
+            /> */}
 
-            {/* Sources Sidebar */}
+                {/* CollectionsSidebar Sidebar */}
+                <CollectionsSidebar
+                  scenes={scenes}
+                  darkMode={darkMode}
+                  collections={collections}
+                  setCollections={setCollections}
+                />
+
+                {/* CollectionsSidebar Sidebar */}
+                <Settings
+                  scenes={scenes}
+                  darkMode={darkMode}
+                  selectedScene={selectedScene}
+                  setSelectedScene={setSelectedScene}
+                  addScene={addScene}
+                  editingSceneId={editingSceneId}
+                  setEditingSceneId={setEditingSceneId}
+                  handleEditSceneName={handleEditSceneName}
+                  deleteScene={deleteScene}
+                />
+              </>
+            )}
+          </motion.div>
+          {/* Toggle Bottom Controls Button */}
+          <div className="absolute right-0 bottom-0 transform -translate-x-1/2 mb-2 z-[100]">
+            <Button
+              auto
+              ghost
+              className="min-w-fit h-fit p-2"
+              onClick={() => setIsBottomControlsVisible(!isBottomControlsVisible)}
+            >
+              {isBottomControlsVisible ? <FaAngleDown /> : <FaAngleUp />}
+            </Button>
+          </div>
+        </>
+      )}
+
+      <Modal
+        scrollBehavior="outside"
+        className=""
+        isOpen={activeModal === "resources"}
+        onClose={closeModal}
+      >
+        <ModalContent>
+          <ModalBody className="p-0">
             <ResourcesSidebar
               resources={getSelectedScene()?.resources}
               darkMode={darkMode}
@@ -1377,21 +1532,58 @@ function App() {
               addWeb={addWeb}
               editWeb={editWeb}
             />
-          </>
-        )}
-      </motion.div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
 
-      {/* Toggle Bottom Controls Button */}
-      <div className="absolute right-0 bottom-0 transform -translate-x-1/2 mb-2 z-[100]">
-        <Button
-          auto
-          ghost
-          className="min-w-fit h-fit p-2"
-          onClick={() => setIsBottomControlsVisible(!isBottomControlsVisible)}
-        >
-          {isBottomControlsVisible ? <FaAngleDown /> : <FaAngleUp />}
-        </Button>
-      </div>
+      <Modal scrollBehavior="outside" isOpen={activeModal === "scenes"} onClose={closeModal}>
+        <ModalContent>
+          <ModalBody className="p-0">
+            <ScenesSidebar
+              scenes={scenes}
+              darkMode={darkMode}
+              selectedScene={selectedScene}
+              setSelectedScene={setSelectedScene}
+              addScene={addScene}
+              editingSceneId={editingSceneId}
+              setEditingSceneId={setEditingSceneId}
+              handleEditSceneName={handleEditSceneName}
+              deleteScene={deleteScene}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal scrollBehavior="outside" isOpen={activeModal === "collections"} onClose={closeModal}>
+        <ModalContent>
+          <ModalBody className="p-0">
+            <CollectionsSidebar
+              scenes={scenes}
+              darkMode={darkMode}
+              collections={collections}
+              setCollections={setCollections}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal scrollBehavior="outside" isOpen={activeModal === "settings"} onClose={closeModal}>
+        <ModalContent>
+          <ModalBody className="p-0">
+            <Settings
+              scenes={scenes}
+              darkMode={darkMode}
+              selectedScene={selectedScene}
+              setSelectedScene={setSelectedScene}
+              addScene={addScene}
+              editingSceneId={editingSceneId}
+              setEditingSceneId={setEditingSceneId}
+              handleEditSceneName={handleEditSceneName}
+              deleteScene={deleteScene}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </main>
   );
 }

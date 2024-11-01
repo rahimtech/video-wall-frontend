@@ -1,13 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import "./input.css";
+import "./style/input.css";
 import { MyContextProvider } from "./context/MyContext";
 import Auth from "./components/auth/Auth.jsx";
+import VideoWallSet from "./components/videowall/VideoWallSet.jsx";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <MyContextProvider>
-    <Auth />
+    <App />
   </MyContextProvider>
 );
 

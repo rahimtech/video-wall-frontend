@@ -311,7 +311,7 @@ const VideoWallController = () => {
             {/* Scenes Sidebar */}
             <div
               dir="rtl"
-              className="w-1/4 p-2 border-r h-full overflow-auto"
+              className=" p-2 border-r h-full overflow-auto"
               style={{ backgroundColor: isDarkMode ? "#333" : "#f4f4f4" }}
             >
               <div className="flex justify-between px-2 items-center mb-5">
@@ -373,7 +373,7 @@ const VideoWallController = () => {
             {/* Sources Sidebar */}
             <div
               dir="rtl"
-              className="w-1/4 p-2 h-full"
+              className=" p-2 h-full"
               style={{ backgroundColor: isDarkMode ? "#333" : "#f4f4f4" }}
             >
               <div className="flex justify-between px-2 items-center mb-5">
