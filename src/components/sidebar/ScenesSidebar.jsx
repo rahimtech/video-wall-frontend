@@ -4,7 +4,7 @@ import { FaTrashAlt } from "react-icons/fa";
 import { MdAddBox } from "react-icons/md";
 
 const ScenesSidebar = ({
-  scenes,
+  scenes, // Now filtered scenes
   darkMode,
   selectedScene,
   setSelectedScene,
@@ -17,7 +17,7 @@ const ScenesSidebar = ({
   return (
     <div
       dir="rtl"
-      className=" p-3 border-r border-white h-full overflow-auto"
+      className="p-2 rounded-lg h-full  overflow-auto"
       style={{
         backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",

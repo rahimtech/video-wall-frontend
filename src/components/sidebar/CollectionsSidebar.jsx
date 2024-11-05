@@ -14,23 +14,35 @@ import {
 import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import { MdAddBox, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
-
-const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) => {
+const CollectionsSidebar = ({
+  scenes,
+  darkMode,
+  collections,
+  setCollections,
+  setSelectedCollection,
+  selectedCollection,
+  setSelectedScene,
+}) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newCollectionName, setNewCollectionName] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
-  console.log("isInvalid::: ", isInvalid);
   const [selectedScenes, setSelectedScenes] = useState([]);
   const [editingCollection, setEditingCollection] = useState(null);
 
+  const handleCollectionClick = (collection) => {
+    console.log("collection::: ", collection);
+    setSelectedCollection(collection); // Set the selected collection in App component
+    if (collection.scenes.length > 0) {
+      setSelectedScene(collection.scenes[0]); // Select the first scene in the collection
+    }
+  };
+
   const handleOpenModal = (collection = null) => {
     if (collection) {
-      // حالت ویرایش
       setEditingCollection(collection.id);
       setNewCollectionName(collection.name);
       setSelectedScenes(collection.scenes);
     } else {
-      // حالت افزودن
       setEditingCollection(null);
       setNewCollectionName("");
       setSelectedScenes([]);
@@ -45,20 +57,25 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
     }
     setIsInvalid(false);
     if (editingCollection) {
-      // ویرایش مجموعه
       setCollections((prev) =>
-        prev.map((collection) =>
-          collection.id === editingCollection
-            ? { ...collection, name: newCollectionName, scenes: selectedScenes }
-            : collection
-        )
+        prev.map((collection) => {
+          if (collection.id === editingCollection) {
+            let newCol = { ...collection, name: newCollectionName, scenes: selectedScenes };
+            setSelectedCollection(newCol); // Set the selected collection in App component
+            if (collection.scenes.length > 0) {
+              setSelectedScene(collection.scenes[0]); // Select the first scene in the collection
+            }
+            return newCol;
+          } else {
+            return collection;
+          }
+        })
       );
     } else {
-      // افزودن مجموعه جدید
-      setCollections((prev) => [
-        ...prev,
-        { id: Date.now(), name: newCollectionName, scenes: selectedScenes },
-      ]);
+      let newCol = { id: Date.now(), name: newCollectionName, scenes: selectedScenes };
+      setCollections((prev) => [...prev, newCol]);
+
+      setSelectedCollection(newCol); // Set the selected collection in App component
     }
     onClose();
   };
@@ -73,7 +90,6 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
       cancelButtonColor: "#d33",
       confirmButtonText: "بله",
     }).then(async (result) => {
-      console.log("result::: ", result);
       if (result.isConfirmed) {
         setCollections((prev) => prev.filter((collection) => collection.id !== id));
       }
@@ -89,7 +105,7 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
   return (
     <div
       dir="rtl"
-      className=" p-3 border-r border-white h-full overflow-auto"
+      className="p-2 rounded-lg h-full  overflow-auto"
       style={{
         backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",
@@ -103,7 +119,7 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
           size="lg"
           variant="light"
           color="default"
-          onPress={onOpen}
+          onPress={() => handleOpenModal(null)}
         >
           <MdAddBox />
         </Button>
@@ -113,18 +129,26 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
         {collections.map((collection) => (
           <li
             key={collection.id}
-            className={`text-sm flex flex-wrap items-center justify-between  ${
-              darkMode ? "bg-gray-700" : "bg-gray-300"
-            } p-2 rounded-md shadow-sm`}
+            onClick={() => handleCollectionClick(collection)}
+            className={`text-sm flex items-center justify-between w-full ${
+              selectedCollection && selectedCollection.id === collection.id
+                ? "bg-blue-500 text-white"
+                : darkMode
+                ? "bg-gray-700"
+                : "bg-gray-300"
+            } p-2 rounded-md shadow-sm cursor-pointer`}
           >
-            <span>{collection.name}</span>
+            <span className="truncate">{collection.name}</span>
             <div className="flex gap-1">
               <Button
                 className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                 size="sm"
                 variant="light"
                 color="default"
-                onClick={() => handleOpenModal(collection)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering collection click
+                  handleOpenModal(collection);
+                }}
               >
                 <MdEdit />
               </Button>
@@ -133,7 +157,10 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
                 size="sm"
                 variant="light"
                 color="default"
-                onClick={() => handleDeleteCollection(collection.id)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering collection click
+                  handleDeleteCollection(collection.id);
+                }}
               >
                 <FaTrashAlt />
               </Button>
@@ -157,7 +184,7 @@ const CollectionsSidebar = ({ scenes, darkMode, collections, setCollections }) =
               <Checkbox
                 key={scene.id}
                 isSelected={selectedScenes.includes(scene.id)}
-                onChange={(isSelected) => handleSceneSelection(scene.id, isSelected)}
+                onValueChange={(isSelected) => handleSceneSelection(scene.id, isSelected)}
               >
                 {scene.name}
               </Checkbox>

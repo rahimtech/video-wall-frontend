@@ -17,7 +17,7 @@ const Settings = ({
   return (
     <div
       dir="rtl"
-      className=" p-3  border-white h-full overflow-auto"
+      className="p-2 rounded-lg h-full  overflow-auto"
       style={{
         backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",

@@ -72,12 +72,19 @@ function App() {
   const [connecting, setConnecting] = useState(false);
   const [cameraList, setCameraList] = useState([]);
   //New-Commands
-  const [scenes, setScenes] = useState([{ id: 1, name: "صحنه 1", resources: [], stageData: null }]);
+  const [scenes, setScenes] = useState([
+    { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: null },
+  ]);
 
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
   const [collections, setCollections] = useState([]);
+  const [selectedCollection, setSelectedCollection] = useState(null);
+
+  const filteredScenes = selectedCollection
+    ? scenes.filter((scene) => selectedCollection.scenes.includes(scene.id))
+    : scenes;
 
   let host = config.host;
   let port = config.port;
@@ -140,8 +147,16 @@ function App() {
       resources: [],
     };
 
+    console.log("newScene::: ", newScene);
     setScenes([...scenes, newScene]);
     setSelectedScene(newId);
+
+    Swal.fire({
+      title: "صحنه اضافه شد",
+      icon: "success",
+      confirmButtonText: "متوجه شدم",
+      confirmButtonColor: "green",
+    });
   };
 
   const deleteScene = (id) => {
@@ -1408,18 +1423,21 @@ function App() {
       ) : (
         <>
           <motion.div
-            className={`grid grid-cols-4 w-full h-[350px] border-t overflow-y-auto items-center ${
+            className={`grid grid-cols-4 gap-[10px] p-[10px] w-full h-[350px] border-t overflow-y-auto items-center ${
               darkMode ? "" : "shadow-custome"
             } `}
             style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
-            animate={{ height: isBottomControlsVisible ? "350px" : "0px" }}
+            animate={{
+              height: isBottomControlsVisible ? "350px" : "0px",
+              padding: isBottomControlsVisible ? "10px" : "0px",
+            }}
             transition={{ duration: 0.5 }}
           >
             {isBottomControlsVisible && (
               <>
                 {/* Scenes Sidebar */}
                 <ScenesSidebar
-                  scenes={scenes}
+                  scenes={filteredScenes} // Use filteredScenes instead of all scenes
                   darkMode={darkMode}
                   selectedScene={selectedScene}
                   setSelectedScene={setSelectedScene}
@@ -1472,6 +1490,9 @@ function App() {
                   darkMode={darkMode}
                   collections={collections}
                   setCollections={setCollections}
+                  setSelectedCollection={setSelectedCollection} // Pass setter function
+                  selectedCollection={selectedCollection} // Pass selected collection
+                  setSelectedScene={setSelectedScene} // Pass setSelectedScene function
                 />
 
                 {/* CollectionsSidebar Sidebar */}
@@ -1540,7 +1561,7 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <ScenesSidebar
-              scenes={scenes}
+              scenes={filteredScenes}
               darkMode={darkMode}
               selectedScene={selectedScene}
               setSelectedScene={setSelectedScene}
@@ -1562,6 +1583,9 @@ function App() {
               darkMode={darkMode}
               collections={collections}
               setCollections={setCollections}
+              setSelectedCollection={setSelectedCollection} // Pass setter function
+              selectedCollection={selectedCollection} // Pass selected collection
+              setSelectedScene={setSelectedScene} // Pass setSelectedScene function
             />
           </ModalBody>
         </ModalContent>
