@@ -5,7 +5,7 @@ import ModalMonitorSelection from "../ModalMonitorSelection";
 import { MdAddBox } from "react-icons/md";
 import { SketchPicker } from "react-color";
 
-const ResourcesSidebar = ({
+const InputSidebar = ({
   resources,
   darkMode,
   allDataMonitors,
@@ -25,16 +25,12 @@ const ResourcesSidebar = ({
   editText,
   updateResourceName,
   updateResourceColor,
-  inputs,
-  addInput,
 }) => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [colorPickerResourceId, setColorPickerResourceId] = useState(null);
-  console.log("inputs::: ", inputs);
-  console.log("resources::: ", resources);
 
   const handleDoubleClick = (resource) => {
     setEditingResourceId(resource.id);
@@ -120,59 +116,6 @@ const ResourcesSidebar = ({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto ">
         <ul className="flex flex-col gap-2">
-          {inputs?.map((input) => (
-            <li
-              key={input.id}
-              className={`text-sm flex flex-wrap items-center justify-between ${
-                darkMode ? "bg-orange-600" : "bg-orange-600 "
-              } p-2 rounded-md shadow-sm`}
-            >
-              <div className="flex items-center w-[50%]">
-                {editingResourceId === input.id ? (
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={handleNameChange}
-                    onBlur={() => handleNameSave(input.id)}
-                    className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    className={` ${darkMode ? "text-white" : "text-white"} mr-2 truncate`}
-                    onDoubleClick={() => handleDoubleClick(input)}
-                  >
-                    {input.name}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 w-[50%] justify-end">
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-white"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                    >
-                      <FaCog />
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu aria-label="More Actions">
-                    <DropdownItem key="moveUp" onClick={() => moveResource(input.id, -1)}>
-                      بالا
-                    </DropdownItem>
-                    <DropdownItem key="moveDown" onClick={() => moveResource(input.id, 1)}>
-                      پایین
-                    </DropdownItem>
-                    <DropdownItem key="add-image" onClick={() => addInput(input)}>
-                      افزودن به صحنه
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </div>
-            </li>
-          ))}
           {resources?.map((resource) => (
             <li
               key={resource.id}
@@ -308,4 +251,4 @@ const ResourcesSidebar = ({
   );
 };
 
-export default ResourcesSidebar;
+export default InputSidebar;

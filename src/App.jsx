@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { Button, Modal, ModalBody, ModalContent, Tooltip } from "@nextui-org/react";
+import { Button, input, Modal, ModalBody, ModalContent, Tooltip } from "@nextui-org/react";
 import { FaAngleDown, FaAngleUp, FaTools, FaCogs, FaFileAlt, FaVideo } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,48 +18,12 @@ import Settings from "./components/sidebar/Settings";
 import { MdCollections, MdCollectionsBookmark } from "react-icons/md";
 
 let anim;
-let layer;
-let stage;
+let motherLayer;
+let motherStage;
 let socket = null;
 
 function App() {
-  const [videoWalls, setVideoWalls] = useState([
-    // مجموعه‌ای از مانیتورها با ابعاد و موقعیت‌های تصادفی
-    { x: 0, y: 0, width: 1920, height: 1080 },
-    { x: 1920, y: 0, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 0, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 0, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 0, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 0, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 1080, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 2 * 1080, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 3 * 1080, width: 1920, height: 1080 },
-    // ردیف پایین
-    { x: 0, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 2 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 3 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 4 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-    { x: 5 * 1920, y: 4 * 1080, width: 1920, height: 1080 },
-  ]);
+  const [videoWalls, setVideoWalls] = useState([]);
 
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
@@ -70,11 +34,12 @@ function App() {
 
   const [darkMode, setDarkMode] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [cameraList, setCameraList] = useState([]);
+  const [inputs, setInputs] = useState([]);
   //New-Commands
   const [scenes, setScenes] = useState([
     { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: null },
   ]);
+  console.log("scenes::: ", scenes);
 
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
@@ -82,6 +47,7 @@ function App() {
   const [collections, setCollections] = useState([]);
   const [selectedCollection, setSelectedCollection] = useState(null);
 
+  console.log("collections::: ", collections);
   const filteredScenes = selectedCollection
     ? scenes.filter((scene) => selectedCollection.scenes.includes(scene.id))
     : scenes;
@@ -135,20 +101,137 @@ function App() {
     anim = new Konva.Animation(() => {}, newLayer);
 
     stage.add(newLayer);
+    motherLayer = newLayer;
+    motherStage = stage;
     return { stage, layer: newLayer };
+  };
+
+  const addMonitorsToScenes = (jsonData) => {
+    console.log("ssxxx");
+
+    if (!jsonData || !Array.isArray(jsonData)) {
+      Swal.fire({
+        title: "خطا",
+        text: "فرمت داده‌های JSON اشتباه است.",
+        icon: "error",
+        confirmButtonText: "باشه",
+      });
+      return;
+    }
+
+    const updatedScenes = scenes.map((scene) => {
+      const layer = scene.layer;
+
+      if (layer) {
+        layer.destroyChildren();
+      }
+
+      jsonData.forEach((monitor, index) => {
+        const group = new Konva.Group({
+          x: monitor.x,
+          y: monitor.y,
+          clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
+        });
+
+        const rect = new Konva.Rect({
+          x: 0,
+          y: 0,
+          width: monitor.width,
+          height: monitor.height,
+          fill: "#161616",
+          stroke: "white",
+          name: "fillShape",
+          strokeWidth: 3,
+          id: `monitor-${index}`,
+        });
+
+        const text = new Konva.Text({
+          x: monitor.width / 2,
+          y: monitor.height / 2,
+          text: `Monitor ${index + 1}\n${monitor.width}x${monitor.height}`,
+          fontSize: 130,
+          fill: "gray",
+          align: "center",
+          verticalAlign: "middle",
+          offsetX: monitor.width / 4,
+          offsetY: 24,
+        });
+
+        group.add(rect);
+        group.add(text);
+        layer.add(group);
+      });
+
+      layer.draw();
+
+      console.log("scene::: ", scene);
+      return scene;
+    });
+
+    setScenes(updatedScenes);
+
+    Swal.fire({
+      title: "موفقیت",
+      text: "مانیتورها به صحنه‌ها اضافه شدند.",
+      icon: "success",
+      confirmButtonText: "باشه",
+    });
+  };
+
+  const generateMonitorsForLayer = (layer, monitors) => {
+    if (!layer || !monitors) return;
+
+    monitors.forEach((monitor, index) => {
+      const group = new Konva.Group({
+        x: monitor.x,
+        y: monitor.y,
+        clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
+      });
+
+      const rect = new Konva.Rect({
+        x: 0,
+        y: 0,
+        width: monitor.width,
+        height: monitor.height,
+        fill: "#161616",
+        stroke: "white",
+        name: "fillShape",
+        strokeWidth: 3,
+        id: `monitor-${index}`,
+      });
+
+      const text = new Konva.Text({
+        x: monitor.width / 2,
+        y: monitor.height / 2,
+        text: `Monitor ${index + 1}\n${monitor.width}x${monitor.height}`,
+        fontSize: 130,
+        fill: "gray",
+        align: "center",
+        verticalAlign: "middle",
+        offsetX: monitor.width / 4,
+        offsetY: 24,
+      });
+
+      group.add(rect);
+      group.add(text);
+      layer.add(group);
+    });
+
+    layer.draw();
   };
 
   const addScene = () => {
     const newId = scenes.length > 0 ? Math.max(...scenes.map((scene) => scene.id)) + 1 : 1;
 
+    const newLayer = new Konva.Layer();
     const newScene = {
       id: newId,
-      name: `صحنه ${newId} `,
+      name: `صحنه ${newId}`,
       resources: [],
+      layer: newLayer,
     };
 
-    console.log("newScene::: ", newScene);
-    setScenes([...scenes, newScene]);
+    setScenes((prevScenes) => [...prevScenes, newScene]);
     setSelectedScene(newId);
 
     Swal.fire({
@@ -174,52 +257,10 @@ function App() {
     setEditingSceneId(null);
   };
 
-  // const MonitorSelect = ({ videoName, monitors, fitToMonitors, onAddToScene }) => {
-  //   const monitorOptions = monitors.map((monitor, index) => ({
-  //     value: index,
-  //     label: `Monitor ${index + 1}`,
-  //   }));
-
-  //   return (
-  //     <>
-  //       <Select
-  //         isMulti
-  //         name="monitors"
-  //         options={monitorOptions}
-  //         className="basic-multi-select"
-  //         classNamePrefix="select"
-  //         onChange={(selectedOptions) => {
-  //           const selectedMonitors = selectedOptions.map((option) => option.value);
-  //           fitToMonitors(videoName, selectedMonitors);
-  //         }}
-  //       />
-  //       <Button variant="flat" color="primary" onClick={onAddToScene}>
-  //         افزودن به صحنه
-  //       </Button>
-  //     </>
-  //   );
-  // };
-
   function generateBlobURL(newBaseURL, videoName) {
     const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
 
     return newBlobURL;
-  }
-
-  function updateImagePositionRelativeToVideoWall(image, videoWall) {
-    const { x, y, width, height } = videoWall;
-
-    const newImageX = image.x() - x;
-    const newImageY = image.y() + y;
-
-    const newImageWidth = image.width();
-    const newImageHeight = image.height();
-    return {
-      x: newImageX,
-      y: newImageY,
-      width: newImageWidth,
-      height: newImageHeight,
-    };
   }
 
   useEffect(() => {
@@ -247,7 +288,7 @@ function App() {
             console.log("INIT DATA: ", data);
             if (data.inputs) {
               console.log("setting inputs");
-              setCameraList(data.inputs);
+              setInputs(data.inputs);
             }
 
             if (data.files) {
@@ -367,7 +408,7 @@ function App() {
 
           socket.on("update-cameras", (data) => {
             console.log("Camera List:", data);
-            setCameraList(data);
+            setInputs(data);
           });
 
           var width = window.innerWidth;
@@ -439,7 +480,7 @@ function App() {
 
     return () => {
       if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
-      if (layer) layer.destroy();
+      if (motherLayer) motherLayer.destroy();
       // socket.off("update-monitors");
       // socket.off("connect");
       // socket.off("update-event");
@@ -470,14 +511,14 @@ function App() {
 
   useEffect(() => {
     const selectedScene = getSelectedScene();
-
     if (!selectedScene || selectedScene.stageData) return;
 
     const containerId = `containerKonva-${selectedScene.id}`;
     const container = document.getElementById(containerId);
-
     if (container) {
       const { stage, layer } = createNewStage();
+      console.log("ss");
+      generateMonitorsForLayer(layer, videoWalls);
 
       setScenes((prevScenes) =>
         prevScenes.map((scene) =>
@@ -740,6 +781,65 @@ function App() {
 
     selectedSceneLayer.add(image);
     selectedSceneLayer.draw();
+  };
+
+  const addInput = (input) => {
+    const selectedSceneLayer = getSelectedScene()?.layer;
+    if (!selectedSceneLayer) return;
+
+    // ایجاد گروه نمایشی برای ورودی
+    const group = new Konva.Group({
+      x: 50, // مکان اولیه روی صحنه
+      y: 50,
+      draggable: true,
+      id: `input-${input.id}`,
+    });
+
+    const rect = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: input.width,
+      height: input.height,
+      fill: "lightblue",
+      stroke: "black",
+      strokeWidth: 2,
+    });
+
+    const text = new Konva.Text({
+      x: 10,
+      y: 10,
+      text: `${input.name}\n(${input.type})`,
+      fontSize: 14,
+      fill: "black",
+    });
+
+    group.add(rect);
+    group.add(text);
+
+    // اضافه کردن گروه به لایه صحنه
+    selectedSceneLayer.add(group);
+    selectedSceneLayer.draw();
+
+    // اضافه کردن قابلیت تغییر اندازه و جابه‌جایی
+    const transformer = new Konva.Transformer({
+      nodes: [group],
+      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      rotateEnabled: true,
+    });
+
+    group.on("click", () => {
+      selectedSceneLayer.add(transformer);
+      transformer.attachTo(group);
+      selectedSceneLayer.draw();
+    });
+
+    group.on("dragend", () => {
+      console.log("Input moved to:", group.position());
+    });
+
+    transformer.on("transformend", () => {
+      console.log("Input resized to:", group.size());
+    });
   };
 
   //---------------Start-Web-Segment-----------------
@@ -1386,6 +1486,11 @@ function App() {
         connecting={connecting}
         toggleLayout={() => setIsToggleLayout(!isToggleLayout)}
         isToggleLayout={isToggleLayout}
+        setVideoWalls={setVideoWalls}
+        setInputs={setInputs}
+        addMonitorsToScenes={addMonitorsToScenes}
+        setCollections={setCollections}
+        addResource={addResource}
       />
       <div className="h-full w-full flex z-50">
         <div id="Video-Wall-Section" className="w-full h-full flex">
@@ -1469,6 +1574,8 @@ function App() {
                   updateResourceColor={updateResourceColor}
                   addWeb={addWeb}
                   editWeb={editWeb}
+                  inputs={inputs}
+                  addInput={addInput}
                 />
 
                 {/* videoWall Sidebar
@@ -1552,6 +1659,8 @@ function App() {
               updateResourceColor={updateResourceColor}
               addWeb={addWeb}
               editWeb={editWeb}
+              inputs={inputs}
+              addInput={addInput}
             />
           </ModalBody>
         </ModalContent>

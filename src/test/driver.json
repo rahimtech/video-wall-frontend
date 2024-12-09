@@ -1,0 +1,66 @@
+{
+  "inputs": [
+    {
+      "id": 1238914312,
+      "name": "CamLink Pro HDMI 1",
+      "type": "HDMI",
+      "width": 1920,
+      "height": 1080,
+      "created_at": "2024-11-16T04:00:18.776Z"
+    },
+    {
+      "id": 1238914313,
+      "name": "CamLink Pro HDMI 2",
+      "type": "DP",
+      "created_at": "2024-11-16T04:00:18.776Z"
+    },
+    {
+      "id": 1238914315,
+      "name": "CamLink Pro HDMI 4",
+      "type": "VGA",
+      "created_at": "2024-11-16T04:00:18.776Z"
+    }
+  ],
+  "displays": [
+    {
+      "id": 5433319,
+      "width": 1920,
+      "height": 1080,
+      "x": 0,
+      "y": 0,
+      "dpi": 72.3,
+      "rotation": 0,
+      "created_at": "2024-11-16T04:00:18.776Z"
+    },
+    {
+      "id": 5433327,
+      "width": 1920,
+      "height": 1080,
+      "x": 1920,
+      "y": 0,
+      "dpi": null,
+      "rotation": 90,
+      "created_at": "2024-11-16T04:00:18.776Z"
+    },
+    {
+      "id": 5433328,
+      "width": 1920,
+      "height": 1080,
+      "x": 3840,
+      "y": 0,
+      "dpi": null,
+      "rotation": 0,
+      "created_at": "2024-11-16T04:00:18.776Z"
+    },
+    {
+      "id": 5433329,
+      "width": 1920,
+      "height": 1080,
+      "x": 5760,
+      "y": 0,
+      "dpi": null,
+      "rotation": 0,
+      "created_at": "2024-11-16T04:00:18.776Z"
+    }
+  ]
+}
