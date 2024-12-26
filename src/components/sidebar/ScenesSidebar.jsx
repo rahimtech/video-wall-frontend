@@ -61,7 +61,7 @@ const ScenesSidebar = ({
               >
                 <span className="flex-grow">{scene.name}</span>
                 <div className="flex gap-1">
-                  <Tooltip content="Delete Scene">
+                  <Tooltip content="حذف صحنه">
                     <Button
                       className="min-w-fit h-fit p-1"
                       size="sm"

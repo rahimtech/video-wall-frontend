@@ -29,12 +29,10 @@ const CollectionsSidebar = ({
   const [selectedScenes, setSelectedScenes] = useState([]);
   const [editingCollection, setEditingCollection] = useState(null);
 
-  const handleCollectionClick = (collection) => {
-    console.log("collection::: ", collection);
-    setSelectedCollection(collection); // Set the selected collection in App component
-    if (collection.scenes.length > 0) {
-      setSelectedScene(collection.scenes[0]); // Select the first scene in the collection
-    }
+  const handleCollectionClick = (key) => {
+    setSelectedCollection(key);
+
+    setSelectedScene(collections.find((item) => item.id == key).scenes[0]);
   };
 
   const handleOpenModal = (collection = null) => {
@@ -61,7 +59,7 @@ const CollectionsSidebar = ({
         prev.map((collection) => {
           if (collection.id === editingCollection) {
             let newCol = { ...collection, name: newCollectionName, scenes: selectedScenes };
-            setSelectedCollection(newCol); // Set the selected collection in App component
+            setSelectedCollection(selectedCollection); // Set the selected collection in App component
             if (collection.scenes.length > 0) {
               setSelectedScene(collection.scenes[0]); // Select the first scene in the collection
             }
@@ -73,27 +71,34 @@ const CollectionsSidebar = ({
       );
     } else {
       let newCol = { id: Date.now(), name: newCollectionName, scenes: selectedScenes };
+      let uniqId = Date.now();
       setCollections((prev) => [...prev, newCol]);
 
-      setSelectedCollection(newCol); // Set the selected collection in App component
+      setSelectedCollection(uniqId);
+      setSelectedScene(newCol.scenes[0]);
+
+      // Set the selected collection in App component
     }
     onClose();
   };
 
   const handleDeleteCollection = (id) => {
-    Swal.fire({
-      title: "آیا مطمئن هستید؟",
-      icon: "warning",
-      showCancelButton: true,
-      cancelButtonText: "خیر",
-      confirmButtonColor: "limegreen",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "بله",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        setCollections((prev) => prev.filter((collection) => collection.id !== id));
-      }
-    });
+    if (collections.length <= 1) {
+    } else {
+      Swal.fire({
+        title: "آیا مطمئن هستید؟",
+        icon: "warning",
+        showCancelButton: true,
+        cancelButtonText: "خیر",
+        confirmButtonColor: "limegreen",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "بله",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          setCollections((prev) => prev.filter((collection) => collection.id !== id));
+        }
+      });
+    }
   };
 
   const handleSceneSelection = (sceneId, isSelected) => {
@@ -129,9 +134,9 @@ const CollectionsSidebar = ({
         {collections.map((collection) => (
           <li
             key={collection.id}
-            onClick={() => handleCollectionClick(collection)}
+            onClick={() => handleCollectionClick(collection.id)}
             className={`text-sm flex items-center justify-between w-full ${
-              selectedCollection && selectedCollection.id === collection.id
+              selectedCollection && selectedCollection === collection.id
                 ? "bg-blue-500 text-white"
                 : darkMode
                 ? "bg-gray-700"

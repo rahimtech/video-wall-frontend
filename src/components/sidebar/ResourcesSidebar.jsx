@@ -1,8 +1,15 @@
 import React, { useState } from "react";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@nextui-org/react";
-import { FaPlay, FaPause, FaTrashAlt, FaCog } from "react-icons/fa";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Tooltip,
+} from "@nextui-org/react";
+import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/fa";
 import ModalMonitorSelection from "../ModalMonitorSelection";
-import { MdAddBox } from "react-icons/md";
+import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 
 const ResourcesSidebar = ({
@@ -27,14 +34,13 @@ const ResourcesSidebar = ({
   updateResourceColor,
   inputs,
   addInput,
+  deleteResourceFromScene,
 }) => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [colorPickerResourceId, setColorPickerResourceId] = useState(null);
-  console.log("inputs::: ", inputs);
-  console.log("resources::: ", resources);
 
   const handleDoubleClick = (resource) => {
     setEditingResourceId(resource.id);
@@ -229,6 +235,17 @@ const ResourcesSidebar = ({
                   fitToMonitors={fitToMonitors}
                   onAddToScene={() => addVideo(resource.videoElement)}
                 />
+                <Tooltip content="حذف از صحنه">
+                  <Button
+                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    onClick={() => deleteResourceFromScene(resource.id)}
+                  >
+                    <MdDeleteSweep />
+                  </Button>
+                </Tooltip>
                 <Button
                   className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                   size="sm"

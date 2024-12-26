@@ -1,5 +1,5 @@
 import React from "react";
-import { FaDownload, FaThLarge } from "react-icons/fa";
+import { FaDownload, FaThLarge, FaUpload } from "react-icons/fa";
 import SwitchCustom from "./SwitchCustom";
 import { Button, Tooltip } from "@nextui-org/react";
 import { RiLayout4Fill } from "react-icons/ri";
@@ -15,7 +15,91 @@ const HeaderBar = ({
   addMonitorsToScenes,
   setCollections,
   addResource,
+  setScenes,
+  collections,
+  scenes,
+  inputs,
+  videoWalls,
+  sources,
 }) => {
+  const handleExportProject = () => {
+    const data = {
+      collections: collections,
+      scenes: scenes.map((scene) => ({
+        id: scene.id,
+        name: scene.name,
+        resources: scene.resources.map((r) => {
+          return {
+            id: r.id,
+            type: r.type,
+            content: r.content,
+            name: r.name || "resource",
+            x: r.x || 0,
+            y: r.y || 0,
+            z: r.z || 0,
+            rotation: r.rotation || 0,
+            width: r.width || 400,
+            height: r.height || 250,
+            created_at: r.created_at || new Date().toISOString(),
+          };
+        }),
+        // stageData: scene.stageData || null,
+        // layer: scene.layer || null,
+      })),
+      sources: sources.map((r) => {
+        return {
+          id: r.id,
+          type: r.deviceId ? "input" : r.type,
+          content: r.deviceId ?? r.content,
+          name: r.name || "resource",
+          x: r.x || 0,
+          y: r.y || 0,
+          z: r.z || 0,
+          rotation: r.rotation || 0,
+          width: r.width || 400,
+          height: r.height || 250,
+          created_at: r.created_at || new Date().toISOString(),
+        };
+      }),
+      inputs: inputs.map((input) => ({
+        id: input.id || Math.floor(Math.random() * 1000000000),
+        key: input.key || 0,
+        deviceId: input.deviceId || "",
+        width: input.width || 1920,
+        height: input.height || 1080,
+        name: input.name || "Input",
+        type: input.type || "HDMI",
+        created_at: input.created_at || new Date().toISOString(),
+      })),
+      displays: videoWalls.map((display, idx) => ({
+        id: display.id || Math.floor(Math.random() * 1000000000),
+        key: display.key || idx,
+        x: display.x || 0,
+        y: display.y || 0,
+        width: display.width || 1920,
+        height: display.height || 1080,
+        scaleFactor: display.scaleFactor || 1,
+        dpi: display.dpi || null,
+        refreshRate: display.refreshRate || 60,
+        internal: display.internal || false,
+        name: display.name || `Display-${idx + 1}`,
+        rotation: display.rotation || 0,
+        created_at: display.created_at || new Date().toISOString(),
+      })),
+    };
+
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const now = new Date();
+    const formattedDate = now.toISOString().replace(/:/g, "-");
+    a.download = `project-${formattedDate}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleFileUpload = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -32,9 +116,11 @@ const HeaderBar = ({
         reader.onload = (e) => {
           try {
             const jsonData = JSON.parse(e.target.result);
+            console.log("jsonData.displays::: ", jsonData.displays);
             setVideoWalls(jsonData.displays);
-            setCollections(jsonData.collections);
             addMonitorsToScenes(jsonData.displays);
+            setCollections(jsonData.collections);
+            setScenes(jsonData.scenes);
             setInputs(jsonData.inputs);
           } catch (error) {
             alert("خطا در خواندن فایل JSON. لطفاً یک فایل معتبر انتخاب کنید.");
@@ -65,6 +151,17 @@ const HeaderBar = ({
               onClick={handleFileUpload}
             >
               <FaDownload />
+            </Button>
+          </Tooltip>
+          <Tooltip content="خروجی گرفتن از پروژه">
+            <Button
+              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
+              size="lg"
+              variant="solid"
+              color="default"
+              onClick={handleExportProject}
+            >
+              <FaUpload />
             </Button>
           </Tooltip>
           <Tooltip content="تغییر چیدمان">

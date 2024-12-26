@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { Button, input, Modal, ModalBody, ModalContent, Tooltip } from "@nextui-org/react";
 import { FaAngleDown, FaAngleUp, FaTools, FaCogs, FaFileAlt, FaVideo } from "react-icons/fa";
@@ -36,21 +36,27 @@ function App() {
   const [connecting, setConnecting] = useState(false);
   const [inputs, setInputs] = useState([]);
   //New-Commands
+
   const [scenes, setScenes] = useState([
-    { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: null },
+    { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: new Konva.Layer() },
   ]);
-  console.log("scenes::: ", scenes);
 
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
-  const [collections, setCollections] = useState([]);
-  const [selectedCollection, setSelectedCollection] = useState(null);
+  const [collections, setCollections] = useState([
+    {
+      id: 1,
+      name: "مجموعه ۱",
+      scenes: [1],
+    },
+  ]);
+  const [selectedCollection, setSelectedCollection] = useState(1);
+  const [sources, setSources] = useState([]);
 
-  console.log("collections::: ", collections);
-  const filteredScenes = selectedCollection
-    ? scenes.filter((scene) => selectedCollection.scenes.includes(scene.id))
-    : scenes;
+  const filteredScenes = scenes.filter((scene) =>
+    collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id)
+  );
 
   let host = config.host;
   let port = config.port;
@@ -61,14 +67,12 @@ function App() {
   let counterVideos = 0;
   let allData = [];
   let allDataMonitors = videoWalls;
-  let minLeftMonitor = 0;
-  let minTopMonitor = 0;
 
   const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
-
-  const createNewStage = (newId) => {
+  const getSelectedCollection = () => collections.find((coll) => coll.id === selectedCollection.id);
+  const createNewStage = (isLayer) => {
     const stage = new Konva.Stage({
-      container: `containerKonva-${newId ?? selectedScene}`,
+      container: `containerKonva-${selectedScene}`,
       width: window.innerWidth,
       height: window.innerHeight,
       draggable: true,
@@ -100,15 +104,13 @@ function App() {
 
     anim = new Konva.Animation(() => {}, newLayer);
 
-    stage.add(newLayer);
+    stage.add(isLayer ?? newLayer);
     motherLayer = newLayer;
     motherStage = stage;
-    return { stage, layer: newLayer };
+    return { stage, layer: isLayer ?? newLayer };
   };
 
   const addMonitorsToScenes = (jsonData) => {
-    console.log("ssxxx");
-
     if (!jsonData || !Array.isArray(jsonData)) {
       Swal.fire({
         title: "خطا",
@@ -118,7 +120,6 @@ function App() {
       });
       return;
     }
-
     const updatedScenes = scenes.map((scene) => {
       const layer = scene.layer;
 
@@ -136,6 +137,8 @@ function App() {
         const rect = new Konva.Rect({
           x: 0,
           y: 0,
+          catFix: "monitor",
+
           width: monitor.width,
           height: monitor.height,
           fill: "#161616",
@@ -146,10 +149,10 @@ function App() {
         });
 
         const text = new Konva.Text({
-          x: monitor.width / 2,
+          x: monitor.width / 1.7,
           y: monitor.height / 2,
           text: `Monitor ${index + 1}\n${monitor.width}x${monitor.height}`,
-          fontSize: 130,
+          fontSize: 100,
           fill: "gray",
           align: "center",
           verticalAlign: "middle",
@@ -162,20 +165,14 @@ function App() {
         layer.add(group);
       });
 
+      console.log("layer::: ", layer);
       layer.draw();
 
-      console.log("scene::: ", scene);
       return scene;
     });
 
+    console.log("updatedScenes::: ", updatedScenes);
     setScenes(updatedScenes);
-
-    Swal.fire({
-      title: "موفقیت",
-      text: "مانیتورها به صحنه‌ها اضافه شدند.",
-      icon: "success",
-      confirmButtonText: "باشه",
-    });
   };
 
   const generateMonitorsForLayer = (layer, monitors) => {
@@ -201,10 +198,10 @@ function App() {
       });
 
       const text = new Konva.Text({
-        x: monitor.width / 2,
+        x: monitor.width / 1.7,
         y: monitor.height / 2,
         text: `Monitor ${index + 1}\n${monitor.width}x${monitor.height}`,
-        fontSize: 130,
+        fontSize: 100,
         fill: "gray",
         align: "center",
         verticalAlign: "middle",
@@ -231,15 +228,21 @@ function App() {
       layer: newLayer,
     };
 
+    setCollections((prev) =>
+      prev.map((item) =>
+        item.id == selectedCollection ? { ...item, scenes: [...item.scenes, newId] } : item
+      )
+    );
     setScenes((prevScenes) => [...prevScenes, newScene]);
     setSelectedScene(newId);
+    // selectedCollection();
 
-    Swal.fire({
-      title: "صحنه اضافه شد",
-      icon: "success",
-      confirmButtonText: "متوجه شدم",
-      confirmButtonColor: "green",
-    });
+    // Swal.fire({
+    //   title: "صحنه اضافه شد",
+    //   icon: "success",
+    //   confirmButtonText: "متوجه شدم",
+    //   confirmButtonColor: "green",
+    // });
   };
 
   const deleteScene = (id) => {
@@ -286,119 +289,53 @@ function App() {
 
           socket.on("init", (data) => {
             console.log("INIT DATA: ", data);
+
             if (data.inputs) {
-              console.log("setting inputs");
-              setInputs(data.inputs);
-            }
-
-            if (data.files) {
-              data.files.forEach((items) => {
-                const fileNameWithExtension = items;
-                const fileName = fileNameWithExtension.split(".").slice(0, -1).join(".");
-                const modifiedVideoURL = generateBlobURL(`http://${host}:${port}`, fileName);
-                const makeVideo = document.createElement("video");
-                makeVideo.src = modifiedVideoURL;
-                makeVideo.setAttribute("id", fileName);
-
-                updateSceneResources([
-                  { type: "video", name: fileName, videoElement: makeVideo },
-                  ...getSelectedScene(),
-                ]);
+              let newStruct = [];
+              data.inputs.forEach((item) => {
+                newStruct.push({
+                  id: item.deviceId,
+                  deviceId: item.deviceId,
+                  width: item.width,
+                  height: item.height,
+                  name: item.label,
+                });
               });
+              console.log("newStruct::: ", newStruct);
+              setInputs(newStruct);
             }
 
-            if (data.sources) {
-              console.log("sdss");
-              data.sources.forEach((item) => {
-                const video = document.createElement("video");
-                video.src = item.source;
-                video.setAttribute("id", "video_0");
-                addVideo(video);
-              });
+            // if (data.files) {
+            //   data.files.forEach((items) => {
+            //     const fileNameWithExtension = items;
+            //     const fileName = fileNameWithExtension.split(".").slice(0, -1).join(".");
+            //     const modifiedVideoURL = generateBlobURL(`http://${host}:${port}`, fileName);
+            //     const makeVideo = document.createElement("video");
+            //     makeVideo.src = modifiedVideoURL;
+            //     makeVideo.setAttribute("id", fileName);
 
-              // addVideo
-            }
+            //     updateSceneResources([
+            //       { type: "video", name: fileName, videoElement: makeVideo },
+            //       ...getSelectedScene(),
+            //     ]);
+            //   });
+            // }
 
             if (data.displays) {
-              const displays = data.displays;
-              let newVideoWalls = displays.map((display, index) => ({
-                x: display.bounds.x,
-                y: display.bounds.y,
-                width: display.bounds.width,
-                height: display.bounds.height,
-                id: `monitor-${index + 1}`,
-              }));
-              minLeftMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.x));
-              minTopMonitor = Math.min(...newVideoWalls.map((monitor) => monitor.y));
+              let newStruct = [];
 
-              newVideoWalls = displays.map((display, index) => ({
-                x: display.bounds.x - minLeftMonitor,
-                y: display.bounds.y - minTopMonitor,
-                width: display.bounds.width,
-                height: display.bounds.height,
-                id: `monitor-${index + 1}`,
-              }));
-
-              setVideoWalls(newVideoWalls);
-
-              function generateMonitorNode(x, y, width, height, index) {
-                const group = new Konva.Group({
-                  x: x,
-                  y: y,
-                  clip: { x: 0, y: 0, width: width, height: height },
+              data.displays.forEach((item) => {
+                newStruct.push({
+                  id: item.id,
+                  x: item.bounds.x,
+                  y: item.bounds.y,
+                  width: item.bounds.width,
+                  height: item.bounds.height,
+                  name: item.label,
                 });
-
-                const rect = new Konva.Rect({
-                  x: 0,
-                  y: 0,
-                  width: width,
-                  height: height,
-                  fill: "#161616",
-                  stroke: "white",
-                  name: "fillShape",
-                  strokeWidth: 3,
-                  id: `monitor-${index}`,
-                });
-
-                const text = new Konva.Text({
-                  x: width / 2,
-                  y: height / 2,
-                  text: `Monitor ${index + 1}\n${width}x${height}`,
-                  fontSize: 90,
-                  fill: "gray",
-                  align: "center",
-                  verticalAlign: "middle",
-                  offsetX: width / 7,
-                  offsetY: 24,
-                });
-
-                group.add(rect);
-                group.add(text);
-                return group;
-              }
-
-              // newVideoWalls.reverse();
-              for (var i = 0; i < newVideoWalls.length; i++) {
-                console.log("newVideoWalls[i]::: ", newVideoWalls[i]);
-                // if (newVideoWalls[i].x < 0) {
-                //   newVideoWalls[i].x = newVideoWalls[i].x;
-                // }
-                // if (newVideoWalls[i].y < 0) {
-                //   newVideoWalls[i].y = newVideoWalls[i].y;
-                // }
-
-                layer.add(
-                  generateMonitorNode(
-                    newVideoWalls[i].x,
-                    newVideoWalls[i].y,
-                    newVideoWalls[i].width,
-                    newVideoWalls[i].height,
-                    i
-                  )
-                );
-              }
-
-              layer.draw();
+              });
+              setVideoWalls(newStruct);
+              addMonitorsToScenes(newStruct);
             }
           });
 
@@ -476,7 +413,26 @@ function App() {
         })
         .catch((err) => console.warn("Failed to fetch config.json", err));
     }
+
     fetchData();
+    // let newStruct = [];
+
+    // [
+    //   { bounds: { x: 0, y: 0, width: 1920, height: 1080 }, name: "dd1", id: "1" },
+    //   { bounds: { x: 1920, y: 0, width: 1920, height: 1080 }, name: "dd1", id: "2" },
+    // ].forEach((item) => {
+    //   newStruct.push({
+    //     id: item.id,
+    //     x: item.bounds.x,
+    //     y: item.bounds.y,
+    //     width: item.bounds.width,
+    //     height: item.bounds.height,
+    //     name: item.label,
+    //   });
+    // });
+
+    // setVideoWalls(newStruct);
+    // addMonitorsToScenes(newStruct);
 
     return () => {
       if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
@@ -502,7 +458,7 @@ function App() {
     const selectedSceneLayer = getSelectedScene()?.layer;
 
     getSelectedScene()?.stageData?.on("click", (e) => {
-      if (e.target === getSelectedScene()?.stageData || e.target === selectedSceneLayer) {
+      if (e.target === getSelectedScene()?.stageData || e.target.attrs.catFix == "monitor") {
         selectedSceneLayer.find("Transformer").forEach((tr) => tr.detach());
         selectedSceneLayer.draw();
       }
@@ -512,17 +468,20 @@ function App() {
   useEffect(() => {
     const selectedScene = getSelectedScene();
     if (!selectedScene || selectedScene.stageData) return;
-
     const containerId = `containerKonva-${selectedScene.id}`;
     const container = document.getElementById(containerId);
     if (container) {
-      const { stage, layer } = createNewStage();
-      console.log("ss");
-      generateMonitorsForLayer(layer, videoWalls);
-
+      const { stage, layer } = createNewStage(selectedScene.layer);
+      if (scenes.length > 1 || scenes.length == 0) {
+        generateMonitorsForLayer(layer, videoWalls);
+      } else {
+        anim = new Konva.Animation(() => {}, scenes[0].newLayer);
+      }
       setScenes((prevScenes) =>
         prevScenes.map((scene) =>
-          scene.id === selectedScene.id ? { ...scene, stageData: stage, layer } : scene
+          scene.id === selectedScene.id
+            ? { ...scene, stageData: stage, layer: scene.layer ?? layer }
+            : scene
         )
       );
     }
@@ -602,7 +561,14 @@ function App() {
             id,
             color: "black",
             name: result.value,
-            textContent: result.value,
+            content: result.value,
+            width: 200,
+            height: 200,
+            x: 0,
+            y: 0,
+            z: 0,
+            rotation: 0,
+            created_at: new Date().toISOString(),
           };
 
           updateSceneResources([newResource, ...getSelectedScene().resources]);
@@ -625,7 +591,14 @@ function App() {
             type: "web",
             id,
             name: webURL,
-            webURL, // ذخیره کردن URL
+            content: webURL,
+            width: 1920,
+            height: 1080,
+            x: 0,
+            y: 0,
+            z: 0,
+            rotation: 0,
+            created_at: new Date().toISOString(),
           };
 
           updateSceneResources([newResource, ...getSelectedScene().resources]);
@@ -698,7 +671,7 @@ function App() {
     }
   };
 
-  const handleFileInput = (e, type) => {
+  const handleFileInput = async (e, type) => {
     const file = e.target.files[0];
 
     if (file) {
@@ -710,29 +683,50 @@ function App() {
         const id = crypto.randomUUID();
         const imageName = "image" + counterImages++;
 
-        let newResource = {
-          type: "image",
-          id,
-          name: imageName,
-          imageElement: img,
-          content: "",
-        };
+        img.addEventListener("load", () => {
+          let newResource = {
+            type: "image",
+            id,
+            name: imageName,
+            imageElement: img,
+            content: img.src,
+            width: img.width,
+            height: img.height,
+            x: 0,
+            y: 0,
+            z: 0,
+            rotation: 0,
+            created_at: new Date().toISOString(),
+          };
 
-        updateSceneResources([newResource, ...getSelectedScene().resources]);
+          updateSceneResources([newResource, ...getSelectedScene().resources]);
+        });
       } else if (fileType === "video" && type === "video") {
         const video = document.createElement("video");
         video.src = URL.createObjectURL(file);
         const id = crypto.randomUUID();
-        video.setAttribute("id", id);
         const videoName = "video" + counterVideos++;
         video.setAttribute("name", videoName);
+        const sourceName = await uploadVideo(file, id);
+        console.log("sourceName::: ", sourceName);
+        video.setAttribute("id", sourceName);
+
+        const width = video.videoWidth;
+        const height = video.videoHeight;
 
         let newResource = {
           type: "video",
-          id,
+          id: sourceName,
           name: videoName,
           videoElement: video,
-          content: "",
+          content: video.src,
+          width,
+          height,
+          x: 0,
+          y: 0,
+          z: 0,
+          rotation: 0,
+          created_at: new Date().toISOString(),
         };
 
         updateSceneResources([newResource, ...getSelectedScene().resources]);
@@ -750,13 +744,29 @@ function App() {
     );
   };
 
+  const updateResourceInState = (id, changes) => {
+    setScenes((prevScenes) =>
+      prevScenes.map((scene) => {
+        if (scene.id === selectedScene) {
+          return {
+            ...scene,
+            resources: scene.resources.map((resource) =>
+              resource.id === id ? { ...resource, ...changes } : resource
+            ),
+          };
+        }
+        return scene;
+      })
+    );
+  };
+
   //---------------End-Resource-Segment-----------------
 
-  // -------------------------------------------------------------------------------------
-
   const addImage = (img) => {
+    let uniqId = crypto.randomUUID();
     const selectedSceneLayer = getSelectedScene()?.layer;
     if (!selectedSceneLayer) return;
+    const modifiedImageURL = generateBlobURL(`image:http://${host}:${port}`, img.id);
 
     const image = new Konva.Image({
       image: img.imageElement,
@@ -764,6 +774,7 @@ function App() {
       height: img.imageElement.height,
       name: "object",
       id: img.id,
+      uniqId,
       draggable: true,
     });
 
@@ -779,20 +790,79 @@ function App() {
       selectedSceneLayer.draw();
     });
 
+    image.on("dragend", (e) => {
+      const { x, y } = e.target.position();
+      setSources((prev) =>
+        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+      );
+
+      socket.emit("source", {
+        action: "move",
+        id: e.target.attrs.uniqId,
+        payload: { source: modifiedImageURL, x: image.x(), y: image.y() },
+      });
+    });
+
+    image.on("transformend", (e) => {
+      const newWidth = image.width() * image.scaleX();
+      const newHeight = image.height() * image.scaleY();
+      image.width(newWidth);
+      image.height(newHeight);
+      image.scaleX(1);
+      image.scaleY(1);
+
+      const rotation = Math.round(image.getAttr("rotation"));
+      const x = image.x();
+      const y = image.y();
+
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            : item
+        )
+      );
+
+      socket.emit("source", {
+        action: "resize",
+        id: e.target.attrs.uniqId,
+        payload: {
+          source: modifiedImageURL,
+          x,
+          y,
+          width: newWidth,
+          height: newHeight,
+          rotation,
+        },
+      });
+
+      // updateResourceInState(img.id, {
+      //   x,
+      //   y,
+      //   width: newWidth,
+      //   height: newHeight,
+      //   rotation,
+      // });
+    });
+
+    setSources((prev) => [...prev, { ...img, uniqId }]);
+
     selectedSceneLayer.add(image);
     selectedSceneLayer.draw();
   };
 
   const addInput = (input) => {
+    let uniqId = crypto.randomUUID();
+
     const selectedSceneLayer = getSelectedScene()?.layer;
     if (!selectedSceneLayer) return;
 
-    // ایجاد گروه نمایشی برای ورودی
     const group = new Konva.Group({
-      x: 50, // مکان اولیه روی صحنه
-      y: 50,
+      x: 0,
+      y: 0,
       draggable: true,
       id: `input-${input.id}`,
+      uniqId,
     });
 
     const rect = new Konva.Rect({
@@ -801,8 +871,6 @@ function App() {
       width: input.width,
       height: input.height,
       fill: "lightblue",
-      stroke: "black",
-      strokeWidth: 2,
     });
 
     const text = new Konva.Text({
@@ -816,11 +884,23 @@ function App() {
     group.add(rect);
     group.add(text);
 
-    // اضافه کردن گروه به لایه صحنه
+    setSources((prev) => [...prev, { ...input, uniqId }]);
+
+    socket.emit("source", {
+      action: "add",
+      id: uniqId,
+      payload: {
+        source: "input:" + input.deviceId,
+        x: 0,
+        y: 0,
+        width: input.width,
+        height: input.height,
+      },
+    });
+
     selectedSceneLayer.add(group);
     selectedSceneLayer.draw();
 
-    // اضافه کردن قابلیت تغییر اندازه و جابه‌جایی
     const transformer = new Konva.Transformer({
       nodes: [group],
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
@@ -833,19 +913,53 @@ function App() {
       selectedSceneLayer.draw();
     });
 
-    group.on("dragend", () => {
-      console.log("Input moved to:", group.position());
+    group.on("dragend", (e) => {
+      const { x, y } = e.target.position();
+      setSources((prev) =>
+        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+      );
+      socket.emit("source", {
+        action: "move",
+        id: e.target.attrs.uniqId,
+        payload: { x: group.x(), y: group.y() },
+      });
     });
 
-    transformer.on("transformend", () => {
-      console.log("Input resized to:", group.size());
+    group.on("transformend", (e) => {
+      const newWidth = rect.width() * group.scaleX();
+      const newHeight = rect.height() * group.scaleY();
+
+      const rotation = Math.round(group.getAttr("rotation"));
+      const x = group.x();
+      const y = group.y();
+
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            : item
+        )
+      );
+      socket.emit("source", {
+        action: "resize",
+        id: e.target.attrs.uniqId,
+        payload: {
+          x,
+          y,
+          width: newWidth,
+          height: newHeight,
+          rotation,
+        },
+      });
     });
   };
 
   //---------------Start-Web-Segment-----------------
 
   const addWeb = (webResource) => {
-    const { id, webURL } = webResource;
+    const { id, content } = webResource;
+    let uniqId = crypto.randomUUID();
+
     const selectedSceneLayer = getSelectedScene()?.layer;
     const selectedStage = getSelectedScene()?.stageData;
 
@@ -856,6 +970,7 @@ function App() {
       y: (selectedStage.height() - 1080) / 2,
       draggable: true,
       id: id,
+      uniqId,
     });
 
     const webRect = new Konva.Rect({
@@ -864,10 +979,11 @@ function App() {
       fill: "lightgray",
       stroke: "black",
       strokeWidth: 2,
+      uniqId,
     });
 
     const webText = new Konva.Text({
-      text: webURL,
+      text: content,
       fontSize: 30,
       fontFamily: "Arial",
       fill: "black",
@@ -891,6 +1007,49 @@ function App() {
       selectedSceneLayer.draw();
     });
 
+    setSources((prev) => [...prev, { ...webResource, uniqId }]);
+
+    group.on("dragend", (e) => {
+      const { x, y } = e.target.position();
+      setSources((prev) =>
+        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+      );
+      socket.emit("source", {
+        action: "move",
+        id: e.target.attrs.uniqId,
+        payload: { x: image.x(), y: image.y() },
+      });
+    });
+
+    group.on("transformend", (e) => {
+      const newWidth = webRect.width() * group.scaleX();
+      const newHeight = webRect.height() * group.scaleY();
+
+      const rotation = Math.round(group.getAttr("rotation"));
+      const x = group.x();
+      const y = group.y();
+
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            : item
+        )
+      );
+
+      socket.emit("source", {
+        action: "resize",
+        id: e.target.attrs.uniqId,
+        payload: {
+          x,
+          y,
+          width: newWidth,
+          height: newHeight,
+          rotation,
+        },
+      });
+    });
+
     group.add(webRect);
     group.add(webText);
     selectedSceneLayer.add(group);
@@ -902,7 +1061,7 @@ function App() {
     Swal.fire({
       title: "ویرایش URL:",
       input: "url",
-      inputValue: webResource.webURL,
+      inputValue: webResource.content,
       showCancelButton: true,
       confirmButtonColor: "limegreen",
       cancelButtonColor: "#d33",
@@ -935,18 +1094,20 @@ function App() {
   const addText = (text) => {
     const selectedSceneLayer = getSelectedScene()?.layer;
     const selectedStage = getSelectedScene()?.stageData;
+    let uniqId = crypto.randomUUID();
 
     if (!selectedSceneLayer || !selectedStage) return;
 
     const textNode = new Konva.Text({
-      text: text.textContent,
+      text: text.content,
       fontSize: 100,
       fontFamily: "Arial",
       fill: text.color || "black",
-      x: 50,
-      y: 50,
+      x: 0,
+      y: 0,
       draggable: true,
       id: text.id,
+      uniqId,
     });
 
     const transformer = new Konva.Transformer({
@@ -1040,6 +1201,49 @@ function App() {
       textarea.style.height = `${textarea.scrollHeight}px`;
     });
 
+    textNode.on("dragend", (e) => {
+      const { x, y } = e.target.position();
+      setSources((prev) =>
+        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+      );
+      socket.emit("source", {
+        action: "move",
+        id: e.target.attrs.uniqId,
+        payload: { x: image.x(), y: image.y() },
+      });
+    });
+
+    textNode.on("transformend", (e) => {
+      const newWidth = textNode.width() * textNode.scaleX();
+      const newHeight = textNode.height() * textNode.scaleY();
+
+      const rotation = Math.round(textNode.getAttr("rotation"));
+      const x = textNode.x();
+      const y = textNode.y();
+
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            : item
+        )
+      );
+
+      socket.emit("source", {
+        action: "resize",
+        id: e.target.attrs.uniqId,
+        payload: {
+          x,
+          y,
+          width: newWidth,
+          height: newHeight,
+          rotation,
+        },
+      });
+    });
+
+    setSources((prev) => [...prev, { ...text, uniqId }]);
+
     selectedSceneLayer.add(textNode);
     selectedStage.add(selectedSceneLayer);
     selectedSceneLayer.draw();
@@ -1049,7 +1253,7 @@ function App() {
     Swal.fire({
       title: "ویرایش متن:",
       input: "text",
-      inputValue: text.textContent,
+      inputValue: text.content,
       showCancelButton: true,
       confirmButtonColor: "limegreen",
       cancelButtonColor: "#d33",
@@ -1063,7 +1267,7 @@ function App() {
                 ...scene,
                 resources: scene.resources.map((resource) =>
                   resource.id === text.id
-                    ? { ...resource, textContent: result.value, name: result.value }
+                    ? { ...resource, content: result.value, name: result.value }
                     : resource
                 ),
               };
@@ -1086,9 +1290,7 @@ function App() {
       prevScenes.map((scene) => {
         if (scene.id === selectedScene) {
           const updatedResources = scene.resources.map((resource) =>
-            resource.id === resourceId
-              ? { ...resource, name: newName, textContent: newName }
-              : resource
+            resource.id === resourceId ? { ...resource, name: newName, content: newName } : resource
           );
           return { ...scene, resources: updatedResources };
         }
@@ -1126,14 +1328,16 @@ function App() {
     const id = videoElement.getAttribute("id");
     const selectedSceneLayer = getSelectedScene()?.layer;
     const selectedStage = getSelectedScene()?.stageData;
+    let uniqId = crypto.randomUUID();
 
     if (!selectedSceneLayer || !selectedStage) return;
 
-    const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, id);
+    // const modifiedVideoURL = generateBlobURL(`video:http://localhost:${port}`, id);
+    const modifiedVideoURL = `video:http://localhost:${port}/${id}`;
 
     socket.emit("source", {
       action: "add",
-      id,
+      id: uniqId,
       payload: {
         source: modifiedVideoURL,
         x: 0,
@@ -1151,6 +1355,7 @@ function App() {
       fill: "gray",
       id: id,
       draggable: true,
+      uniqId,
     });
 
     const positionText = new Konva.Text({
@@ -1198,6 +1403,8 @@ function App() {
       });
     });
 
+    setSources((prev) => [...prev, { ...input, uniqId }]);
+
     selectedSceneLayer.add(image);
     selectedStage.add(selectedSceneLayer);
 
@@ -1213,17 +1420,17 @@ function App() {
       selectedSceneLayer.draw();
     });
 
-    allData.push({
-      monitor: [1],
-      x: 0,
-      y: 0,
-      width: videoElement.videoWidth,
-      height: videoElement.videoHeight,
-      name: videoElement.name,
-      id: id,
-    });
+    // allData.push({
+    //   monitor: [1],
+    //   x: 0,
+    //   y: 0,
+    //   width: videoElement.videoWidth,
+    //   height: videoElement.videoHeight,
+    //   name: videoElement.name,
+    //   id: id,
+    // });
 
-    transformer.on("transformend", () => {
+    transformer.on("transformend", (e) => {
       const newWidth = image.width() * image.scaleX();
       const newHeight = image.height() * image.scaleY();
       image.width(newWidth);
@@ -1235,48 +1442,63 @@ function App() {
       const x = image.x();
       const y = image.y();
 
-      positionText.text(
-        `x: ${x}, y: ${y}, width: ${newWidth}, height: ${newHeight}, rotation: ${rotation}`
+      // positionText.text(
+      //   `x: ${x}, y: ${y}, width: ${newWidth}, height: ${newHeight}, rotation: ${rotation}`
+      // );
+
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            : item
+        )
       );
 
-      allData = allData.map((item) => {
-        if (item.id === id) {
-          socket.emit("source", {
-            action: "resize",
-            id,
-            payload: {
-              source: modifiedVideoURL,
-              x,
-              y,
-              width: newWidth,
-              height: newHeight,
-              rotation,
-            },
-          });
-          return { ...item, x, y, width: newWidth, height: newHeight };
-        }
-        return item;
+      socket.emit("source", {
+        action: "resize",
+        id: e.target.attrs.uniqId,
+        payload: {
+          x,
+          y,
+          width: newWidth,
+          height: newHeight,
+          rotation,
+        },
       });
+
+      // allData = allData.map((item) => {
+      //   if (item.id === id) {
+      //     socket.emit("source", {
+      //       action: "resize",
+      //       id,
+      //       payload: {
+      //         source: modifiedVideoURL,
+      //         x,
+      //         y,
+      //         width: newWidth,
+      //         height: newHeight,
+      //         rotation,
+      //       },
+      //     });
+      //     return { ...item, x, y, width: newWidth, height: newHeight };
+      //   }
+      //   return item;
+      // });
     });
 
-    image.on("dragmove", (e) => {
-      const x = e.target.x();
-      const y = e.target.y();
-      positionText.text(`x: ${x}, y: ${y}, width: ${image.width()}, height: ${image.height()}`);
-    });
+    image.on("dragend", (e) => {
+      const { x, y } = e.target.position();
 
-    image.on("dragend", () => {
-      allData = allData.map((item) => {
-        if (item.id === id) {
-          socket.emit("source", {
-            action: "move",
-            id,
-            payload: { source: modifiedVideoURL, x: image.x(), y: image.y() },
-          });
-          return { ...item, x: image.x(), y: image.y() };
-        }
-        return item;
+      setSources((prev) =>
+        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+      );
+
+      socket.emit("source", {
+        action: "move",
+        id: e.target.attrs.uniqId,
+        payload: { x: image.x(), y: image.y() },
       });
+
       selectedSceneLayer.draw();
     });
 
@@ -1285,13 +1507,15 @@ function App() {
 
   const playVideo = (videoName) => {
     const video = getSelectedScene()?.resources.find((item) => item.id === videoName)?.videoElement;
+    console.log("video::: ", video);
     if (video) {
       video.play();
-      socket.emit("source", {
-        action: "play",
-        id: videoName,
-      });
+      // socket.emit("source", {
+      //   action: "play",
+      //   id: videoName,
+      // });
 
+      console.log("anim::: ", anim);
       anim.start();
     }
   };
@@ -1333,9 +1557,51 @@ function App() {
         },
       });
       console.log("File uploaded successfully:", response.data.filePath);
+      return response.data.filePath;
     } catch (error) {
       console.error("Error uploading file:", error);
     }
+  };
+
+  const deleteResourceFromScene = (id) => {
+    Swal.fire({
+      title: "آیا مطمئن هستید؟",
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "خیر",
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "بله",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        // socket.emit("source", {
+        //   action: "remove",
+        //   id,
+        //   payload: {},
+        // });
+
+        // updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
+        setSources((prev) => prev.filter((item) => item.uniqId == id));
+
+        const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
+        if (groupToRemove) {
+          groupToRemove.destroy();
+          getSelectedScene()?.layer.draw();
+        } else {
+          console.error(`Group with id ${id} not found`);
+        }
+
+        const videoElement = getSelectedScene()?.resources.find(
+          (item) => item.id === id
+        )?.videoElement;
+        if (videoElement) {
+          videoElement.pause();
+          videoElement.src = "";
+        }
+      } else {
+        return;
+      }
+    });
   };
 
   //---------------End-Video-Segment-----------------
@@ -1491,6 +1757,12 @@ function App() {
         addMonitorsToScenes={addMonitorsToScenes}
         setCollections={setCollections}
         addResource={addResource}
+        collections={collections}
+        scenes={scenes}
+        inputs={inputs}
+        videoWalls={videoWalls}
+        setScenes={setScenes}
+        sources={sources}
       />
       <div className="h-full w-full flex z-50">
         <div id="Video-Wall-Section" className="w-full h-full flex">
@@ -1540,19 +1812,6 @@ function App() {
           >
             {isBottomControlsVisible && (
               <>
-                {/* Scenes Sidebar */}
-                <ScenesSidebar
-                  scenes={filteredScenes} // Use filteredScenes instead of all scenes
-                  darkMode={darkMode}
-                  selectedScene={selectedScene}
-                  setSelectedScene={setSelectedScene}
-                  addScene={addScene}
-                  editingSceneId={editingSceneId}
-                  setEditingSceneId={setEditingSceneId}
-                  handleEditSceneName={handleEditSceneName}
-                  deleteScene={deleteScene}
-                />
-
                 {/* Sources Sidebar */}
                 <ResourcesSidebar
                   resources={getSelectedScene()?.resources}
@@ -1576,6 +1835,19 @@ function App() {
                   editWeb={editWeb}
                   inputs={inputs}
                   addInput={addInput}
+                  deleteResourceFromScene={deleteResourceFromScene}
+                />
+                {/* Scenes Sidebar */}
+                <ScenesSidebar
+                  scenes={filteredScenes} // Use filteredScenes instead of all scenes
+                  darkMode={darkMode}
+                  selectedScene={selectedScene}
+                  setSelectedScene={setSelectedScene}
+                  addScene={addScene}
+                  editingSceneId={editingSceneId}
+                  setEditingSceneId={setEditingSceneId}
+                  handleEditSceneName={handleEditSceneName}
+                  deleteScene={deleteScene}
                 />
 
                 {/* videoWall Sidebar
@@ -1661,6 +1933,7 @@ function App() {
               editWeb={editWeb}
               inputs={inputs}
               addInput={addInput}
+              deleteResourceFromScene={deleteResourceFromScene}
             />
           </ModalBody>
         </ModalContent>
