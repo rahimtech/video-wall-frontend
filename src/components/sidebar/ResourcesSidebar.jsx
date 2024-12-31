@@ -11,6 +11,7 @@ import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/
 import ModalMonitorSelection from "../ModalMonitorSelection";
 import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
+import Swal from "sweetalert2";
 
 const ResourcesSidebar = ({
   resources,
@@ -35,6 +36,7 @@ const ResourcesSidebar = ({
   inputs,
   addInput,
   deleteResourceFromScene,
+  videoWalls,
 }) => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
@@ -78,7 +80,7 @@ const ResourcesSidebar = ({
           <SketchPicker color={selectedColor} onChange={handleColorChange} />
           <Button
             className="w-full my-2"
-            onClick={() => {
+            onPress={() => {
               setColorPickerVisible(false);
             }}
             color="primary"
@@ -92,7 +94,7 @@ const ResourcesSidebar = ({
       {/* Fixed Header */}
       <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">منابع</h2>
+          <h2 className="text-md font-semibold">مخزن</h2>
           <Dropdown dir="rtl" className="vazir">
             <DropdownTrigger>
               <Button
@@ -106,16 +108,16 @@ const ResourcesSidebar = ({
             </DropdownTrigger>
 
             <DropdownMenu aria-label="Static Actions">
-              <DropdownItem onClick={() => addResource("video")} key="video">
+              <DropdownItem onPress={() => addResource("video")} key="video">
                 ویدیو
               </DropdownItem>
-              <DropdownItem onClick={() => addResource("image")} key="image">
+              <DropdownItem onPress={() => addResource("image")} key="image">
                 تصویر
               </DropdownItem>
-              <DropdownItem onClick={() => addResource("text")} key="text">
+              <DropdownItem onPress={() => addResource("text")} key="text">
                 متن
               </DropdownItem>
-              <DropdownItem onClick={() => addResource("web")} key="web">
+              <DropdownItem onPress={() => addResource("web")} key="web">
                 وب
               </DropdownItem>
             </DropdownMenu>
@@ -165,13 +167,13 @@ const ResourcesSidebar = ({
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu aria-label="More Actions">
-                    <DropdownItem key="moveUp" onClick={() => moveResource(input.id, -1)}>
+                    <DropdownItem key="moveUp" onPress={() => moveResource(input.id, -1)}>
                       بالا
                     </DropdownItem>
-                    <DropdownItem key="moveDown" onClick={() => moveResource(input.id, 1)}>
+                    <DropdownItem key="moveDown" onPress={() => moveResource(input.id, 1)}>
                       پایین
                     </DropdownItem>
-                    <DropdownItem key="add-image" onClick={() => addInput(input)}>
+                    <DropdownItem key="add-image" onPress={() => addInput(input)}>
                       افزودن به صحنه
                     </DropdownItem>
                   </DropdownMenu>
@@ -206,52 +208,12 @@ const ResourcesSidebar = ({
                 )}
               </div>
               <div className="flex items-center gap-1 w-[50%] justify-end">
-                {resource.type === "video" && (
-                  <>
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                      onClick={() => playVideo(resource.id)}
-                    >
-                      <FaPlay />
-                    </Button>
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                      onClick={() => pauseVideo(resource.id)}
-                    >
-                      <FaPause />
-                    </Button>
-                  </>
-                )}
-                <ModalMonitorSelection
-                  darkMode={darkMode}
-                  videoName={resource.id}
-                  monitors={allDataMonitors}
-                  fitToMonitors={fitToMonitors}
-                  onAddToScene={() => addVideo(resource.videoElement)}
-                />
-                <Tooltip content="حذف از صحنه">
-                  <Button
-                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                    size="sm"
-                    variant="light"
-                    color="default"
-                    onClick={() => deleteResourceFromScene(resource.id)}
-                  >
-                    <MdDeleteSweep />
-                  </Button>
-                </Tooltip>
                 <Button
                   className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                   size="sm"
                   variant="light"
                   color="default"
-                  onClick={() => deleteResource(resource.id)}
+                  onPress={() => deleteResource(resource.id)}
                 >
                   <FaTrashAlt />
                 </Button>
@@ -267,31 +229,67 @@ const ResourcesSidebar = ({
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu aria-label="More Actions">
-                    <DropdownItem key="moveUp" onClick={() => moveResource(resource.id, -1)}>
+                    <DropdownItem key="moveUp" onPress={() => moveResource(resource.id, -1)}>
                       بالا
                     </DropdownItem>
-                    <DropdownItem key="moveDown" onClick={() => moveResource(resource.id, 1)}>
+                    <DropdownItem key="moveDown" onPress={() => moveResource(resource.id, 1)}>
                       پایین
                     </DropdownItem>
                     {resource.type === "video" ? (
-                      <DropdownItem key="add-video" onClick={() => addVideo(resource.videoElement)}>
+                      <DropdownItem
+                        key="add-video"
+                        onPress={() => {
+                          videoWalls.length > 0
+                            ? addVideo(resource.videoElement)
+                            : Swal.fire({
+                                title: "!مانیتوری در صحنه وجود ندارد",
+                                icon: "warning",
+                                confirmButtonText: "باشه",
+                                confirmButtonColor: "gray",
+                              });
+                        }}
+                      >
                         افزودن به صحنه
                       </DropdownItem>
                     ) : resource.type === "image" ? (
-                      <DropdownItem key="add-image" onClick={() => addImage(resource)}>
+                      <DropdownItem
+                        key="add-image"
+                        onPress={() => {
+                          videoWalls.length > 0
+                            ? addImage(resource)
+                            : Swal.fire({
+                                title: "!مانیتوری در صحنه وجود ندارد",
+                                icon: "warning",
+                                confirmButtonText: "باشه",
+                                confirmButtonColor: "gray",
+                              });
+                        }}
+                      >
                         افزودن به صحنه
                       </DropdownItem>
                     ) : resource.type === "text" ? (
                       [
-                        <DropdownItem key="add-text" onClick={() => addText(resource)}>
+                        <DropdownItem
+                          key="add-text"
+                          onPress={() => {
+                            videoWalls.length > 0
+                              ? addText(resource)
+                              : Swal.fire({
+                                  title: "!مانیتوری در صحنه وجود ندارد",
+                                  icon: "warning",
+                                  confirmButtonText: "باشه",
+                                  confirmButtonColor: "gray",
+                                });
+                          }}
+                        >
                           افزودن به صحنه
                         </DropdownItem>,
-                        <DropdownItem key="edit-text" onClick={() => editText(resource)}>
+                        <DropdownItem key="edit-text" onPress={() => editText(resource)}>
                           ویرایش متن اصلی
                         </DropdownItem>,
                         <DropdownItem
                           key="edit-color"
-                          onClick={() => {
+                          onPress={() => {
                             setColorPickerVisible(!colorPickerVisible);
                             setColorPickerResourceId(resource.id);
                           }}
@@ -301,17 +299,29 @@ const ResourcesSidebar = ({
                       ]
                     ) : resource.type === "web" ? (
                       [
-                        <DropdownItem key="add-web" onClick={() => addWeb(resource)}>
+                        <DropdownItem
+                          key="add-web"
+                          onPress={() => {
+                            videoWalls.length > 0
+                              ? addWeb(resource)
+                              : Swal.fire({
+                                  title: "!مانیتوری در صحنه وجود ندارد",
+                                  icon: "warning",
+                                  confirmButtonText: "باشه",
+                                  confirmButtonColor: "gray",
+                                });
+                          }}
+                        >
                           افزودن به صحنه
                         </DropdownItem>,
-                        <DropdownItem key="edit-web" onClick={() => editWeb(resource)}>
+                        <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
                           ویرایش URL
                         </DropdownItem>,
                       ]
                     ) : (
                       <></>
                     )}
-                    <DropdownItem key="loop" onClick={() => toggleLoopVideo(resource.id)}>
+                    <DropdownItem key="loop" onPress={() => toggleLoopVideo(resource.id)}>
                       {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
                     </DropdownItem>
                   </DropdownMenu>

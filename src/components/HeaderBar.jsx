@@ -1,8 +1,13 @@
 import React from "react";
-import { FaDownload, FaThLarge, FaUpload } from "react-icons/fa";
+import { FaDownload, FaUpload, FaWifi } from "react-icons/fa";
 import SwitchCustom from "./SwitchCustom";
 import { Button, Tooltip } from "@nextui-org/react";
 import { RiLayout4Fill } from "react-icons/ri";
+import { TbFreezeRow, TbLayoutSidebarLeftCollapse } from "react-icons/tb";
+import { TbLayoutOff } from "react-icons/tb";
+import { TbLayout } from "react-icons/tb";
+import ModalVideoWall from "./videowall/ModalVideoWall";
+import Swal from "sweetalert2";
 
 const HeaderBar = ({
   darkMode,
@@ -21,6 +26,10 @@ const HeaderBar = ({
   inputs,
   videoWalls,
   sources,
+  connectionMode,
+  setConnectionMode,
+  isToggleVideoWall,
+  setIsToggleVideoWall,
 }) => {
   const handleExportProject = () => {
     const data = {
@@ -94,8 +103,8 @@ const HeaderBar = ({
     const a = document.createElement("a");
     a.href = url;
     const now = new Date();
-    const formattedDate = now.toISOString().replace(/:/g, "-");
-    a.download = `project-${formattedDate}.json`;
+    // const formattedDate = now.toISOString().replace(/:/g, "-");
+    a.download = `project.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -116,11 +125,18 @@ const HeaderBar = ({
         reader.onload = (e) => {
           try {
             const jsonData = JSON.parse(e.target.result);
-            console.log("jsonData.displays::: ", jsonData.displays);
             setVideoWalls(jsonData.displays);
             addMonitorsToScenes(jsonData.displays);
             setCollections(jsonData.collections);
-            setScenes(jsonData.scenes);
+            setScenes((prevScenes) =>
+              prevScenes.map((scene) => {
+                const updatedScene = jsonData.scenes.find((s) => s.id === scene.id);
+                if (updatedScene) {
+                  return { ...scene, resources: updatedScene.resources };
+                }
+                return scene;
+              })
+            );
             setInputs(jsonData.inputs);
           } catch (error) {
             alert("خطا در خواندن فایل JSON. لطفاً یک فایل معتبر انتخاب کنید.");
@@ -141,14 +157,14 @@ const HeaderBar = ({
         } flex items-center z-[100] absolute left-0 p-[10px]`}
       >
         <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
-        <div className="flex gap-2">
+        <div className="flex gap-2 ml-2">
           <Tooltip content="وارد کردن پروژه">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
               variant="solid"
               color="default"
-              onClick={handleFileUpload}
+              onPress={handleFileUpload}
             >
               <FaDownload />
             </Button>
@@ -159,12 +175,12 @@ const HeaderBar = ({
               size="lg"
               variant="solid"
               color="default"
-              onClick={handleExportProject}
+              onPress={handleExportProject}
             >
               <FaUpload />
             </Button>
           </Tooltip>
-          <Tooltip content="تغییر چیدمان">
+          <Tooltip content="تغییر ظاهر">
             <Button
               className={`${darkMode ? "dark" : "light"} ${
                 isToggleLayout ? "bg-blue-500 " : ""
@@ -172,20 +188,100 @@ const HeaderBar = ({
               size="lg"
               variant="solid"
               color="default"
-              onClick={toggleLayout}
+              onPress={toggleLayout}
             >
-              <RiLayout4Fill />
+              <TbLayoutSidebarLeftCollapse size={20} />
             </Button>
           </Tooltip>
-          <Tooltip content="ویدیو وال">
+
+          <ModalVideoWall darkMode={darkMode} videoWall={videoWalls} />
+
+          <Tooltip content={connectionMode ? "حالت آنلاین فعال است" : "حالت آفلاین فعال است"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
               variant="solid"
-              color="default"
+              color={connectionMode ? "success" : "warning"}
+              onPress={() => {
+                Swal.fire({
+                  title: connectionMode ? "حالت آفلاین فعال شود؟" : "حالت آنلاین فعال شود؟",
+                  showDenyButton: true,
+                  showCancelButton: false,
+                  confirmButtonText: "بله",
+                  denyButtonText: `خیر`,
+                  confirmButtonColor: "green",
+                  denyButtonColor: "gray",
+                }).then((result) => {
+                  if (result.isConfirmed) setConnectionMode(!connectionMode);
+                });
+              }}
             >
-              <FaThLarge />
+              <FaWifi />
             </Button>
+          </Tooltip>
+
+          <Tooltip
+            content={
+              isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
+            }
+          >
+            {isToggleVideoWall ? (
+              <Button
+                className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
+                size="lg"
+                variant="solid"
+                color={"default"}
+                onPress={() => {
+                  Swal.fire({
+                    title: "چیدمان مانیتورها فریز شود؟",
+                    showDenyButton: true,
+                    showCancelButton: false,
+                    confirmButtonText: "بله",
+                    denyButtonText: `خیر`,
+                    confirmButtonColor: "green",
+                    denyButtonColor: "gray",
+                  }).then((result) => {
+                    if (result.isConfirmed) setIsToggleVideoWall(false);
+                  });
+                }}
+              >
+                <TbLayout />
+              </Button>
+            ) : (
+              <Button
+                className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
+                size="lg"
+                variant="solid"
+                color={"default"}
+                onPress={() => {
+                  Swal.fire({
+                    title: "فعال کردن حالت تغییر چیدمان؟",
+                    showDenyButton: true,
+                    showCancelButton: false,
+                    confirmButtonText: "بله",
+                    denyButtonText: `خیر`,
+                    confirmButtonColor: "green",
+                    denyButtonColor: "gray",
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                      if (!videoWalls.length > 0) {
+                        Swal.fire({
+                          title: "!مانیتوری وجود ندارد",
+                          icon: "warning",
+                          confirmButtonText: "باشه",
+                          confirmButtonColor: "gray",
+                        });
+                        return;
+                      } else {
+                        setIsToggleVideoWall(true);
+                      }
+                    }
+                  });
+                }}
+              >
+                <TbLayoutOff />
+              </Button>
+            )}
           </Tooltip>
         </div>
       </div>
@@ -195,8 +291,22 @@ const HeaderBar = ({
           darkMode ? "text-white" : "text-black"
         } flex items-center z-[100] absolute right-0 p-[10px]`}
       >
-        <div className="mr-2">وضعیت اتصال</div>
-        {connecting ? <div className="blob"></div> : <div className="blobred"></div>}
+        {(connecting || !connecting) && !connectionMode ? (
+          <div className="mr-2">حالت آفلاین</div>
+        ) : !connecting && connectionMode ? (
+          <div className="mr-2">در حال اتصال</div>
+        ) : connecting && connectionMode ? (
+          <div className="mr-2">متصل شد</div>
+        ) : (
+          <></>
+        )}
+        {connecting && connectionMode ? (
+          <div className="blob"></div>
+        ) : (connecting || !connecting) && !connectionMode ? (
+          <div className="bloborange"></div>
+        ) : (
+          <div className="blobred"></div>
+        )}
       </div>
     </>
   );

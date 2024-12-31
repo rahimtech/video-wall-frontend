@@ -21,7 +21,7 @@ const MonitorSelect = ({ videoName, monitors, fitToMonitors }) => {
           fitToMonitors(videoName, selectedMonitors);
         }}
       />
-      <Button variant="flat" color="primary" onClick={() => fitToMonitors(videoName, [])}>
+      <Button variant="flat" color="primary" onPress={() => fitToMonitors(videoName, [])}>
         افزودن به صحنه
       </Button>
     </div>

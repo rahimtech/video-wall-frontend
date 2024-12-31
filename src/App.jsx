@@ -1,6 +1,22 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button, input, Modal, ModalBody, ModalContent, Tooltip } from "@nextui-org/react";
+import {
+  Button,
+  ButtonGroup,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Tooltip,
+  useDisclosure,
+  useDraggable,
+} from "@nextui-org/react";
 import { FaAngleDown, FaAngleUp, FaTools, FaCogs, FaFileAlt, FaVideo } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { AnimatePresence, motion } from "framer-motion";
@@ -14,7 +30,7 @@ import HeaderBar from "./components/HeaderBar";
 import Konva from "konva";
 import VideoWallSidebar from "./components/sidebar/VideoWallSidebar";
 import CollectionsSidebar from "./components/sidebar/CollectionsSidebar";
-import Settings from "./components/sidebar/Settings";
+import UsageSidebar from "./components/sidebar/UsageSidebar";
 import { MdCollections, MdCollectionsBookmark } from "react-icons/md";
 
 let anim;
@@ -24,22 +40,27 @@ let socket = null;
 
 function App() {
   const [videoWalls, setVideoWalls] = useState([]);
+  // console.log("videoWalls::: ", videoWalls);
 
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
   const closeModal = () => setActiveModal(null);
   const [isToggleLayout, setIsToggleLayout] = useState(false);
+  const [isToggleVideoWall, setIsToggleVideoWall] = useState(false);
 
   const [loopVideos, setLoopVideos] = useState({});
 
   const [darkMode, setDarkMode] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [connectionMode, setConnectionMode] = useState(false);
   const [inputs, setInputs] = useState([]);
   //New-Commands
 
   const [scenes, setScenes] = useState([
     { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: new Konva.Layer() },
   ]);
+  console.log("scenes::: ", scenes);
+  // console.log("scenes::: ", scenes);
 
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
@@ -67,6 +88,7 @@ function App() {
   let counterVideos = 0;
   let allData = [];
   let allDataMonitors = videoWalls;
+  let pendingOperations = [];
 
   const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
   const getSelectedCollection = () => collections.find((coll) => coll.id === selectedCollection.id);
@@ -110,6 +132,15 @@ function App() {
     return { stage, layer: isLayer ?? newLayer };
   };
 
+  const sendOperation = (action, payload) => {
+    if (connectionMode) {
+      socket.emit(action, payload);
+    } else {
+      pendingOperations.push({ action, payload });
+      // console.log("Operation added to pending queue:", { action, payload });
+    }
+  };
+
   const addMonitorsToScenes = (jsonData) => {
     if (!jsonData || !Array.isArray(jsonData)) {
       Swal.fire({
@@ -120,25 +151,32 @@ function App() {
       });
       return;
     }
+
+    const step = 5;
+
     const updatedScenes = scenes.map((scene) => {
       const layer = scene.layer;
-
+      console.log("START");
       if (layer) {
         layer.destroyChildren();
       }
+
+      const updatedVideoWalls = [...jsonData];
 
       jsonData.forEach((monitor, index) => {
         const group = new Konva.Group({
           x: monitor.x,
           y: monitor.y,
           clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
+          draggable: true,
+          id: `monitor-group-${monitor.id}`,
+          catFix: "monitor",
         });
 
         const rect = new Konva.Rect({
           x: 0,
           y: 0,
           catFix: "monitor",
-
           width: monitor.width,
           height: monitor.height,
           fill: "#161616",
@@ -149,45 +187,175 @@ function App() {
         });
 
         const text = new Konva.Text({
-          x: monitor.width / 1.7,
-          y: monitor.height / 2,
-          text: `Monitor ${index + 1}\n${monitor.width}x${monitor.height}`,
-          fontSize: 100,
-          fill: "gray",
-          align: "center",
-          verticalAlign: "middle",
-          offsetX: monitor.width / 4,
-          offsetY: 24,
+          x: 10,
+          y: 10,
+          text: `Monitor ${index + 1}\nX: ${monitor.x}, Y: ${monitor.y}`,
+          fontSize: 18,
+          fill: "white",
+          align: "left",
+          verticalAlign: "top",
+          name: "monitorText",
+        });
+
+        let previousPosition = { x: monitor.x, y: monitor.y };
+
+        group.on("dragmove", (e) => {
+          // console.log("isToggleVideoWall::: ", isToggleVideoWall);
+          if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
+
+          const { x, y } = e.target.position();
+          const newX = Math.round(x / step) * step; // گام‌های ۵ پیکسلی
+          const newY = Math.round(y / step) * step;
+
+          const textNode = group.findOne(".monitorText");
+          textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`); // به‌روزرسانی متن
+
+          e.target.position({ x: newX, y: newY }); // اعمال موقعیت جدید با گام‌های ۵ پیکسلی
+        });
+
+        group.on("dragend", (e) => {
+          // console.log("isToggleVideoWall::: ", isToggleVideoWall);
+          if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
+
+          const targetRect = group.getClientRect();
+
+          let hasCollision = false;
+
+          // بررسی برخورد با سایر مانیتورها
+          layer.children.forEach((otherGroup) => {
+            if (otherGroup === group) return;
+            const otherRect = otherGroup.getClientRect();
+            if (
+              !(
+                targetRect.x + targetRect.width <= otherRect.x ||
+                targetRect.x >= otherRect.x + otherRect.width ||
+                targetRect.y + targetRect.height <= otherRect.y ||
+                targetRect.y >= otherRect.y + otherRect.height
+              )
+            ) {
+              hasCollision = true;
+            }
+          });
+
+          if (hasCollision) {
+            // تغییر رنگ مستطیل در حال حرکت به قرمز
+            rect.fill("red");
+            setTimeout(() => {
+              rect.fill("#161616"); // بازگشت به رنگ اولیه
+              layer.draw();
+            }, 500); // پس از ۵۰۰ میلی‌ثانیه بازگشت به رنگ اولیه
+            e.target.position(previousPosition); // بازگشت به موقعیت قبلی
+          } else {
+            // ذخیره موقعیت جدید
+            const newX = e.target.x();
+            const newY = e.target.y();
+            previousPosition = { x: newX, y: newY };
+
+            // به‌روزرسانی در آرایه videoWalls
+            const monitorIndex = updatedVideoWalls.findIndex((m) => m.id === monitor.id);
+            if (monitorIndex !== -1) {
+              updatedVideoWalls[monitorIndex] = {
+                ...updatedVideoWalls[monitorIndex],
+                x: newX,
+                y: newY,
+              };
+            }
+          }
+
+          layer.draw(); // بازسازی لایه
+          setVideoWalls(updatedVideoWalls); // به‌روزرسانی state
         });
 
         group.add(rect);
         group.add(text);
+
         layer.add(group);
       });
 
-      console.log("layer::: ", layer);
       layer.draw();
-
       return scene;
     });
 
-    console.log("updatedScenes::: ", updatedScenes);
+    setScenes(updatedScenes);
+  };
+
+  const arrangeMonitors = (rows, cols) => {
+    const updatedScenes = scenes.map((scene) => {
+      const layer = scene.layer;
+
+      if (!layer) return scene;
+
+      const monitors = layer.children;
+      const totalMonitors = monitors.length;
+      const monitorWidth = 1920;
+      const monitorHeight = 1080;
+      const gap = 10;
+
+      let id = 0;
+
+      const updatedVideoWalls = [...videoWalls];
+
+      // چیدمان مانیتورها
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (id >= totalMonitors) break;
+
+          const x = col * (monitorWidth + gap);
+          const y = row * (monitorHeight + gap);
+
+          const group = monitors[id];
+          group.position({ x, y });
+
+          // به‌روزرسانی متن
+          const textNode = group.findOne("Text");
+          if (textNode) {
+            textNode.text(`Monitor ${id + 1}\nX: ${x}, Y: ${y}`);
+          }
+
+          // به‌روزرسانی موقعیت در videoWalls
+          const monitorIndex = updatedVideoWalls.findIndex(
+            (m) => m.id === parseInt(group.id().split("-")[2], 10)
+          );
+          if (monitorIndex !== -1) {
+            updatedVideoWalls[monitorIndex] = { ...updatedVideoWalls[monitorIndex], x, y };
+          }
+
+          id++;
+        }
+      }
+
+      layer.draw();
+      setVideoWalls(updatedVideoWalls);
+      return scene;
+    });
+
     setScenes(updatedScenes);
   };
 
   const generateMonitorsForLayer = (layer, monitors) => {
     if (!layer || !monitors) return;
+    const step = 5;
+
+    if (layer) {
+      layer.destroyChildren();
+    }
+
+    const updatedVideoWalls = [...monitors];
 
     monitors.forEach((monitor, index) => {
       const group = new Konva.Group({
         x: monitor.x,
         y: monitor.y,
         clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
+        draggable: true,
+        id: `monitor-group-${monitor.id}`,
+        catFix: "monitor",
       });
 
       const rect = new Konva.Rect({
         x: 0,
         y: 0,
+        catFix: "monitor",
         width: monitor.width,
         height: monitor.height,
         fill: "#161616",
@@ -198,19 +366,88 @@ function App() {
       });
 
       const text = new Konva.Text({
-        x: monitor.width / 1.7,
-        y: monitor.height / 2,
-        text: `Monitor ${index + 1}\n${monitor.width}x${monitor.height}`,
-        fontSize: 100,
-        fill: "gray",
-        align: "center",
-        verticalAlign: "middle",
-        offsetX: monitor.width / 4,
-        offsetY: 24,
+        x: 10,
+        y: 10,
+        text: `Monitor ${index + 1}\nX: ${monitor.x}, Y: ${monitor.y}`,
+        fontSize: 18,
+        fill: "white",
+        align: "left",
+        verticalAlign: "top",
+        name: "monitorText",
+      });
+
+      let previousPosition = { x: monitor.x, y: monitor.y };
+
+      group.on("dragmove", (e) => {
+        // console.log("isToggleVideoWall::: ", isToggleVideoWall);
+        if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
+
+        const { x, y } = e.target.position();
+        const newX = Math.round(x / step) * step; // گام‌های ۵ پیکسلی
+        const newY = Math.round(y / step) * step;
+
+        const textNode = group.findOne(".monitorText");
+        textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`); // به‌روزرسانی متن
+
+        e.target.position({ x: newX, y: newY }); // اعمال موقعیت جدید با گام‌های ۵ پیکسلی
+      });
+
+      group.on("dragend", (e) => {
+        // console.log("isToggleVideoWall::: ", isToggleVideoWall);
+        if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
+
+        const targetRect = group.getClientRect();
+
+        let hasCollision = false;
+
+        // بررسی برخورد با سایر مانیتورها
+        layer.children.forEach((otherGroup) => {
+          if (otherGroup === group) return;
+          const otherRect = otherGroup.getClientRect();
+          if (
+            !(
+              targetRect.x + targetRect.width <= otherRect.x ||
+              targetRect.x >= otherRect.x + otherRect.width ||
+              targetRect.y + targetRect.height <= otherRect.y ||
+              targetRect.y >= otherRect.y + otherRect.height
+            )
+          ) {
+            hasCollision = true;
+          }
+        });
+
+        if (hasCollision) {
+          // تغییر رنگ مستطیل در حال حرکت به قرمز
+          rect.fill("red");
+          setTimeout(() => {
+            rect.fill("#161616"); // بازگشت به رنگ اولیه
+            layer.draw();
+          }, 500); // پس از ۵۰۰ میلی‌ثانیه بازگشت به رنگ اولیه
+          e.target.position(previousPosition); // بازگشت به موقعیت قبلی
+        } else {
+          // ذخیره موقعیت جدید
+          const newX = e.target.x();
+          const newY = e.target.y();
+          previousPosition = { x: newX, y: newY };
+
+          // به‌روزرسانی در آرایه videoWalls
+          const monitorIndex = updatedVideoWalls.findIndex((m) => m.id === monitor.id);
+          if (monitorIndex !== -1) {
+            updatedVideoWalls[monitorIndex] = {
+              ...updatedVideoWalls[monitorIndex],
+              x: newX,
+              y: newY,
+            };
+          }
+        }
+
+        layer.draw(); // بازسازی لایه
+        setVideoWalls(updatedVideoWalls); // به‌روزرسانی state
       });
 
       group.add(rect);
       group.add(text);
+
       layer.add(group);
     });
 
@@ -246,11 +483,26 @@ function App() {
   };
 
   const deleteScene = (id) => {
-    const updatedScenes = scenes.filter((scene) => scene.id !== id);
-    setScenes(updatedScenes);
-    if (selectedScene === id && updatedScenes.length > 0) {
-      setSelectedScene(updatedScenes[0].id);
-    }
+    Swal.fire({
+      title: "آيا مطمئن هستید؟",
+      showDenyButton: true,
+      showCancelButton: false,
+      confirmButtonText: "بله",
+      denyButtonText: `خیر`,
+      confirmButtonColor: "green",
+      denyButtonColor: "gray",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedScenes = scenes.filter((scene) => scene.id !== id);
+        const updatedSourcesUsage = sources.filter((item) => item.sceneId !== id);
+        // console.log("updatedSourcesUsage::: ", updatedSourcesUsage);
+        setScenes(updatedScenes);
+        setSources(updatedSourcesUsage);
+        if (selectedScene === id && updatedScenes.length > 0) {
+          setSelectedScene(updatedScenes[0].id);
+        }
+      }
+    });
   };
 
   const handleEditSceneName = (id, newName) => {
@@ -266,182 +518,382 @@ function App() {
     return newBlobURL;
   }
 
+  // useEffect(() => {
+  //   socket = io(`http://${host}:${port}`);
+
+  //   socket.on("connect", () => {
+  //     setConnecting(true);
+  //     while (pendingOperations.length > 0) {
+  //       const operation = pendingOperations.shift();
+  //       socket.emit(operation.action, operation.payload);
+  //     }
+  //   });
+
+  //   socket.on("disconnect", () => {
+  //     setConnecting(false);
+  //   });
+
+  //   return () => {
+  //     if (socket) {
+  //       socket.disconnect();
+  //     }
+  //   };
+  // }, []);
+
+  // useEffect(() => {
+  //   async function fetchData() {
+  //     axios
+  //       .get("/config.json")
+  //       .then((res) => res.data)
+  //       .then((data) => {
+  //         // console.log(`Updating config(Host: ${data.host}, Port: ${data.port})`);
+  //         if (data.host) host = data.host;
+  //         if (data.port) port = data.port;
+  //         // TODO: use host and port
+  //         socket = io(`http://${data.host}:${data.port}`);
+  //         socket.on("connect", () => {
+  //           // console.log("Connected to server");
+  //           setConnecting(true);
+  //         });
+
+  //         socket.on("source_added", ({ actoin, payload }) => {
+  //           // console.log("payload::: ", payload);
+  //           // console.log("actoin::: ", actoin);
+  //         });
+
+  //         socket.on("init", (data) => {
+  //           // console.log("INIT DATA: ", data);
+
+  //           if (data.inputs) {
+  //             let newStruct = [];
+  //             data.inputs.forEach((item) => {
+  //               newStruct.push({
+  //                 id: item.deviceId,
+  //                 deviceId: item.deviceId,
+  //                 width: item.width,
+  //                 height: item.height,
+  //                 name: item.label,
+  //               });
+  //             });
+  //             // console.log("newStruct::: ", newStruct);
+  //             setInputs(newStruct);
+  //           }
+
+  //           // if (data.files) {
+  //           //   data.files.forEach((items) => {
+  //           //     const fileNameWithExtension = items;
+  //           //     const fileName = fileNameWithExtension.split(".").slice(0, -1).join(".");
+  //           //     const modifiedVideoURL = generateBlobURL(`http://${host}:${port}`, fileName);
+  //           //     const makeVideo = document.createElement("video");
+  //           //     makeVideo.src = modifiedVideoURL;
+  //           //     makeVideo.setAttribute("id", fileName);
+
+  //           //     updateSceneResources([
+  //           //       { type: "video", name: fileName, videoElement: makeVideo },
+  //           //       ...getSelectedScene(),
+  //           //     ]);
+  //           //   });
+  //           // }
+
+  //           if (data.displays) {
+  //             let newStruct = [];
+
+  //             data.displays.forEach((item) => {
+  //               newStruct.push({
+  //                 id: item.id,
+  //                 x: item.bounds.x,
+  //                 y: item.bounds.y,
+  //                 width: item.bounds.width,
+  //                 height: item.bounds.height,
+  //                 name: item.label,
+  //               });
+  //             });
+  //             setVideoWalls(newStruct);
+  //             addMonitorsToScenes(newStruct);
+  //           }
+  //         });
+
+  //         socket.on("update-event", (data) => {
+  //           // console.log("Update event received:", data);
+  //         });
+
+  //         socket.on("update-cameras", (data) => {
+  //           // console.log("Camera List:", data);
+  //           setInputs(data);
+  //         });
+
+  //         var width = window.innerWidth;
+  //         var height = window.innerHeight;
+  //         stage = new Konva.Stage({
+  //           container: "containerKonva",
+  //           width: width,
+  //           height: height,
+  //           draggable: true,
+  //         });
+
+  //         layer = new Konva.Layer();
+  //         stage.add(layer);
+  //         // console.log("Listening on update monitors");
+
+  //         anim = new Konva.Animation(() => {}, layer);
+
+  //         layer.on("dragmove", function (e) {
+  //           var absPos = e.target.absolutePosition();
+  //           e.target.absolutePosition(absPos);
+
+  //           var target = e.target;
+  //           var targetRect = e.target.getClientRect();
+  //           layer.children.forEach(function (group) {
+  //             if (group === target) return;
+  //             if (haveIntersection(group.getClientRect(), targetRect)) {
+  //               if (group instanceof Konva.Group) {
+  //                 const shape = group.findOne(".fillShape");
+  //                 if (shape) {
+  //                   shape.stroke("red");
+  //                   let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+  //                   if (!x) arrayCollisions.push(shape.getAttr("id"));
+  //                 }
+  //               }
+  //             } else {
+  //               if (group instanceof Konva.Group) {
+  //                 const shape = group.findOne(".fillShape");
+  //                 if (shape) {
+  //                   let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+  //                   if (x) {
+  //                     let y = arrayCollisions.indexOf(x);
+  //                     if (y !== -1) arrayCollisions.splice(y, 1);
+  //                   }
+  //                   shape.stroke("white");
+  //                 }
+  //               }
+  //             }
+  //           });
+
+  //           // let searchIndexArray = e.target.children[0].getAttr("id");
+  //         });
+
+  //         layer.on("dragend", function (e) {
+  //           layer.find(".guid-line").forEach((l) => l.destroy());
+  //         });
+
+  //         function haveIntersection(r1, r2) {
+  //           return !(
+  //             r2.x > r1.x + r1.width ||
+  //             r2.x + r2.width < r1.x ||
+  //             r2.y > r1.y + r1.height ||
+  //             r2.y + r2.height < r1.y
+  //           );
+  //         }
+  //       })
+  //       .catch((err) => // console.warn("Failed to fetch config.json", err));
+  //   }
+
+  //   fetchData();
+
+  //   // let newStruct = [];
+
+  //   // [
+  //   //   { bounds: { x: 0, y: 0, width: 1920, height: 1080 }, name: "dd1", id: "1" },
+  //   //   { bounds: { x: 1920, y: 0, width: 1920, height: 1080 }, name: "dd1", id: "2" },
+  //   // ].forEach((item) => {
+  //   //   newStruct.push({
+  //   //     id: item.id,
+  //   //     x: item.bounds.x,
+  //   //     y: item.bounds.y,
+  //   //     width: item.bounds.width,
+  //   //     height: item.bounds.height,
+  //   //     name: item.label,
+  //   //   });
+  //   // });
+
+  //   // setVideoWalls(newStruct);
+  //   // addMonitorsToScenes(newStruct);
+
+  //   return () => {
+  //     if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
+  //     if (motherLayer) motherLayer.destroy();
+  //     // socket.off("update-monitors");
+  //     // socket.off("connect");
+  //     // socket.off("update-event");
+  //   };
+  // }, [connectionMode]);
+
   useEffect(() => {
-    async function fetchData() {
-      axios
-        .get("/config.json")
-        .then((res) => res.data)
-        .then((data) => {
-          console.log(`Updating config(Host: ${data.host}, Port: ${data.port})`);
-          if (data.host) host = data.host;
-          if (data.port) port = data.port;
-          // TODO: use host and port
-          socket = io(`http://${data.host}:${data.port}`);
-          socket.on("connect", () => {
-            console.log("Connected to server");
-            setConnecting(true);
-          });
+    let updated = false;
 
-          socket.on("source_added", ({ actoin, payload }) => {
-            console.log("payload::: ", payload);
-            console.log("actoin::: ", actoin);
-          });
+    const updatedScenes = scenes.map((scene) => {
+      const layer = scene.layer;
+      if (!layer) return scene;
 
-          socket.on("init", (data) => {
-            console.log("INIT DATA: ", data);
+      layer.children.forEach((group) => {
+        if (group.attrs.catFix === "monitor") {
+          // تنظیم قابلیت درگ
+          group.draggable(isToggleVideoWall);
 
-            if (data.inputs) {
-              let newStruct = [];
-              data.inputs.forEach((item) => {
-                newStruct.push({
-                  id: item.deviceId,
-                  deviceId: item.deviceId,
-                  width: item.width,
-                  height: item.height,
-                  name: item.label,
-                });
-              });
-              console.log("newStruct::: ", newStruct);
-              setInputs(newStruct);
+          // هماهنگ‌سازی موقعیت‌ها با videoWalls
+          const monitorId = parseInt(group.id().split("-")[2], 10);
+          const matchingWall = videoWalls.find((wall) => wall.id === monitorId);
+          if (matchingWall) {
+            const currentPosition = group.position();
+            if (currentPosition.x !== matchingWall.x || currentPosition.y !== matchingWall.y) {
+              group.position({ x: matchingWall.x, y: matchingWall.y });
+
+              // به‌روزرسانی متن مانیتور
+              const textNode = group.findOne(".monitorText");
+              if (textNode) {
+                textNode.text(`Monitor ${monitorId}\nX: ${matchingWall.x}, Y: ${matchingWall.y}`);
+              }
+              updated = true; // تغییری رخ داده است
             }
+          }
+        }
+      });
 
-            // if (data.files) {
-            //   data.files.forEach((items) => {
-            //     const fileNameWithExtension = items;
-            //     const fileName = fileNameWithExtension.split(".").slice(0, -1).join(".");
-            //     const modifiedVideoURL = generateBlobURL(`http://${host}:${port}`, fileName);
-            //     const makeVideo = document.createElement("video");
-            //     makeVideo.src = modifiedVideoURL;
-            //     makeVideo.setAttribute("id", fileName);
+      layer.draw(); // بازسازی لایه
+      return scene;
+    });
 
-            //     updateSceneResources([
-            //       { type: "video", name: fileName, videoElement: makeVideo },
-            //       ...getSelectedScene(),
-            //     ]);
-            //   });
-            // }
+    if (updated) {
+      setScenes(updatedScenes); // به‌روزرسانی state فقط در صورت تغییر
+    }
+  }, [isToggleVideoWall, videoWalls]);
+  useEffect(() => {
+    async function initializeSocket() {
+      try {
+        if (!connectionMode) {
+          // console.log("Offline mode: Skipping socket initialization");
+          return;
+        }
+        const response = await axios.get("/config.json");
+        const data = response.data;
+        if (data.host) host = data.host;
+        if (data.port) port = data.port;
 
-            if (data.displays) {
-              let newStruct = [];
+        socket = io(`http://${host}:${port}`);
 
-              data.displays.forEach((item) => {
-                newStruct.push({
-                  id: item.id,
-                  x: item.bounds.x,
-                  y: item.bounds.y,
-                  width: item.bounds.width,
-                  height: item.bounds.height,
-                  name: item.label,
-                });
-              });
-              setVideoWalls(newStruct);
-              addMonitorsToScenes(newStruct);
-            }
-          });
+        socket.on("connect", () => {
+          // console.log("Socket connected");
+          setConnecting(true);
 
-          socket.on("update-event", (data) => {
-            console.log("Update event received:", data);
-          });
+          while (pendingOperations.length > 0) {
+            const operation = pendingOperations.shift();
+            socket.emit(operation.action, operation.payload);
+          }
+        });
 
-          socket.on("update-cameras", (data) => {
-            console.log("Camera List:", data);
-            setInputs(data);
-          });
+        socket.on("disconnect", () => {
+          // console.log("Socket disconnected");
+          setConnecting(false);
+        });
 
-          var width = window.innerWidth;
-          var height = window.innerHeight;
-          stage = new Konva.Stage({
-            container: "containerKonva",
-            width: width,
-            height: height,
-            draggable: true,
-          });
+        // سایر رویدادها
+        socket.on("source_added", ({ actoin, payload }) => {
+          // console.log("payload::: ", payload);
+          // console.log("actoin::: ", actoin);
+        });
 
-          layer = new Konva.Layer();
-          stage.add(layer);
-          console.log("Listening on update monitors");
+        socket.on("init", (data) => {
+          // console.log("INIT DATA: ", data);
 
-          anim = new Konva.Animation(() => {}, layer);
+          if (data.inputs) {
+            const inputs = data.inputs.map((item) => ({
+              id: item.deviceId,
+              deviceId: item.deviceId,
+              width: item.width,
+              height: item.height,
+              name: item.label,
+            }));
+            setInputs(inputs);
+          }
 
-          layer.on("dragmove", function (e) {
-            var absPos = e.target.absolutePosition();
-            e.target.absolutePosition(absPos);
+          if (data.displays) {
+            const displays = data.displays.map((item) => ({
+              id: item.id,
+              x: item.bounds.x,
+              y: item.bounds.y,
+              width: item.bounds.width,
+              height: item.bounds.height,
+              name: item.label,
+            }));
+            setVideoWalls(displays);
+            addMonitorsToScenes(displays);
+          }
+        });
 
-            var target = e.target;
-            var targetRect = e.target.getClientRect();
-            layer.children.forEach(function (group) {
-              if (group === target) return;
-              if (haveIntersection(group.getClientRect(), targetRect)) {
-                if (group instanceof Konva.Group) {
-                  const shape = group.findOne(".fillShape");
-                  if (shape) {
-                    shape.stroke("red");
-                    let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-                    if (!x) arrayCollisions.push(shape.getAttr("id"));
-                  }
-                }
-              } else {
-                if (group instanceof Konva.Group) {
-                  const shape = group.findOne(".fillShape");
-                  if (shape) {
-                    let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-                    if (x) {
-                      let y = arrayCollisions.indexOf(x);
-                      if (y !== -1) arrayCollisions.splice(y, 1);
-                    }
-                    shape.stroke("white");
-                  }
+        socket.on("update-event", (data) => {
+          // console.log("Update event received:", data);
+        });
+
+        socket.on("update-cameras", (data) => {
+          // console.log("Camera List:", data);
+          setInputs(data);
+        });
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const stage = new Konva.Stage({
+          container: "containerKonva",
+          width,
+          height,
+          draggable: true,
+        });
+
+        const layer = new Konva.Layer();
+        stage.add(layer);
+
+        anim = new Konva.Animation(() => {}, layer);
+
+        layer.on("dragmove", function (e) {
+          var absPos = e.target.absolutePosition();
+          e.target.absolutePosition(absPos);
+
+          var target = e.target;
+          var targetRect = e.target.getClientRect();
+          layer.children.forEach(function (group) {
+            if (group === target) return;
+            if (haveIntersection(group.getClientRect(), targetRect)) {
+              if (group instanceof Konva.Group) {
+                const shape = group.findOne(".fillShape");
+                if (shape) {
+                  shape.stroke("red");
+                  let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                  if (!x) arrayCollisions.push(shape.getAttr("id"));
                 }
               }
-            });
-
-            // let searchIndexArray = e.target.children[0].getAttr("id");
+            } else {
+              if (group instanceof Konva.Group) {
+                const shape = group.findOne(".fillShape");
+                if (shape) {
+                  let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                  if (x) {
+                    let y = arrayCollisions.indexOf(x);
+                    if (y !== -1) arrayCollisions.splice(y, 1);
+                  }
+                  shape.stroke("white");
+                }
+              }
+            }
           });
 
-          layer.on("dragend", function (e) {
-            layer.find(".guid-line").forEach((l) => l.destroy());
-          });
+          // let searchIndexArray = e.target.children[0].getAttr("id");
+        });
 
-          function haveIntersection(r1, r2) {
-            return !(
-              r2.x > r1.x + r1.width ||
-              r2.x + r2.width < r1.x ||
-              r2.y > r1.y + r1.height ||
-              r2.y + r2.height < r1.y
-            );
-          }
-        })
-        .catch((err) => console.warn("Failed to fetch config.json", err));
+        layer.on("dragend", (e) => {
+          layer.find(".guid-line").forEach((l) => l.destroy());
+        });
+      } catch (err) {
+        // console.warn("Failed to fetch config.json or initialize socket", err);
+      }
     }
 
-    fetchData();
-    // let newStruct = [];
-
-    // [
-    //   { bounds: { x: 0, y: 0, width: 1920, height: 1080 }, name: "dd1", id: "1" },
-    //   { bounds: { x: 1920, y: 0, width: 1920, height: 1080 }, name: "dd1", id: "2" },
-    // ].forEach((item) => {
-    //   newStruct.push({
-    //     id: item.id,
-    //     x: item.bounds.x,
-    //     y: item.bounds.y,
-    //     width: item.bounds.width,
-    //     height: item.bounds.height,
-    //     name: item.label,
-    //   });
-    // });
-
-    // setVideoWalls(newStruct);
-    // addMonitorsToScenes(newStruct);
+    initializeSocket();
 
     return () => {
-      if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
-      if (motherLayer) motherLayer.destroy();
-      // socket.off("update-monitors");
-      // socket.off("connect");
-      // socket.off("update-event");
+      if (socket) socket.disconnect();
+      // if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
+      // if (motherLayer) motherLayer.destroy();
     };
-  }, []);
+  }, [connectionMode]);
 
   useEffect(() => {
     getSelectedScene()?.resources.forEach((item) => {
@@ -510,7 +962,7 @@ function App() {
       }
       const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, id);
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "resize",
         id: id,
         payload: {
@@ -618,7 +1070,7 @@ function App() {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        socket.emit("source", {
+        sendOperation("source", {
           action: "remove",
           id,
           payload: {},
@@ -631,7 +1083,7 @@ function App() {
           groupToRemove.destroy();
           getSelectedScene()?.layer.draw();
         } else {
-          console.error(`Group with id ${id} not found`);
+          // console.error(`Group with id ${id} not found`);
         }
 
         const videoElement = getSelectedScene()?.resources.find(
@@ -708,7 +1160,7 @@ function App() {
         const videoName = "video" + counterVideos++;
         video.setAttribute("name", videoName);
         const sourceName = await uploadVideo(file, id);
-        console.log("sourceName::: ", sourceName);
+        // console.log("sourceName::: ", sourceName);
         video.setAttribute("id", sourceName);
 
         const width = video.videoWidth;
@@ -731,7 +1183,7 @@ function App() {
 
         updateSceneResources([newResource, ...getSelectedScene().resources]);
       } else {
-        console.error("Unsupported file type.");
+        // console.error("Unsupported file type.");
       }
     }
   };
@@ -793,10 +1245,14 @@ function App() {
     image.on("dragend", (e) => {
       const { x, y } = e.target.position();
       setSources((prev) =>
-        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, sceneId: getSelectedScene().id }
+            : item
+        )
       );
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "move",
         id: e.target.attrs.uniqId,
         payload: { source: modifiedImageURL, x: image.x(), y: image.y() },
@@ -818,12 +1274,20 @@ function App() {
       setSources((prev) =>
         prev.map((item) =>
           item.uniqId === e.target.attrs.uniqId
-            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            ? {
+                ...item,
+                x,
+                y,
+                width: newWidth,
+                height: newHeight,
+                rotation,
+                sceneId: getSelectedScene().id,
+              }
             : item
         )
       );
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "resize",
         id: e.target.attrs.uniqId,
         payload: {
@@ -845,7 +1309,7 @@ function App() {
       // });
     });
 
-    setSources((prev) => [...prev, { ...img, uniqId }]);
+    setSources((prev) => [...prev, { ...img, uniqId, sceneId: getSelectedScene().id }]);
 
     selectedSceneLayer.add(image);
     selectedSceneLayer.draw();
@@ -884,9 +1348,9 @@ function App() {
     group.add(rect);
     group.add(text);
 
-    setSources((prev) => [...prev, { ...input, uniqId }]);
+    setSources((prev) => [...prev, { ...input, uniqId, sceneId: getSelectedScene().id }]);
 
-    socket.emit("source", {
+    sendOperation("source", {
       action: "add",
       id: uniqId,
       payload: {
@@ -916,9 +1380,13 @@ function App() {
     group.on("dragend", (e) => {
       const { x, y } = e.target.position();
       setSources((prev) =>
-        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, sceneId: getSelectedScene().id }
+            : item
+        )
       );
-      socket.emit("source", {
+      sendOperation("source", {
         action: "move",
         id: e.target.attrs.uniqId,
         payload: { x: group.x(), y: group.y() },
@@ -936,11 +1404,19 @@ function App() {
       setSources((prev) =>
         prev.map((item) =>
           item.uniqId === e.target.attrs.uniqId
-            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            ? {
+                ...item,
+                x,
+                y,
+                width: newWidth,
+                height: newHeight,
+                rotation,
+                sceneId: getSelectedScene().id,
+              }
             : item
         )
       );
-      socket.emit("source", {
+      sendOperation("source", {
         action: "resize",
         id: e.target.attrs.uniqId,
         payload: {
@@ -1007,17 +1483,21 @@ function App() {
       selectedSceneLayer.draw();
     });
 
-    setSources((prev) => [...prev, { ...webResource, uniqId }]);
+    setSources((prev) => [...prev, { ...webResource, uniqId, sceneId: getSelectedScene().id }]);
 
     group.on("dragend", (e) => {
       const { x, y } = e.target.position();
       setSources((prev) =>
-        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, sceneId: getSelectedScene().id }
+            : item
+        )
       );
-      socket.emit("source", {
+      sendOperation("source", {
         action: "move",
         id: e.target.attrs.uniqId,
-        payload: { x: image.x(), y: image.y() },
+        payload: { x: group.x(), y: group.y() },
       });
     });
 
@@ -1032,12 +1512,20 @@ function App() {
       setSources((prev) =>
         prev.map((item) =>
           item.uniqId === e.target.attrs.uniqId
-            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            ? {
+                ...item,
+                x,
+                y,
+                width: newWidth,
+                height: newHeight,
+                rotation,
+                sceneId: getSelectedScene().id,
+              }
             : item
         )
       );
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "resize",
         id: e.target.attrs.uniqId,
         payload: {
@@ -1204,12 +1692,16 @@ function App() {
     textNode.on("dragend", (e) => {
       const { x, y } = e.target.position();
       setSources((prev) =>
-        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, sceneId: getSelectedScene().id }
+            : item
+        )
       );
-      socket.emit("source", {
+      sendOperation("source", {
         action: "move",
         id: e.target.attrs.uniqId,
-        payload: { x: image.x(), y: image.y() },
+        payload: { x: textNode.x(), y: textNode.y() },
       });
     });
 
@@ -1224,12 +1716,20 @@ function App() {
       setSources((prev) =>
         prev.map((item) =>
           item.uniqId === e.target.attrs.uniqId
-            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            ? {
+                ...item,
+                x,
+                y,
+                width: newWidth,
+                height: newHeight,
+                rotation,
+                sceneId: getSelectedScene().id,
+              }
             : item
         )
       );
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "resize",
         id: e.target.attrs.uniqId,
         payload: {
@@ -1242,7 +1742,7 @@ function App() {
       });
     });
 
-    setSources((prev) => [...prev, { ...text, uniqId }]);
+    setSources((prev) => [...prev, { ...text, uniqId, sceneId: getSelectedScene().id }]);
 
     selectedSceneLayer.add(textNode);
     selectedStage.add(selectedSceneLayer);
@@ -1335,7 +1835,7 @@ function App() {
     // const modifiedVideoURL = generateBlobURL(`video:http://localhost:${port}`, id);
     const modifiedVideoURL = `video:http://localhost:${port}/${id}`;
 
-    socket.emit("source", {
+    sendOperation("source", {
       action: "add",
       id: uniqId,
       payload: {
@@ -1385,7 +1885,7 @@ function App() {
 
       allData = allData.map((item) => {
         if (item.id === id) {
-          socket.emit("source", {
+          sendOperation("source", {
             action: "resize",
             id,
             payload: {
@@ -1403,7 +1903,7 @@ function App() {
       });
     });
 
-    setSources((prev) => [...prev, { ...input, uniqId }]);
+    setSources((prev) => [...prev, { ...inputs, uniqId, sceneId: getSelectedScene().id }]);
 
     selectedSceneLayer.add(image);
     selectedStage.add(selectedSceneLayer);
@@ -1449,12 +1949,20 @@ function App() {
       setSources((prev) =>
         prev.map((item) =>
           item.uniqId === e.target.attrs.uniqId
-            ? { ...item, x, y, width: newWidth, height: newHeight, rotation }
+            ? {
+                ...item,
+                x,
+                y,
+                width: newWidth,
+                height: newHeight,
+                rotation,
+                sceneId: getSelectedScene().id,
+              }
             : item
         )
       );
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "resize",
         id: e.target.attrs.uniqId,
         payload: {
@@ -1468,7 +1976,7 @@ function App() {
 
       // allData = allData.map((item) => {
       //   if (item.id === id) {
-      //     socket.emit("source", {
+      //     sendOperation("source", {
       //       action: "resize",
       //       id,
       //       payload: {
@@ -1490,10 +1998,14 @@ function App() {
       const { x, y } = e.target.position();
 
       setSources((prev) =>
-        prev.map((item) => (item.uniqId === e.target.attrs.uniqId ? { ...item, x, y } : item))
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, sceneId: getSelectedScene().id }
+            : item
+        )
       );
 
-      socket.emit("source", {
+      sendOperation("source", {
         action: "move",
         id: e.target.attrs.uniqId,
         payload: { x: image.x(), y: image.y() },
@@ -1507,15 +2019,15 @@ function App() {
 
   const playVideo = (videoName) => {
     const video = getSelectedScene()?.resources.find((item) => item.id === videoName)?.videoElement;
-    console.log("video::: ", video);
+    // console.log("video::: ", video);
     if (video) {
       video.play();
-      // socket.emit("source", {
+      // sendOperation("source", {
       //   action: "play",
       //   id: videoName,
       // });
 
-      console.log("anim::: ", anim);
+      // console.log("anim::: ", anim);
       anim.start();
     }
   };
@@ -1524,7 +2036,7 @@ function App() {
     const video = getSelectedScene()?.resources.find((item) => item.id === videoName)?.videoElement;
     if (video) {
       video.pause();
-      socket.emit("source", {
+      sendOperation("source", {
         action: "pause",
         id: videoName,
       });
@@ -1534,7 +2046,7 @@ function App() {
   const toggleLoopVideo = (videoName) => {
     setLoopVideos((prev) => {
       const isLooping = !prev[videoName];
-      socket.emit("source", {
+      sendOperation("source", {
         action: "loop",
         id: videoName,
       });
@@ -1556,10 +2068,10 @@ function App() {
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log("File uploaded successfully:", response.data.filePath);
+      // console.log("File uploaded successfully:", response.data.filePath);
       return response.data.filePath;
     } catch (error) {
-      console.error("Error uploading file:", error);
+      // console.error("Error uploading file:", error);
     }
   };
 
@@ -1574,7 +2086,7 @@ function App() {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        // socket.emit("source", {
+        // sendOperation("source", {
         //   action: "remove",
         //   id,
         //   payload: {},
@@ -1588,7 +2100,7 @@ function App() {
           groupToRemove.destroy();
           getSelectedScene()?.layer.draw();
         } else {
-          console.error(`Group with id ${id} not found`);
+          // console.error(`Group with id ${id} not found`);
         }
 
         const videoElement = getSelectedScene()?.resources.find(
@@ -1648,7 +2160,7 @@ function App() {
   //     const newWidth = rect.width() * scaleX;
   //     const newHeight = rect.height() * scaleY;
 
-  //     socket.emit("source", {
+  //     sendOperation("source", {
   //       action: "resize",
   //       id,
   //       payload: {
@@ -1662,7 +2174,7 @@ function App() {
   //   });
 
   //   inputGroup.on("dragend", (e) => {
-  //     socket.emit("source", {
+  //     sendOperation("source", {
   //       action: "move",
   //       id,
   //       payload: {
@@ -1684,7 +2196,7 @@ function App() {
   //     }
   //   });
 
-  //   socket.emit("source", {
+  //   sendOperation("source", {
   //     action: "add",
   //     id,
   //     payload: { x, y, width, height, source: `input:${deviceId}` },
@@ -1699,7 +2211,7 @@ function App() {
           size="sm"
           variant="solid"
           color="default"
-          onClick={() => openModal("resources")}
+          onPress={() => openModal("resources")}
         >
           <FaFileAlt size={17} />
         </Button>
@@ -1710,7 +2222,7 @@ function App() {
           size="sm"
           variant="solid"
           color="default"
-          onClick={() => openModal("scenes")}
+          onPress={() => openModal("scenes")}
         >
           <FaVideo size={17} />
         </Button>
@@ -1721,7 +2233,7 @@ function App() {
           size="sm"
           variant="solid"
           color="default"
-          onClick={() => openModal("collections")}
+          onPress={() => openModal("collections")}
         >
           <MdCollectionsBookmark size={17} />
         </Button>
@@ -1732,7 +2244,7 @@ function App() {
           size="sm"
           variant="solid"
           color="default"
-          onClick={() => openModal("settings")}
+          onPress={() => openModal("UsageSidebar")}
         >
           <FaTools size={17} />
         </Button>
@@ -1740,6 +2252,176 @@ function App() {
     </div>
   );
 
+  // ----------------- Monotor-Setting ---------------
+
+  const LayoutDropdown = () => {
+    return (
+      <div className="relative left-0 top-[200px] z-[100]">
+        <Dropdown>
+          <DropdownTrigger>
+            <Button size="sm" fullWidth variant="solid" color="primary">
+              چیدمان مانیتورها
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu
+            aria-label="تنظیم چیدمان"
+            color="secondary"
+            onAction={(key) => {
+              const [rows, cols] = key.split("x").map(Number);
+              arrangeMonitors(rows, cols);
+            }}
+          >
+            <DropdownItem key="2x2">۲×۲</DropdownItem>
+            <DropdownItem key="3x3">۳×۳</DropdownItem>
+            <DropdownItem key="4x4">۴×۴</DropdownItem>
+            <DropdownItem key="5x5">۵×۵</DropdownItem>
+            <DropdownItem key="6x6">۶×۶</DropdownItem>
+            <DropdownItem key="7x7">۷×۷</DropdownItem>
+            <DropdownItem key="8x8">۸×۸</DropdownItem>
+            <DropdownItem key="9x9">۹×۹</DropdownItem>
+            <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </div>
+    );
+  };
+
+  const MonitorPositionEditor = ({ monitors, updateMonitorPosition }) => {
+    const [selectedMonitor, setSelectedMonitor] = useState(null);
+    const [x, setX] = useState(0);
+    const [y, setY] = useState(0);
+    const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
+    const targetRef = React.useRef(null);
+    const { moveProps } = useDraggable({ targetRef, isDisabled: !isOpen });
+
+    const openModal = (monitor) => {
+      setSelectedMonitor(monitor);
+      setX(monitor.x);
+      setY(monitor.y);
+      onOpen();
+    };
+
+    const handleUpdatePosition = () => {
+      if (selectedMonitor) {
+        updateMonitorPosition(selectedMonitor.id, x, y);
+        setSelectedMonitor(null);
+        onClose();
+      }
+    };
+
+    return (
+      <div className="relative left-0 top-[200px] z-[100] h-[200px] overflow-y-scroll">
+        <div className="flex flex-col  gap-2 bg-gray-700 rounded  overflow-scroll">
+          {monitors.map((monitor) => (
+            <Tooltip content={`تغییر مانیتور ${monitor.name}`} key={monitor.id}>
+              <Button size="sm" color="primary" onPress={() => openModal(monitor)} className="m-1">
+                Monitor {monitor.id}
+              </Button>
+            </Tooltip>
+          ))}
+        </div>
+
+        <Modal ref={targetRef} isOpen={isOpen} onOpenChange={onOpenChange}>
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader {...moveProps} className="flex flex-col gap-1">
+                  تنظیم موقعیت مانیتور
+                </ModalHeader>
+                <ModalBody>
+                  <div className="flex flex-col gap-4">
+                    <Input
+                      type="number"
+                      label="مقدار X"
+                      value={x}
+                      onChange={(e) => setX(Number(e.target.value))}
+                    />
+                    <Input
+                      type="number"
+                      label="مقدار Y"
+                      value={y}
+                      onChange={(e) => setY(Number(e.target.value))}
+                    />
+                  </div>
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="danger" variant="light" onPress={onClose}>
+                    بستن
+                  </Button>
+                  <Button color="primary" onPress={handleUpdatePosition}>
+                    تنظیم
+                  </Button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      </div>
+    );
+  };
+  const updateMonitorPosition = (id, newX, newY) => {
+    let hasCollision = false;
+
+    const updatedVideoWalls = videoWalls.map((monitor) => {
+      if (monitor.id === id) {
+        const targetRect = { x: newX, y: newY, width: monitor.width, height: monitor.height };
+
+        videoWalls.forEach((otherMonitor) => {
+          if (otherMonitor.id === id) return;
+
+          const otherRect = {
+            x: otherMonitor.x,
+            y: otherMonitor.y,
+            width: otherMonitor.width,
+            height: otherMonitor.height,
+          };
+
+          if (
+            !(
+              targetRect.x + targetRect.width <= otherRect.x ||
+              targetRect.x >= otherRect.x + otherRect.width ||
+              targetRect.y + targetRect.height <= otherRect.y ||
+              targetRect.y >= otherRect.y + otherRect.height
+            )
+          ) {
+            hasCollision = true;
+          }
+        });
+
+        if (hasCollision) return monitor;
+
+        updateKonvaMonitorPosition(getSelectedScene()?.layer, id, newX, newY);
+
+        return { ...monitor, x: newX, y: newY };
+      }
+      return monitor;
+    });
+
+    if (hasCollision) {
+      Swal.fire({
+        title: "خطا",
+        text: "موقعیت جدید باعث برخورد مانیتورها می‌شود.",
+        icon: "error",
+        confirmButtonText: "باشه",
+      });
+    } else {
+      setVideoWalls(updatedVideoWalls); // به‌روزرسانی state اگر برخوردی وجود نداشت
+    }
+  };
+
+  const updateKonvaMonitorPosition = (layer, id, newX, newY) => {
+    const monitorGroup = layer.findOne(`#monitor-group-${id}`);
+    if (monitorGroup) {
+      monitorGroup.position({ x: newX, y: newY });
+
+      const text = monitorGroup.findOne(".monitorText");
+      if (text) {
+        text.text(`Monitor ${id}\nX: ${newX}, Y: ${newY}`);
+      }
+
+      layer.draw();
+    }
+  };
   return (
     <main
       className={`${
@@ -1763,7 +2445,20 @@ function App() {
         videoWalls={videoWalls}
         setScenes={setScenes}
         sources={sources}
+        connectionMode={connectionMode}
+        setConnectionMode={setConnectionMode}
+        isToggleVideoWall={isToggleVideoWall}
+        setIsToggleVideoWall={setIsToggleVideoWall}
       />
+      {isToggleVideoWall && videoWalls.length > 0 && (
+        <div className="flex flex-col absolute right-0 m-4 gap-3 ">
+          <LayoutDropdown />
+          <MonitorPositionEditor
+            monitors={videoWalls}
+            updateMonitorPosition={updateMonitorPosition}
+          />
+        </div>
+      )}
       <div className="h-full w-full flex z-50">
         <div id="Video-Wall-Section" className="w-full h-full flex">
           <div
@@ -1812,6 +2507,31 @@ function App() {
           >
             {isBottomControlsVisible && (
               <>
+                {/* Usage of Resources Sidebar */}
+                <UsageSidebar
+                  resources={sources.filter((item) => item.sceneId === getSelectedScene().id)}
+                  darkMode={darkMode}
+                  allDataMonitors={allDataMonitors}
+                  fitToMonitors={fitToMonitors}
+                  addVideo={addVideo}
+                  playVideo={playVideo}
+                  pauseVideo={pauseVideo}
+                  toggleLoopVideo={toggleLoopVideo}
+                  moveResource={moveResource}
+                  deleteResource={deleteResource}
+                  loopVideos={loopVideos}
+                  addResource={addResource}
+                  addText={addText}
+                  addImage={addImage}
+                  editText={editText}
+                  updateResourceName={updateResourceName}
+                  updateResourceColor={updateResourceColor}
+                  addWeb={addWeb}
+                  editWeb={editWeb}
+                  inputs={inputs}
+                  addInput={addInput}
+                  deleteResourceFromScene={deleteResourceFromScene}
+                />
                 {/* Sources Sidebar */}
                 <ResourcesSidebar
                   resources={getSelectedScene()?.resources}
@@ -1836,6 +2556,7 @@ function App() {
                   inputs={inputs}
                   addInput={addInput}
                   deleteResourceFromScene={deleteResourceFromScene}
+                  videoWalls={videoWalls}
                 />
                 {/* Scenes Sidebar */}
                 <ScenesSidebar
@@ -1850,19 +2571,6 @@ function App() {
                   deleteScene={deleteScene}
                 />
 
-                {/* videoWall Sidebar
-            <VideoWallSidebar
-              scenes={scenes}
-              darkMode={darkMode}
-              selectedScene={selectedScene}
-              setSelectedScene={setSelectedScene}
-              addScene={addScene}
-              editingSceneId={editingSceneId}
-              setEditingSceneId={setEditingSceneId}
-              handleEditSceneName={handleEditSceneName}
-              deleteScene={deleteScene}
-            /> */}
-
                 {/* CollectionsSidebar Sidebar */}
                 <CollectionsSidebar
                   scenes={scenes}
@@ -1873,19 +2581,6 @@ function App() {
                   selectedCollection={selectedCollection} // Pass selected collection
                   setSelectedScene={setSelectedScene} // Pass setSelectedScene function
                 />
-
-                {/* CollectionsSidebar Sidebar */}
-                <Settings
-                  scenes={scenes}
-                  darkMode={darkMode}
-                  selectedScene={selectedScene}
-                  setSelectedScene={setSelectedScene}
-                  addScene={addScene}
-                  editingSceneId={editingSceneId}
-                  setEditingSceneId={setEditingSceneId}
-                  handleEditSceneName={handleEditSceneName}
-                  deleteScene={deleteScene}
-                />
               </>
             )}
           </motion.div>
@@ -1895,7 +2590,7 @@ function App() {
               auto
               ghost
               className="min-w-fit h-fit p-2"
-              onClick={() => setIsBottomControlsVisible(!isBottomControlsVisible)}
+              onPress={() => setIsBottomControlsVisible(!isBottomControlsVisible)}
             >
               {isBottomControlsVisible ? <FaAngleDown /> : <FaAngleUp />}
             </Button>
@@ -1912,6 +2607,38 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <ResourcesSidebar
+              resources={sources}
+              darkMode={darkMode}
+              allDataMonitors={allDataMonitors}
+              fitToMonitors={fitToMonitors}
+              addVideo={addVideo}
+              playVideo={playVideo}
+              pauseVideo={pauseVideo}
+              toggleLoopVideo={toggleLoopVideo}
+              moveResource={moveResource}
+              deleteResource={deleteResource}
+              loopVideos={loopVideos}
+              addResource={addResource}
+              addText={addText}
+              addImage={addImage}
+              editText={editText}
+              updateResourceName={updateResourceName}
+              updateResourceColor={updateResourceColor}
+              addWeb={addWeb}
+              editWeb={editWeb}
+              inputs={inputs}
+              addInput={addInput}
+              deleteResourceFromScene={deleteResourceFromScene}
+              videoWalls={videoWalls}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal scrollBehavior="outside" isOpen={activeModal === "UsageSidebar"} onClose={closeModal}>
+        <ModalContent>
+          <ModalBody className="p-0">
+            <UsageSidebar
               resources={getSelectedScene()?.resources}
               darkMode={darkMode}
               allDataMonitors={allDataMonitors}
@@ -1968,24 +2695,6 @@ function App() {
               setSelectedCollection={setSelectedCollection} // Pass setter function
               selectedCollection={selectedCollection} // Pass selected collection
               setSelectedScene={setSelectedScene} // Pass setSelectedScene function
-            />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      <Modal scrollBehavior="outside" isOpen={activeModal === "settings"} onClose={closeModal}>
-        <ModalContent>
-          <ModalBody className="p-0">
-            <Settings
-              scenes={scenes}
-              darkMode={darkMode}
-              selectedScene={selectedScene}
-              setSelectedScene={setSelectedScene}
-              addScene={addScene}
-              editingSceneId={editingSceneId}
-              setEditingSceneId={setEditingSceneId}
-              handleEditSceneName={handleEditSceneName}
-              deleteScene={deleteScene}
             />
           </ModalBody>
         </ModalContent>

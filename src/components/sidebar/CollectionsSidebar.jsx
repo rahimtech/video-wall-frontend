@@ -150,7 +150,7 @@ const CollectionsSidebar = ({
                 size="sm"
                 variant="light"
                 color="default"
-                onClick={(e) => {
+                onPress={(e) => {
                   e.stopPropagation(); // Prevent triggering collection click
                   handleOpenModal(collection);
                 }}
@@ -162,7 +162,7 @@ const CollectionsSidebar = ({
                 size="sm"
                 variant="light"
                 color="default"
-                onClick={(e) => {
+                onPress={(e) => {
                   e.stopPropagation(); // Prevent triggering collection click
                   handleDeleteCollection(collection.id);
                 }}
@@ -196,7 +196,7 @@ const CollectionsSidebar = ({
             ))}
           </ModalBody>
           <ModalFooter>
-            <Button className="w-full" color="primary" onClick={handleSaveCollection}>
+            <Button className="w-full" color="primary" onPress={handleSaveCollection}>
               ذخیره
             </Button>
           </ModalFooter>

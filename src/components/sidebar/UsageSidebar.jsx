@@ -1,11 +1,18 @@
 import React, { useState } from "react";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@nextui-org/react";
-import { FaPlay, FaPause, FaTrashAlt, FaCog } from "react-icons/fa";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Tooltip,
+} from "@nextui-org/react";
+import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/fa";
 import ModalMonitorSelection from "../ModalMonitorSelection";
-import { MdAddBox } from "react-icons/md";
+import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 
-const InputSidebar = ({
+const UsageSidebar = ({
   resources,
   darkMode,
   allDataMonitors,
@@ -25,6 +32,9 @@ const InputSidebar = ({
   editText,
   updateResourceName,
   updateResourceColor,
+  inputs,
+  addInput,
+  deleteResourceFromScene,
 }) => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
@@ -82,34 +92,7 @@ const InputSidebar = ({
       {/* Fixed Header */}
       <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">منابع</h2>
-          <Dropdown dir="rtl" className="vazir">
-            <DropdownTrigger>
-              <Button
-                className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
-                size="lg"
-                variant="light"
-                color="default"
-              >
-                <MdAddBox />
-              </Button>
-            </DropdownTrigger>
-
-            <DropdownMenu aria-label="Static Actions">
-              <DropdownItem onPress={() => addResource("video")} key="video">
-                ویدیو
-              </DropdownItem>
-              <DropdownItem onPress={() => addResource("image")} key="image">
-                تصویر
-              </DropdownItem>
-              <DropdownItem onPress={() => addResource("text")} key="text">
-                متن
-              </DropdownItem>
-              <DropdownItem onPress={() => addResource("web")} key="web">
-                وب
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+          <h2 className="text-md font-semibold">منابع استفاده شده</h2>
         </div>
       </div>
 
@@ -165,6 +148,7 @@ const InputSidebar = ({
                     </Button>
                   </>
                 )}
+
                 <ModalMonitorSelection
                   darkMode={darkMode}
                   videoName={resource.id}
@@ -172,15 +156,17 @@ const InputSidebar = ({
                   fitToMonitors={fitToMonitors}
                   onAddToScene={() => addVideo(resource.videoElement)}
                 />
-                <Button
-                  className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                  size="sm"
-                  variant="light"
-                  color="default"
-                  onPress={() => deleteResource(resource.id)}
-                >
-                  <FaTrashAlt />
-                </Button>
+                <Tooltip content="حذف از صحنه">
+                  <Button
+                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    onPress={() => deleteResourceFromScene(resource.id)}
+                  >
+                    <MdDeleteSweep />
+                  </Button>
+                </Tooltip>
                 <Dropdown>
                   <DropdownTrigger>
                     <Button
@@ -192,51 +178,35 @@ const InputSidebar = ({
                       <FaCog />
                     </Button>
                   </DropdownTrigger>
-                  <DropdownMenu aria-label="More Actions">
+                  <DropdownMenu dir="rtl" aria-label="More Actions">
                     <DropdownItem key="moveUp" onPress={() => moveResource(resource.id, -1)}>
                       بالا
                     </DropdownItem>
                     <DropdownItem key="moveDown" onPress={() => moveResource(resource.id, 1)}>
                       پایین
                     </DropdownItem>
-                    {resource.type === "video" ? (
-                      <DropdownItem key="add-video" onPress={() => addVideo(resource.videoElement)}>
-                        افزودن به صحنه
-                      </DropdownItem>
-                    ) : resource.type === "image" ? (
-                      <DropdownItem key="add-image" onPress={() => addImage(resource)}>
-                        افزودن به صحنه
-                      </DropdownItem>
-                    ) : resource.type === "text" ? (
-                      [
-                        <DropdownItem key="add-text" onPress={() => addText(resource)}>
-                          افزودن به صحنه
-                        </DropdownItem>,
-                        <DropdownItem key="edit-text" onPress={() => editText(resource)}>
-                          ویرایش متن اصلی
-                        </DropdownItem>,
-                        <DropdownItem
-                          key="edit-color"
-                          onPress={() => {
-                            setColorPickerVisible(!colorPickerVisible);
-                            setColorPickerResourceId(resource.id);
-                          }}
-                        >
-                          انتخاب رنگ متن
-                        </DropdownItem>,
-                      ]
-                    ) : resource.type === "web" ? (
-                      [
-                        <DropdownItem key="add-web" onPress={() => addWeb(resource)}>
-                          افزودن به صحنه
-                        </DropdownItem>,
-                        <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
-                          ویرایش URL
-                        </DropdownItem>,
-                      ]
-                    ) : (
-                      <></>
-                    )}
+                    {resource.type === "text"
+                      ? [
+                          <DropdownItem key="edit-text" onPress={() => editText(resource)}>
+                            ویرایش متن اصلی
+                          </DropdownItem>,
+                          <DropdownItem
+                            key="edit-color"
+                            onPress={() => {
+                              setColorPickerVisible(!colorPickerVisible);
+                              setColorPickerResourceId(resource.id);
+                            }}
+                          >
+                            انتخاب رنگ متن
+                          </DropdownItem>,
+                        ]
+                      : resource.type === "web"
+                      ? [
+                          <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
+                            ویرایش URL
+                          </DropdownItem>,
+                        ]
+                      : null}
                     <DropdownItem key="loop" onPress={() => toggleLoopVideo(resource.id)}>
                       {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
                     </DropdownItem>
@@ -251,4 +221,4 @@ const InputSidebar = ({
   );
 };
 
-export default InputSidebar;
+export default UsageSidebar;

@@ -30,7 +30,7 @@ const ScenesSidebar = ({
           size="lg"
           variant="light"
           color="default"
-          onClick={addScene}
+          onPress={addScene}
         >
           <MdAddBox />
         </Button>
@@ -67,7 +67,7 @@ const ScenesSidebar = ({
                       size="sm"
                       variant="flat"
                       color="default"
-                      onClick={() => deleteScene(scene.id)}
+                      onPress={() => deleteScene(scene.id)}
                       disabled={scenes.length === 1}
                     >
                       <FaTrashAlt size={14} />

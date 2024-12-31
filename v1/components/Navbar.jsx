@@ -13,7 +13,7 @@ const Navbar = ({ darkMode, setDarkMode, onAddContent }) => {
           Video Wall Manager
         </Typography>
         <Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
-        <Button color="inherit" onClick={onAddContent}>
+        <Button color="inherit" onPress={onAddContent}>
           Add Content
         </Button>
       </Toolbar>
