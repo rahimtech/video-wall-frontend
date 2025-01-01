@@ -14,7 +14,11 @@ import {
 import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import { MdAddBox, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
+import { PiTimerBold } from "react-icons/pi";
+import ModalTimeLine from "../ModalTimeLine";
+
 const CollectionsSidebar = ({
+  filteredScenes,
   scenes,
   darkMode,
   collections,
@@ -31,7 +35,6 @@ const CollectionsSidebar = ({
 
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
-
     setSelectedScene(collections.find((item) => item.id == key).scenes[0]);
   };
 
@@ -95,7 +98,17 @@ const CollectionsSidebar = ({
         confirmButtonText: "بله",
       }).then(async (result) => {
         if (result.isConfirmed) {
-          setCollections((prev) => prev.filter((collection) => collection.id !== id));
+          setCollections((prev) => {
+            prev.find((item) => {
+              if (item.id == id) {
+                let x = collections.indexOf(item);
+
+                if (x == 0) setSelectedCollection(collections[x + 1].id);
+                if (x >= 1) setSelectedCollection(collections[x - 1].id);
+              }
+            });
+            return prev.filter((collection) => collection.id !== id);
+          });
         }
       });
     }
@@ -151,23 +164,30 @@ const CollectionsSidebar = ({
                 variant="light"
                 color="default"
                 onPress={(e) => {
-                  e.stopPropagation(); // Prevent triggering collection click
                   handleOpenModal(collection);
                 }}
               >
-                <MdEdit />
+                <MdEdit size={15} />
               </Button>
+              <ModalTimeLine
+                setCollections={setCollections}
+                darkMode={darkMode}
+                collectionScenes={filteredScenes}
+                collections={collections}
+                selectedCollection={selectedCollection}
+                setSelectedCollection={setSelectedCollection}
+                collectionSelected={collection}
+              />
               <Button
                 className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                 size="sm"
                 variant="light"
                 color="default"
                 onPress={(e) => {
-                  e.stopPropagation(); // Prevent triggering collection click
                   handleDeleteCollection(collection.id);
                 }}
               >
-                <FaTrashAlt />
+                <FaTrashAlt size={15} />
               </Button>
             </div>
           </li>

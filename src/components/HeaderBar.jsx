@@ -8,6 +8,7 @@ import { TbLayoutOff } from "react-icons/tb";
 import { TbLayout } from "react-icons/tb";
 import ModalVideoWall from "./videowall/ModalVideoWall";
 import Swal from "sweetalert2";
+import { MdDownload, MdRefresh, MdUpload } from "react-icons/md";
 
 const HeaderBar = ({
   darkMode,
@@ -158,6 +159,30 @@ const HeaderBar = ({
       >
         <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
         <div className="flex gap-2 ml-2">
+          <Tooltip content={"رفرش کردن صفحه"}>
+            <Button
+              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
+              size="lg"
+              variant="solid"
+              color={"default"}
+              onPress={() => {
+                Swal.fire({
+                  title: "صفحه رفرش شود؟",
+                  showDenyButton: true,
+                  showCancelButton: false,
+                  confirmButtonText: "بله",
+                  denyButtonText: `خیر`,
+                  confirmButtonColor: "green",
+                  denyButtonColor: "gray",
+                }).then((result) => {
+                  if (result.isConfirmed) location.reload();
+                });
+              }}
+            >
+              <MdRefresh size={20} />
+            </Button>
+          </Tooltip>
+
           <Tooltip content="وارد کردن پروژه">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
@@ -166,7 +191,7 @@ const HeaderBar = ({
               color="default"
               onPress={handleFileUpload}
             >
-              <FaDownload />
+              <MdDownload size={20} />
             </Button>
           </Tooltip>
           <Tooltip content="خروجی گرفتن از پروژه">
@@ -177,7 +202,7 @@ const HeaderBar = ({
               color="default"
               onPress={handleExportProject}
             >
-              <FaUpload />
+              <MdUpload size={20} />
             </Button>
           </Tooltip>
           <Tooltip content="تغییر ظاهر">
@@ -190,7 +215,7 @@ const HeaderBar = ({
               color="default"
               onPress={toggleLayout}
             >
-              <TbLayoutSidebarLeftCollapse size={20} />
+              <TbLayoutSidebarLeftCollapse size={25} />
             </Button>
           </Tooltip>
 
@@ -216,7 +241,7 @@ const HeaderBar = ({
                 });
               }}
             >
-              <FaWifi />
+              <FaWifi size={20} />
             </Button>
           </Tooltip>
 
@@ -245,7 +270,7 @@ const HeaderBar = ({
                   });
                 }}
               >
-                <TbLayout />
+                <TbLayout size={20} />
               </Button>
             ) : (
               <Button
@@ -279,7 +304,7 @@ const HeaderBar = ({
                   });
                 }}
               >
-                <TbLayoutOff />
+                <TbLayoutOff size={20} />
               </Button>
             )}
           </Tooltip>

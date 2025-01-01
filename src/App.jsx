@@ -31,7 +31,9 @@ import Konva from "konva";
 import VideoWallSidebar from "./components/sidebar/VideoWallSidebar";
 import CollectionsSidebar from "./components/sidebar/CollectionsSidebar";
 import UsageSidebar from "./components/sidebar/UsageSidebar";
-import { MdCollections, MdCollectionsBookmark } from "react-icons/md";
+import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-icons/md";
+import { BsDatabase, BsDatabaseFill, BsDatabaseFillAdd } from "react-icons/bs";
+import { RiPagesFill } from "react-icons/ri";
 
 let anim;
 let motherLayer;
@@ -75,12 +77,14 @@ function App() {
       scenes: [1],
     },
   ]);
+  console.log("collections::: ", collections);
+
   const [selectedCollection, setSelectedCollection] = useState(1);
   const [sources, setSources] = useState([]);
 
-  const filteredScenes = scenes.filter((scene) =>
-    collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id)
-  );
+  const filteredScenes = scenes.filter((scene) => {
+    return collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id);
+  });
 
   let host = config.host;
   let port = config.port;
@@ -2339,7 +2343,7 @@ function App() {
           color="default"
           onPress={() => openModal("resources")}
         >
-          <FaFileAlt size={17} />
+          <BsDatabaseFill size={17} />
         </Button>
       </Tooltip>
       <Tooltip showArrow={true} placement="right-start" content="صحنه‌ها">
@@ -2350,7 +2354,7 @@ function App() {
           color="default"
           onPress={() => openModal("scenes")}
         >
-          <FaVideo size={17} />
+          <RiPagesFill size={17} />
         </Button>
       </Tooltip>
       <Tooltip showArrow={true} placement="right-start" content="مجموعه‌ها">
@@ -2364,7 +2368,7 @@ function App() {
           <MdCollectionsBookmark size={17} />
         </Button>
       </Tooltip>
-      <Tooltip showArrow={true} placement="right-start" content="تنظیمات">
+      <Tooltip showArrow={true} placement="right-start" content="منابع استفاده شده">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
           size="sm"
@@ -2372,7 +2376,7 @@ function App() {
           color="default"
           onPress={() => openModal("UsageSidebar")}
         >
-          <FaTools size={17} />
+          <BsDatabaseFillAdd size={17} />
         </Button>
       </Tooltip>
     </div>
@@ -2707,6 +2711,7 @@ function App() {
                   setSelectedCollection={setSelectedCollection} // Pass setter function
                   selectedCollection={selectedCollection} // Pass selected collection
                   setSelectedScene={setSelectedScene} // Pass setSelectedScene function
+                  filteredScenes={filteredScenes}
                 />
               </>
             )}
@@ -2734,7 +2739,7 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <ResourcesSidebar
-              resources={sources}
+              resources={getSelectedScene()?.resources}
               darkMode={darkMode}
               allDataMonitors={allDataMonitors}
               fitToMonitors={fitToMonitors}
@@ -2766,7 +2771,7 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <UsageSidebar
-              resources={getSelectedScene()?.resources}
+              resources={sources.filter((item) => item.sceneId === getSelectedScene().id)}
               darkMode={darkMode}
               allDataMonitors={allDataMonitors}
               fitToMonitors={fitToMonitors}
@@ -2797,7 +2802,7 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <ScenesSidebar
-              scenes={filteredScenes}
+              scenes={filteredScenes} // Use filteredScenes instead of all scenes
               darkMode={darkMode}
               selectedScene={selectedScene}
               setSelectedScene={setSelectedScene}
@@ -2822,6 +2827,7 @@ function App() {
               setSelectedCollection={setSelectedCollection} // Pass setter function
               selectedCollection={selectedCollection} // Pass selected collection
               setSelectedScene={setSelectedScene} // Pass setSelectedScene function
+              filteredScenes={filteredScenes}
             />
           </ModalBody>
         </ModalContent>

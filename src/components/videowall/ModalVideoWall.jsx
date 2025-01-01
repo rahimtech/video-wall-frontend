@@ -28,7 +28,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
           color="default"
           onPress={onOpen}
         >
-          <BsGrid3X3 />
+          <BsGrid3X3 size={20} />
         </Button>
       </Tooltip>
       <Modal
