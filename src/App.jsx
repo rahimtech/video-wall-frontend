@@ -59,6 +59,9 @@ function App() {
   const [scenes, setScenes] = useState([
     { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: new Konva.Layer() },
   ]);
+  const scenesRef = useRef(scenes);
+  const videoWallsRef = useRef(videoWalls);
+
   console.log("scenes::: ", scenes);
   // console.log("scenes::: ", scenes);
 
@@ -156,12 +159,11 @@ function App() {
 
     const updatedScenes = scenes.map((scene) => {
       const layer = scene.layer;
-      console.log("START");
       if (layer) {
         layer.destroyChildren();
       }
 
-      const updatedVideoWalls = [...jsonData];
+      let updatedVideoWalls = [...jsonData];
 
       jsonData.forEach((monitor, index) => {
         const group = new Konva.Group({
@@ -190,7 +192,7 @@ function App() {
           x: 10,
           y: 10,
           text: `Monitor ${index + 1}\nX: ${monitor.x}, Y: ${monitor.y}`,
-          fontSize: 18,
+          fontSize: 50,
           fill: "white",
           align: "left",
           verticalAlign: "top",
@@ -200,9 +202,6 @@ function App() {
         let previousPosition = { x: monitor.x, y: monitor.y };
 
         group.on("dragmove", (e) => {
-          // console.log("isToggleVideoWall::: ", isToggleVideoWall);
-          if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
-
           const { x, y } = e.target.position();
           const newX = Math.round(x / step) * step; // گام‌های ۵ پیکسلی
           const newY = Math.round(y / step) * step;
@@ -214,14 +213,10 @@ function App() {
         });
 
         group.on("dragend", (e) => {
-          // console.log("isToggleVideoWall::: ", isToggleVideoWall);
-          if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
-
           const targetRect = group.getClientRect();
 
           let hasCollision = false;
 
-          // بررسی برخورد با سایر مانیتورها
           layer.children.forEach((otherGroup) => {
             if (otherGroup === group) return;
             const otherRect = otherGroup.getClientRect();
@@ -238,13 +233,12 @@ function App() {
           });
 
           if (hasCollision) {
-            // تغییر رنگ مستطیل در حال حرکت به قرمز
             rect.fill("red");
             setTimeout(() => {
-              rect.fill("#161616"); // بازگشت به رنگ اولیه
+              rect.fill("#161616");
               layer.draw();
-            }, 500); // پس از ۵۰۰ میلی‌ثانیه بازگشت به رنگ اولیه
-            e.target.position(previousPosition); // بازگشت به موقعیت قبلی
+            }, 500);
+            e.target.position(previousPosition);
           } else {
             // ذخیره موقعیت جدید
             const newX = e.target.x();
@@ -252,6 +246,7 @@ function App() {
             previousPosition = { x: newX, y: newY };
 
             // به‌روزرسانی در آرایه videoWalls
+            updatedVideoWalls = videoWallsRef.current;
             const monitorIndex = updatedVideoWalls.findIndex((m) => m.id === monitor.id);
             if (monitorIndex !== -1) {
               updatedVideoWalls[monitorIndex] = {
@@ -260,6 +255,7 @@ function App() {
                 y: newY,
               };
             }
+            arrangeMForScenes(updatedVideoWalls);
           }
 
           layer.draw(); // بازسازی لایه
@@ -277,6 +273,48 @@ function App() {
     });
 
     setScenes(updatedScenes);
+  };
+
+  useEffect(() => {
+    scenesRef.current = scenes;
+  }, [scenes]);
+
+  useEffect(() => {
+    videoWallsRef.current = videoWalls;
+  }, [videoWalls]);
+
+  const arrangeMForScenes = (updatedVideoWalls) => {
+    const updatedScenesIn = scenesRef.current.map((scene) => {
+      const layer = scene.layer;
+      if (!layer) return scene;
+
+      const monitors = layer.children;
+
+      monitors.forEach((group) => {
+        console.log("group::: ", group);
+        if (group.attrs.catFix === "monitor") {
+          group.draggable(isToggleVideoWall);
+
+          const monitorId = parseInt(group.id().split("-")[2], 10);
+          const matchingWall = updatedVideoWalls.find((wall) => wall.id === monitorId);
+
+          if (matchingWall) {
+            const { x: newX, y: newY } = matchingWall;
+            group.position({ x: newX, y: newY });
+
+            const textNode = group.findOne(".monitorText");
+            if (textNode) {
+              textNode.text(`Monitor ${monitorId}\nX: ${newX}, Y: ${newY}`);
+            }
+          }
+        }
+      });
+
+      layer.draw();
+      return scene;
+    });
+
+    setScenes(updatedScenesIn);
   };
 
   const arrangeMonitors = (rows, cols) => {
@@ -340,7 +378,7 @@ function App() {
       layer.destroyChildren();
     }
 
-    const updatedVideoWalls = [...monitors];
+    let updatedVideoWalls = [...monitors];
 
     monitors.forEach((monitor, index) => {
       const group = new Konva.Group({
@@ -369,19 +407,15 @@ function App() {
         x: 10,
         y: 10,
         text: `Monitor ${index + 1}\nX: ${monitor.x}, Y: ${monitor.y}`,
-        fontSize: 18,
+        fontSize: 50,
         fill: "white",
         align: "left",
         verticalAlign: "top",
         name: "monitorText",
       });
-
       let previousPosition = { x: monitor.x, y: monitor.y };
 
       group.on("dragmove", (e) => {
-        // console.log("isToggleVideoWall::: ", isToggleVideoWall);
-        if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
-
         const { x, y } = e.target.position();
         const newX = Math.round(x / step) * step; // گام‌های ۵ پیکسلی
         const newY = Math.round(y / step) * step;
@@ -393,14 +427,10 @@ function App() {
       });
 
       group.on("dragend", (e) => {
-        // console.log("isToggleVideoWall::: ", isToggleVideoWall);
-        if (isToggleVideoWall) return; // اگر درگ غیرفعال باشد، کاری انجام نشود
-
         const targetRect = group.getClientRect();
 
         let hasCollision = false;
 
-        // بررسی برخورد با سایر مانیتورها
         layer.children.forEach((otherGroup) => {
           if (otherGroup === group) return;
           const otherRect = otherGroup.getClientRect();
@@ -431,6 +461,8 @@ function App() {
           previousPosition = { x: newX, y: newY };
 
           // به‌روزرسانی در آرایه videoWalls
+          updatedVideoWalls = videoWallsRef.current;
+
           const monitorIndex = updatedVideoWalls.findIndex((m) => m.id === monitor.id);
           if (monitorIndex !== -1) {
             updatedVideoWalls[monitorIndex] = {
@@ -439,6 +471,8 @@ function App() {
               y: newY,
             };
           }
+
+          arrangeMForScenes(updatedVideoWalls);
         }
 
         layer.draw(); // بازسازی لایه
@@ -727,36 +761,124 @@ function App() {
 
       layer.children.forEach((group) => {
         if (group.attrs.catFix === "monitor") {
-          // تنظیم قابلیت درگ
-          group.draggable(isToggleVideoWall);
+          const currentDraggable = group.draggable();
+          const newDraggable = isToggleVideoWall;
 
-          // هماهنگ‌سازی موقعیت‌ها با videoWalls
-          const monitorId = parseInt(group.id().split("-")[2], 10);
-          const matchingWall = videoWalls.find((wall) => wall.id === monitorId);
-          if (matchingWall) {
-            const currentPosition = group.position();
-            if (currentPosition.x !== matchingWall.x || currentPosition.y !== matchingWall.y) {
-              group.position({ x: matchingWall.x, y: matchingWall.y });
-
-              // به‌روزرسانی متن مانیتور
-              const textNode = group.findOne(".monitorText");
-              if (textNode) {
-                textNode.text(`Monitor ${monitorId}\nX: ${matchingWall.x}, Y: ${matchingWall.y}`);
-              }
-              updated = true; // تغییری رخ داده است
-            }
+          if (currentDraggable !== newDraggable) {
+            group.draggable(newDraggable);
+            updated = true;
           }
         }
       });
 
-      layer.draw(); // بازسازی لایه
+      layer.draw();
       return scene;
     });
 
     if (updated) {
-      setScenes(updatedScenes); // به‌روزرسانی state فقط در صورت تغییر
+      setScenes(updatedScenes);
     }
-  }, [isToggleVideoWall, videoWalls]);
+  }, [isToggleVideoWall, scenes]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("displays_updated", (updatedDisplays) => {
+        console.log("🟠 Updated displays received from server:", updatedDisplays);
+
+        updatedDisplays.forEach((display) => {
+          const layer = scenes[0].layer; // فرض بر اینکه فقط یک لایه دارید
+          const group = layer.findOne(`#monitor-group-${display.id}`);
+
+          if (group) {
+            const rect = group.findOne("Rect");
+            const text = group.findOne(".monitorText");
+
+            if (!display.connected) {
+              // مانیتور قطع شده
+              if (rect) rect.fill("red");
+              if (text) text.text(`Monitor ${display.id} (Disconnected)`);
+
+              if (!group.findOne(".disconnectIcon")) {
+                const disconnectIcon = new Konva.Text({
+                  text: "❌",
+                  fontSize: 30,
+                  fill: "white",
+                  x: rect.width() / 2 - 15,
+                  y: rect.height() / 2 - 15,
+                  name: "disconnectIcon",
+                });
+                group.add(disconnectIcon);
+              }
+            } else {
+              // مانیتور متصل است
+              if (rect) rect.fill("#161616");
+              if (text) text.text(`Monitor ${display.id}`);
+              const disconnectIcon = group.findOne(".disconnectIcon");
+              if (disconnectIcon) disconnectIcon.destroy();
+            }
+          }
+
+          layer.draw();
+        });
+      });
+    }
+  }, [socket, scenes]);
+
+  // AmirHossein Solutions .. ->
+  // useEffect(() => {
+  //   if (socket) {
+  //     socket.on("display_error", (disconnectedIds) => {
+  //       console.log("🟠 Disconnected monitor IDs received:", disconnectedIds);
+
+  //       const disconnectedSet = new Set(disconnectedIds); // تبدیل به Set برای بررسی سریع
+
+  //       scenes.forEach((scene) => {
+  //         const layer = scene.layer; // دسترسی به لایه مربوطه
+  //         if (!layer) return;
+
+  //         layer.children.forEach((group) => {
+  //           if (group.attrs.catFix === "monitor") {
+  //             const monitorId = parseInt(group.id().split("-")[2], 10); // استخراج آی‌دی مانیتور
+  //             const rect = group.findOne("Rect");
+  //             const text = group.findOne(".monitorText");
+  //             const disconnectIcon = group.findOne(".disconnectIcon");
+
+  //             if (disconnectedSet.has(monitorId)) {
+  //               // مانیتور قطع شده
+  //               if (rect) rect.fill("red");
+  //               if (text) text.text(`Monitor ${monitorId} (Disconnected)`);
+  //               if (!disconnectIcon) {
+  //                 const newDisconnectIcon = new Konva.Text({
+  //                   text: "❌",
+  //                   fontSize: 30,
+  //                   fill: "white",
+  //                   x: rect.width() / 2 - 15,
+  //                   y: rect.height() / 2 - 15,
+  //                   name: "disconnectIcon",
+  //                 });
+  //                 group.add(newDisconnectIcon);
+  //               }
+  //             } else {
+  //               // مانیتور متصل است
+  //               if (rect) rect.fill("#161616");
+  //               if (text) text.text(`Monitor ${monitorId}`);
+  //               if (disconnectIcon) disconnectIcon.destroy();
+  //             }
+  //           }
+  //         });
+
+  //         layer.draw(); // بازسازی لایه
+  //       });
+  //     });
+  //   }
+
+  //   return () => {
+  //     if (socket) {
+  //       socket.off("displays_error");
+  //     }
+  //   };
+  // }, [socket, scenes]);
+
   useEffect(() => {
     async function initializeSocket() {
       try {
@@ -813,6 +935,10 @@ function App() {
               y: item.bounds.y,
               width: item.bounds.width,
               height: item.bounds.height,
+              // x: item.x,
+              // y: item.y,
+              // width: item.width,
+              // height: item.height,
               name: item.label,
             }));
             setVideoWalls(displays);
@@ -2405,6 +2531,7 @@ function App() {
         confirmButtonText: "باشه",
       });
     } else {
+      arrangeMForScenes(updatedVideoWalls);
       setVideoWalls(updatedVideoWalls); // به‌روزرسانی state اگر برخوردی وجود نداشت
     }
   };
