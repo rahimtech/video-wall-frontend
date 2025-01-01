@@ -154,7 +154,6 @@ const UsageSidebar = ({
                   videoName={resource.id}
                   monitors={allDataMonitors}
                   fitToMonitors={fitToMonitors}
-                  onAddToScene={() => addVideo(resource.videoElement)}
                 />
                 <Tooltip content="حذف از صحنه">
                   <Button

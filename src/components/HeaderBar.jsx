@@ -183,7 +183,7 @@ const HeaderBar = ({
             </Button>
           </Tooltip>
 
-          <Tooltip content="وارد کردن پروژه">
+          <Tooltip content="وارد کردن فایل">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -194,7 +194,7 @@ const HeaderBar = ({
               <MdDownload size={20} />
             </Button>
           </Tooltip>
-          <Tooltip content="خروجی گرفتن از پروژه">
+          <Tooltip content="خروجی گرفتن از ویدیووال">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"

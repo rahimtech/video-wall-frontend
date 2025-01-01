@@ -1104,18 +1104,18 @@ function App() {
           rotation: "0",
         },
       });
-      allData = allData.map((item) => {
-        if (item.id === id) {
-          return {
-            ...item,
-            x: x,
-            y: y,
-            width: width,
-            height: height,
-          };
-        }
-        return item;
-      });
+      // allData = allData.map((item) => {
+      //   if (item.id === id) {
+      //     return {
+      //       ...item,
+      //       x: x,
+      //       y: y,
+      //       width: width,
+      //       height: height,
+      //     };
+      //   }
+      //   return item;
+      // });
     }
   };
 
@@ -1455,7 +1455,8 @@ function App() {
       x: 0,
       y: 0,
       draggable: true,
-      id: `input-${input.id}`,
+      id: `${input.id}`,
+      type: "input",
       uniqId,
     });
 
