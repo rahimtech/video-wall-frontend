@@ -79,8 +79,6 @@ const CollectionsSidebar = ({
 
       setSelectedCollection(uniqId);
       setSelectedScene(newCol.scenes[0]);
-
-      // Set the selected collection in App component
     }
     onClose();
   };

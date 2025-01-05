@@ -8,9 +8,11 @@ import {
   Button,
   Checkbox,
   useDisclosure,
+  Tooltip,
 } from "@nextui-org/react";
 import { FaWatchmanMonitoring } from "react-icons/fa";
 import { MdWindow } from "react-icons/md";
+import Toolbar from "react-multi-date-picker/plugins/toolbar";
 
 const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, item }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -31,15 +33,17 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, i
 
   return (
     <>
-      <Button
-        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-        size="md"
-        variant="light"
-        color="default"
-        onPress={onOpen}
-      >
-        <MdWindow />
-      </Button>
+      <Tooltip content="همسایز کردن با مانیتور">
+        <Button
+          className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+          size="md"
+          variant="light"
+          color="default"
+          onPress={onOpen}
+        >
+          <MdWindow size={15} />
+        </Button>
+      </Tooltip>
       <Modal scrollBehavior="outside" isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
           {(onClose) => (

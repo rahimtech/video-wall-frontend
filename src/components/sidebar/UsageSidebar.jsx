@@ -9,7 +9,7 @@ import {
 } from "@nextui-org/react";
 import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/fa";
 import ModalMonitorSelection from "../ModalMonitorSelection";
-import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
+import { MdAddBox, MdDelete, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 
 const UsageSidebar = ({
@@ -52,7 +52,6 @@ const UsageSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
-    console.log("resourceId::: ", resourceId);
     updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
@@ -93,7 +92,9 @@ const UsageSidebar = ({
       {/* Fixed Header */}
       <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">منابع استفاده شده</h2>
+          <h2 className="text-md font-semibold">
+            ورودی و فایل‌های استفاده شده {`(${resources.length})`}
+          </h2>
         </div>
       </div>
 
@@ -128,7 +129,7 @@ const UsageSidebar = ({
                   )}
                 </div>
                 <div className="flex items-center gap-1 w-[50%] justify-end">
-                  {resource.type === "video" && (
+                  {/* {resource.type === "video" && (
                     <>
                       <Button
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -149,7 +150,7 @@ const UsageSidebar = ({
                         <FaPause />
                       </Button>
                     </>
-                  )}
+                  )} */}
 
                   <ModalMonitorSelection
                     item={resource}
@@ -164,12 +165,12 @@ const UsageSidebar = ({
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() => deleteResourceFromScene(resource.id)}
+                      onPress={() => deleteResourceFromScene(resource.uniqId ?? resource.id)}
                     >
-                      <MdDeleteSweep />
+                      <MdDelete size={15} />
                     </Button>
                   </Tooltip>
-                  <Dropdown>
+                  {/* <Dropdown>
                     <DropdownTrigger>
                       <Button
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -213,7 +214,7 @@ const UsageSidebar = ({
                         {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
                       </DropdownItem>
                     </DropdownMenu>
-                  </Dropdown>
+                  </Dropdown> */}
                 </div>
               </li>
             );

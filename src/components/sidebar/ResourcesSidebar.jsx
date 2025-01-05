@@ -96,7 +96,7 @@ const ResourcesSidebar = ({
       {/* Fixed Header */}
       <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">مخزن</h2>
+          <h2 className="text-md font-semibold">ورودی و فایل‌ها {`(${resources.length})`}</h2>
           <Dropdown dir="rtl" className="vazir">
             <DropdownTrigger>
               <Button
@@ -221,7 +221,7 @@ const ResourcesSidebar = ({
                 )}
               </div>
               <div className="flex items-center gap-1 w-[50%] justify-end">
-                {/* <Button
+                <Button
                   className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                   size="sm"
                   variant="light"
@@ -229,7 +229,7 @@ const ResourcesSidebar = ({
                   onPress={() => deleteResource(resource.id)}
                 >
                   <FaTrashAlt />
-                </Button> */}
+                </Button>
                 <Tooltip content="افزودن به صحنه">
                   {resource.type == "image" ? (
                     <>

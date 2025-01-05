@@ -88,7 +88,6 @@ function App() {
 
   const [selectedCollection, setSelectedCollection] = useState(1);
   const [sources, setSources] = useState([]);
-  console.log("sources::: ", sources);
   const [pendingOperations, setPendingOperation] = useState([]);
   const [flagOperations, setFlagOperation] = useState(false);
 
@@ -793,7 +792,6 @@ function App() {
 
           console.log("INIT DATA: ", data);
           if (flagOperations) {
-            console.log("Skip INIT==");
             setFlagOperation(false);
             return;
           }
@@ -805,6 +803,7 @@ function App() {
               width: item.width,
               height: item.height,
               name: item.label,
+              type: "input",
             }));
             setInputs(inputs);
           }
@@ -830,7 +829,7 @@ function App() {
               const name = `مانیتور ${parsedNumber}`;
 
               return {
-                ...monitor, // بازگرداندن کل داده‌های موجود در هر مانیتور
+                ...monitor,
                 numberMonitor: parseInt(parsedNumber),
                 id,
                 name,
@@ -838,7 +837,7 @@ function App() {
                 y: yTop,
                 width,
                 height,
-                connected: monitor.connected !== false, // اتصال یا عدم اتصال
+                connected: monitor.connected !== false,
                 monitorUniqId: monitor["Monitor ID"],
               };
             });
@@ -925,7 +924,7 @@ function App() {
                 img.src = url;
                 const imageName = "imageBase" + counterImages++;
                 endObj = {
-                  name: imageName,
+                  name: item || imageName,
                   imageElement: img,
                 };
               } else if (item.endsWith(".mp4")) {
@@ -937,13 +936,14 @@ function App() {
                 video.setAttribute("name", videoName);
                 endObj = {
                   videoElement: video,
-                  name: videoName,
+                  name: item || videoName,
                 };
               }
 
               endObj = {
                 ...endObj,
                 id: "uploads/" + item,
+                fileName: item,
                 sceneId: 1,
                 type,
                 content: url,
@@ -1255,8 +1255,7 @@ function App() {
       });
     }
   };
-
-  const deleteResource = (id) => {
+  const deleteResource = (fileName) => {
     Swal.fire({
       title: "آیا مطمئن هستید؟",
       icon: "warning",
@@ -1267,15 +1266,13 @@ function App() {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        sendOperation("source", {
-          action: "remove",
-          id,
-          payload: {},
-        });
+        await axios
+          .delete(`http://${host}:${port}/delete/${trimPrefix(fileName, "uploads/")}`)
+          .then(console.log("deleted"));
 
-        updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
+        updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== fileName));
 
-        const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
+        const groupToRemove = getSelectedScene()?.layer.findOne(`#${fileName}`);
         if (groupToRemove) {
           groupToRemove.destroy();
           getSelectedScene()?.layer.draw();
@@ -1284,7 +1281,7 @@ function App() {
         }
 
         const videoElement = getSelectedScene()?.resources.find(
-          (item) => item.id === id
+          (item) => item.id === fileName
         )?.videoElement;
         if (videoElement) {
           videoElement.pause();
@@ -1322,7 +1319,6 @@ function App() {
 
   const handleFileInput = async (e, type) => {
     const file = e.target.files[0];
-    console.log("file::: ", file);
 
     if (file) {
       const fileType = file.type.split("/")[0];
@@ -1331,7 +1327,7 @@ function App() {
         let img = new Image();
         img.src = imageURL;
         const id = crypto.randomUUID();
-        const imageName = "image" + counterImages++;
+        const imageName = file.name.split(".").slice(0, -1).join(".");
         img.addEventListener("load", async () => {
           const sourceName = await uploadVideo(file, id);
           let newResource = {
@@ -1344,7 +1340,6 @@ function App() {
             height: img.height,
             x: 0,
             y: 0,
-            z: 0,
             rotation: 0,
             created_at: new Date().toISOString(),
           };
@@ -1354,7 +1349,7 @@ function App() {
         const video = document.createElement("video");
         video.src = URL.createObjectURL(file);
         const id = crypto.randomUUID();
-        const videoName = "video" + counterVideos++;
+        const videoName = file.name.split(".").slice(0, -1).join(".");
         video.setAttribute("name", videoName);
         const sourceName = await uploadVideo(file, id);
         video.setAttribute("id", sourceName);
@@ -1428,6 +1423,7 @@ function App() {
           y: 0,
           width: img.imageElement.width,
           height: img.imageElement.height,
+          name: img.name,
         },
       });
     }
@@ -1454,6 +1450,8 @@ function App() {
         fontSize: 50,
         fill: "black",
         fontFamily: "Arial",
+        uniqId,
+        id: uniqId,
         padding: 5,
         align: "center",
       });
@@ -1463,6 +1461,7 @@ function App() {
         y: mode ? 0 : img.y,
         draggable: true,
         uniqId,
+        id: uniqId,
         rotation: img.rotation || 0,
       });
 
@@ -1476,6 +1475,7 @@ function App() {
           nodes: [group],
           enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
           rotateEnabled: true,
+          id: uniqId,
         });
         selectedSceneLayer.add(transformer);
         transformer.attachTo(group);
@@ -1560,7 +1560,7 @@ function App() {
       x: input.x || 0,
       y: input.y || 0,
       draggable: true,
-      id: `${input.id}`,
+      id: uniqId,
       type: "input",
       uniqId,
       rotation: input.rotation || 0,
@@ -1572,6 +1572,8 @@ function App() {
       width: input.width,
       height: input.height,
       fill: "lightblue",
+      id: uniqId,
+      uniqId,
     });
 
     const text = new Konva.Text({
@@ -1580,6 +1582,8 @@ function App() {
       text: `${input.name}\n(${input.type})`,
       fontSize: 50,
       fill: "black",
+      uniqId,
+      id: uniqId,
     });
 
     group.add(rect);
@@ -1608,6 +1612,7 @@ function App() {
       nodes: [group],
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
       rotateEnabled: true,
+      id: uniqId,
     });
 
     group.on("click", () => {
@@ -1714,6 +1719,7 @@ function App() {
       nodes: [group],
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
       rotateEnabled: true,
+      id: uniqId,
     });
 
     group.on("click", () => {
@@ -1839,6 +1845,8 @@ function App() {
 
     const transformer = new Konva.Transformer({
       nodes: [textNode],
+      id: uniqId,
+
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
       boundBoxFunc: (oldBox, newBox) => {
         newBox.width = Math.max(30, newBox.width);
@@ -2082,7 +2090,6 @@ function App() {
   //---------------Start-Video-Segment-----------------
 
   const addVideo = (videoItem, mode = true) => {
-    console.log("videoItem::: ", videoItem);
     let uniqId = mode ? crypto.randomUUID() : videoItem.id;
 
     const selectedSceneLayer = getSelectedScene()?.layer;
@@ -2121,6 +2128,8 @@ function App() {
         fill: "black",
         fontFamily: "Arial",
         padding: 5,
+        id: uniqId,
+        uniqId,
         align: "center",
       });
 
@@ -2128,6 +2137,7 @@ function App() {
         x: mode ? 0 : videoItem.x,
         y: mode ? 0 : videoItem.y,
         draggable: true,
+        id: uniqId,
         uniqId,
         rotation: videoItem.rotation || 0,
       });
@@ -2160,6 +2170,7 @@ function App() {
         nodes: [group],
         enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
         rotateEnabled: true,
+        id: uniqId,
       });
 
       group.on("click", () => {
@@ -2236,6 +2247,8 @@ function App() {
           fill: "black",
           fontFamily: "Arial",
           padding: 5,
+          id: uniqId,
+          uniqId,
           align: "center",
         });
 
@@ -2244,6 +2257,7 @@ function App() {
           y: mode ? 0 : videoItem.y,
           draggable: true,
           uniqId,
+          id: uniqId,
           rotation: videoItem.rotation || 0,
         });
 
@@ -2253,7 +2267,7 @@ function App() {
           height: videoItem.height,
           name: "object",
           fill: "gray",
-          id: videoItem.id,
+          id: uniqId,
           uniqId,
           x: 0,
           y: 0,
@@ -2275,6 +2289,7 @@ function App() {
           nodes: [group],
           enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
           rotateEnabled: true,
+          id: uniqId,
         });
 
         group.on("click", () => {
@@ -2426,11 +2441,16 @@ function App() {
         });
 
         // updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
-        setSources((prev) => prev.filter((item) => item.id !== id));
+        setSources((prev) => prev.filter((item) => (item.uniqId ?? item.id) !== id));
 
-        const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
+        console.log("getSelectedScene()?.layer::: ", getSelectedScene()?.layer);
+        let groupToRemove = getSelectedScene()?.layer.find(`#${id}`);
+        console.log("groupToRemove::: ", groupToRemove);
+
         if (groupToRemove) {
-          groupToRemove.destroy();
+          for (let index = 0; index < groupToRemove.length; index++) {
+            groupToRemove[index].remove();
+          }
           getSelectedScene()?.layer.draw();
         } else {
           // console.error(`Group with id ${id} not found`);
@@ -2464,7 +2484,7 @@ function App() {
           <BsDatabaseFill size={17} />
         </Button>
       </Tooltip>
-      <Tooltip showArrow={true} placement="right-start" content="صحنه‌ها">
+      {/* <Tooltip showArrow={true} placement="right-start" content="صحنه‌ها">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
           size="sm"
@@ -2485,8 +2505,8 @@ function App() {
         >
           <MdCollectionsBookmark size={17} />
         </Button>
-      </Tooltip>
-      <Tooltip showArrow={true} placement="right-start" content="منابع استفاده شده">
+      </Tooltip> */}
+      <Tooltip showArrow={true} placement="right-start" content="ورودی و فایل‌های استفاده شده">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
           size="sm"
@@ -2502,43 +2522,43 @@ function App() {
 
   // ----------------- Monotor-Setting ---------------
 
-  const LayoutDropdownArrMonitor = () => {
-    return (
-      <div className="relative left-0 top-[200px] z-[100]">
-        <Dropdown>
-          <DropdownTrigger>
-            <Button size="sm" fullWidth variant="solid" color="primary">
-              چیدمان مانیتورها
-            </Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            aria-label="تنظیم چیدمان"
-            color="secondary"
-            onAction={(key) => {
-              const [rows, cols] = key.split("x").map(Number);
-              arrangeMonitors(rows, cols);
-            }}
-          >
-            <DropdownItem key="2x2">۲×۲</DropdownItem>
-            <DropdownItem key="3x3">۳×۳</DropdownItem>
-            <DropdownItem key="4x4">۴×۴</DropdownItem>
-            <DropdownItem key="5x5">۵×۵</DropdownItem>
-            <DropdownItem key="6x6">۶×۶</DropdownItem>
-            <DropdownItem key="7x7">۷×۷</DropdownItem>
-            <DropdownItem key="8x8">۸×۸</DropdownItem>
-            <DropdownItem key="9x9">۹×۹</DropdownItem>
-            <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
-      </div>
-    );
-  };
+  // const LayoutDropdownArrMonitor = () => {
+  //   return (
+  //     <div className="relative left-0 top-[200px] z-[100]">
+  //       <Dropdown>
+  //         <DropdownTrigger>
+  //           <Button size="sm" fullWidth variant="solid" color="primary">
+  //             چیدمان مانیتورها
+  //           </Button>
+  //         </DropdownTrigger>
+  //         <DropdownMenu
+  //           aria-label="تنظیم چیدمان"
+  //           color="secondary"
+  //           onAction={(key) => {
+  //             const [rows, cols] = key.split("x").map(Number);
+  //             arrangeMonitors(rows, cols);
+  //           }}
+  //         >
+  //           <DropdownItem key="2x2">۲×۲</DropdownItem>
+  //           <DropdownItem key="3x3">۳×۳</DropdownItem>
+  //           <DropdownItem key="4x4">۴×۴</DropdownItem>
+  //           <DropdownItem key="5x5">۵×۵</DropdownItem>
+  //           <DropdownItem key="6x6">۶×۶</DropdownItem>
+  //           <DropdownItem key="7x7">۷×۷</DropdownItem>
+  //           <DropdownItem key="8x8">۸×۸</DropdownItem>
+  //           <DropdownItem key="9x9">۹×۹</DropdownItem>
+  //           <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
+  //         </DropdownMenu>
+  //       </Dropdown>
+  //     </div>
+  //   );
+  // };
 
   const MonitorLayoutModal = () => {
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const [selectedLayout, setSelectedLayout] = useState(null);
     const [arrangedMonitors, setArrangedMonitors] = useState([]);
-    const [selectedMonitors, setSelectedMonitors] = useState([]); // اضافه کردن وضعیت برای ذخیره مانیتورهای انتخاب شده
+    const [selectedMonitors, setSelectedMonitors] = useState([]);
 
     const handleLayoutSelect = (key) => {
       const [rows, cols] = key.split("x").map(Number);
@@ -2691,7 +2711,6 @@ function App() {
                     </div>
                   )}
 
-                  {/* دکمه ریست */}
                   <Button
                     color="danger"
                     variant="outline"
@@ -2892,10 +2911,17 @@ function App() {
         setConnectionMode={setConnectionMode}
         isToggleVideoWall={isToggleVideoWall}
         setIsToggleVideoWall={setIsToggleVideoWall}
+        setSources={setSources}
+        trimPrefix={trimPrefix}
+        addImage={addImage}
+        addInput={addInput}
+        addVideo={addVideo}
+        selectedScene={selectedScene}
+        socket={socket}
       />
       {isToggleVideoWall && videoWalls.length > 0 && (
         <div className="flex flex-col absolute right-0 m-4 gap-3 ">
-          <MonitorLayoutModal />
+          {/* <MonitorLayoutModal /> */}
           <MonitorPositionEditor
             monitors={videoWalls}
             updateMonitorPosition={updateMonitorPosition}
@@ -2938,7 +2964,7 @@ function App() {
       ) : (
         <>
           <motion.div
-            className={`grid grid-cols-4 gap-[10px] p-[10px] w-full h-[350px] border-t overflow-y-auto items-center ${
+            className={`grid grid-cols-2 gap-[10px] p-[10px] w-full h-[350px] border-t overflow-y-auto items-center ${
               darkMode ? "" : "shadow-custome"
             } `}
             style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
@@ -3002,7 +3028,7 @@ function App() {
                   videoWalls={videoWalls}
                 />
                 {/* Scenes Sidebar */}
-                <ScenesSidebar
+                {/* <ScenesSidebar
                   scenes={filteredScenes} // Use filteredScenes instead of all scenes
                   darkMode={darkMode}
                   selectedScene={selectedScene}
@@ -3012,10 +3038,10 @@ function App() {
                   setEditingSceneId={setEditingSceneId}
                   handleEditSceneName={handleEditSceneName}
                   deleteScene={deleteScene}
-                />
+                /> */}
 
                 {/* CollectionsSidebar Sidebar */}
-                <CollectionsSidebar
+                {/* <CollectionsSidebar
                   scenes={scenes}
                   darkMode={darkMode}
                   collections={collections}
@@ -3024,7 +3050,7 @@ function App() {
                   selectedCollection={selectedCollection} // Pass selected collection
                   setSelectedScene={setSelectedScene} // Pass setSelectedScene function
                   filteredScenes={filteredScenes}
-                />
+                /> */}
               </>
             )}
           </motion.div>
@@ -3110,7 +3136,7 @@ function App() {
         </ModalContent>
       </Modal>
 
-      <Modal scrollBehavior="outside" isOpen={activeModal === "scenes"} onClose={closeModal}>
+      {/* <Modal scrollBehavior="outside" isOpen={activeModal === "scenes"} onClose={closeModal}>
         <ModalContent>
           <ModalBody className="p-0">
             <ScenesSidebar
@@ -3143,7 +3169,7 @@ function App() {
             />
           </ModalBody>
         </ModalContent>
-      </Modal>
+      </Modal> */}
     </main>
   );
 }
