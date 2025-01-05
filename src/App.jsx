@@ -203,7 +203,7 @@ function App() {
           y: 10,
           text: monitor.connected
             ? `Monitor ${monitor.numberMonitor}\nX: ${monitor.x}, Y: ${monitor.y}`
-            : `Monitor ${monitor.numberMonitor} (Disconnected)`, // متن بر اساس اتصال
+            : `Monitor ${monitor.numberMonitor} (Disconnected)`,
           fontSize: 50,
           fill: "white",
           align: "left",
@@ -1447,7 +1447,7 @@ function App() {
         x: 0,
         y: 0,
         text: `${img.name}\n(${img.type})`,
-        fontSize: 50,
+        fontSize: 30,
         fill: "black",
         fontFamily: "Arial",
         uniqId,
@@ -1477,6 +1477,7 @@ function App() {
           rotateEnabled: true,
           id: uniqId,
         });
+        transformer.flipEnabled(false);
         selectedSceneLayer.add(transformer);
         transformer.attachTo(group);
         selectedSceneLayer.draw();
@@ -1580,7 +1581,7 @@ function App() {
       x: 10,
       y: 10,
       text: `${input.name}\n(${input.type})`,
-      fontSize: 50,
+      fontSize: 40,
       fill: "black",
       uniqId,
       id: uniqId,
@@ -1614,6 +1615,7 @@ function App() {
       rotateEnabled: true,
       id: uniqId,
     });
+    transformer.flipEnabled(false);
 
     group.on("click", () => {
       selectedSceneLayer.add(transformer);
@@ -1721,6 +1723,7 @@ function App() {
       rotateEnabled: true,
       id: uniqId,
     });
+    transformer.flipEnabled(false);
 
     group.on("click", () => {
       selectedSceneLayer.add(transformer);
@@ -1853,6 +1856,7 @@ function App() {
         return newBox;
       },
     });
+    transformer.flipEnabled(false);
 
     textNode.on("click", () => {
       selectedSceneLayer.add(transformer);
@@ -2124,7 +2128,7 @@ function App() {
         x: 0,
         y: 0,
         text: `${videoItem.name}\n(${videoItem.type})`,
-        fontSize: 50,
+        fontSize: 30,
         fill: "black",
         fontFamily: "Arial",
         padding: 5,
@@ -2172,6 +2176,7 @@ function App() {
         rotateEnabled: true,
         id: uniqId,
       });
+      transformer.flipEnabled(false);
 
       group.on("click", () => {
         selectedSceneLayer.add(transformer);
@@ -2243,7 +2248,7 @@ function App() {
           x: 0,
           y: 0,
           text: `${videoItem.name}\n(${videoItem.type})`,
-          fontSize: 50,
+          fontSize: 30,
           fill: "black",
           fontFamily: "Arial",
           padding: 5,
@@ -2291,6 +2296,7 @@ function App() {
           rotateEnabled: true,
           id: uniqId,
         });
+        transformer.flipEnabled(false);
 
         group.on("click", () => {
           selectedSceneLayer.add(transformer);

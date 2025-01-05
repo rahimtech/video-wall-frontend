@@ -26,6 +26,7 @@
     "electron": "^31.1.0",
     "framer-motion": "^11.15.0",
     "interactjs": "^1.10.27",
+    "jszip": "^3.10.1",
     "konva": "^9.3.6",
     "postcss": "^8.4.32",
     "re-resizable": "^6.9.11",

@@ -8,11 +8,21 @@ import { TbLayoutOff } from "react-icons/tb";
 import { TbLayout } from "react-icons/tb";
 import ModalVideoWall from "./videowall/ModalVideoWall";
 import Swal from "sweetalert2";
-import { MdDownload, MdLogout, MdOutlineResetTv, MdRefresh, MdUpload } from "react-icons/md";
+import {
+  MdDownload,
+  MdLogout,
+  MdOutlineResetTv,
+  MdRefresh,
+  MdSystemUpdateAlt,
+  MdUpdate,
+  MdUpload,
+} from "react-icons/md";
 import { PiNetwork } from "react-icons/pi";
 import ModalInfo from "./ModalInfo";
 import { CgArrangeBack } from "react-icons/cg";
 import { TfiPanel } from "react-icons/tfi";
+import JSZip from "jszip";
+import axios from "axios";
 
 const HeaderBar = ({
   darkMode,
@@ -232,6 +242,56 @@ const HeaderBar = ({
     input.click();
   };
 
+  const handleUpdate = async () => {
+    try {
+      Swal.fire({
+        title: "در حال دانلود به‌روزرسانی...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      const response = await axios.get("/dist.zip", {
+        responseType: "arraybuffer",
+      });
+
+      const zip = new JSZip();
+      console.log("zip::: ", zip);
+      const extractedZip = await zip.loadAsync(response.data);
+      console.log("extractedZip::: ", extractedZip);
+
+      // فایل‌ها را استخراج کنید
+      const files = Object.keys(extractedZip.files);
+      console.log("files::: ", files);
+      files.forEach(async (filename) => {
+        const fileData = await extractedZip.files[filename].async("blob");
+        console.log(`Extracted file: ${filename}`, fileData);
+
+        // در اینجا می‌توانید فایل‌ها را ذخیره کنید
+        // اما توجه کنید این بخش در مرورگر انجام نمی‌شود
+      });
+
+      Swal.close();
+      Swal.fire({
+        icon: "success",
+        title: "به‌روزرسانی با موفقیت انجام شد!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      // تازه‌سازی برنامه
+      window.location.reload();
+    } catch (error) {
+      console.error("Error updating application:", error);
+      Swal.fire({
+        icon: "error",
+        title: "خطا در به‌روزرسانی",
+        text: "دانلود یا جایگزینی فایل‌ها با خطا مواجه شد.",
+      });
+    }
+  };
+
   return (
     <>
       <div
@@ -240,8 +300,7 @@ const HeaderBar = ({
           darkMode ? "text-white" : "text-black"
         } flex items-center z-[100] absolute left-0 p-[10px]`}
       >
-        <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
-        <div className="flex gap-2 ml-2">
+        <div className="flex gap-2">
           <Tooltip content={"خروج از اکانت"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
@@ -268,8 +327,36 @@ const HeaderBar = ({
               <MdLogout size={20} />
             </Button>
           </Tooltip>
+          <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
 
           <ModalInfo darkMode={darkMode} />
+
+          <Tooltip content={"آپدیت نرم‌افزار"}>
+            <Button
+              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
+              size="lg"
+              variant="solid"
+              color={"default"}
+              onPress={() => {
+                Swal.fire({
+                  title: "آپدیت انجام شود؟",
+                  text: "! نیازمند اینترنت ",
+                  showDenyButton: true,
+                  showCancelButton: false,
+                  confirmButtonText: "بله",
+                  denyButtonText: `خیر`,
+                  confirmButtonColor: "green",
+                  denyButtonColor: "gray",
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    handleUpdate();
+                  }
+                });
+              }}
+            >
+              <MdSystemUpdateAlt size={20} />
+            </Button>
+          </Tooltip>
 
           <Tooltip content={"تازه‌سازی کامل"}>
             <Button
@@ -415,7 +502,7 @@ const HeaderBar = ({
             </Button>
           </Tooltip>
 
-          <Tooltip content="وارد کردن فایل">
+          <Tooltip content="وارد کردن فایل کانفیگ">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -426,7 +513,7 @@ const HeaderBar = ({
               <MdDownload size={20} />
             </Button>
           </Tooltip>
-          <Tooltip content="خروجی گرفتن از ویدیووال">
+          <Tooltip content="خروجی گرفتن از کانفیگ ویدئووال">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"

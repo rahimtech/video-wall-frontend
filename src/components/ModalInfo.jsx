@@ -20,7 +20,7 @@ const ModalInfo = ({ darkMode }) => {
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg  p-1`}
           size="lg"
-          variant="flat"
+          variant="solid"
           color={"default"}
           onPress={onOpen}
         >
