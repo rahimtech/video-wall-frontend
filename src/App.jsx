@@ -136,8 +136,6 @@ function App() {
     stage.position({ x: 380, y: 200 });
     stage.scale({ x: 0.09, y: 0.09 });
 
-    anim = new Konva.Animation(() => {}, newLayer);
-
     stage.add(isLayer ?? newLayer);
     motherLayer = newLayer;
     motherStage = stage;
@@ -909,6 +907,52 @@ function App() {
             });
             setSources(sources);
           }
+
+          if (data.files) {
+            const newResource = data.files.map((item) => {
+              let type;
+              let url;
+              let endObj = {};
+              if (item.endsWith(".jpeg") || item.endsWith(".jpg") || item.endsWith(".png")) {
+                url = `http://${host}:${port}/uploads/${item}`;
+                type = "image";
+                let img = new Image();
+                img.src = url;
+                const imageName = "imageBase" + counterImages++;
+                endObj = {
+                  name: imageName,
+                  imageElement: img,
+                };
+              } else if (item.endsWith(".mp4")) {
+                type = "video";
+                url = `http://${host}:${port}/uploads/${item}`;
+                const video = document.createElement("video");
+                video.src = url;
+                const videoName = "videoBase" + counterVideos++;
+                video.setAttribute("name", videoName);
+                endObj = {
+                  videoElement: video,
+                  name: videoName,
+                };
+              }
+
+              endObj = {
+                ...endObj,
+                id: "uploads/" + item,
+                sceneId: 1,
+                type,
+                content: url,
+                width: 100,
+                height: 100,
+                x: 0,
+                y: 0,
+                rotation: 0,
+              };
+
+              return endObj;
+            });
+            updateSceneResources([...newResource, ...getSelectedScene().resources]);
+          }
         });
 
         socket.on("update-cameras", (data) => {
@@ -1030,7 +1074,16 @@ function App() {
       ?.layer.getChildren()
       .find((child) => child.attrs.uniqId === uniqId);
 
-    if (videoGroup) {
+    if (!videoGroup) {
+      console.error("videoGroup not found");
+      return;
+    }
+
+    // چک کردن نوع نود
+    console.log("نوع videoGroup: ", videoGroup.constructor.name); // نمایش نام سازنده نود
+
+    // اگر videoGroup یک تصویر (Konva.Image) است، برای تغییر اندازه و موقعیت آن باید از متدهای مناسب استفاده کنید
+    if (videoGroup instanceof Konva.Image) {
       const firstMonitor = allDataMonitors[selectedMonitors[0]];
       const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
 
@@ -1039,19 +1092,12 @@ function App() {
       const width = lastMonitor.x + lastMonitor.width - firstMonitor.x;
       const height = lastMonitor.y + lastMonitor.height - firstMonitor.y;
 
-      // تغییر موقعیت group
+      // تغییر موقعیت و ابعاد برای تصویر
       videoGroup.position({ x, y });
-      console.log("videoGroup::: ", videoGroup);
+      videoGroup.width(width);
+      videoGroup.height(height);
 
-      // تغییر ابعاد rect به صورت جداگانه
-      videoGroup?.getChildren((node) => {
-        if (node instanceof Konva.Rect) {
-          node.width(width);
-          node.height(height);
-        }
-      });
-
-      // تنظیم rotation
+      // تنظیم چرخش
       videoGroup.setAttr("rotation", 0);
 
       // بازسازی لایه
@@ -1071,6 +1117,55 @@ function App() {
           rotation: "0",
         },
       });
+    } else if (videoGroup instanceof Konva.Group) {
+      console.log("videoGroup یک Konva.Group است");
+      if (videoGroup) {
+        const firstMonitor = allDataMonitors[selectedMonitors[0]];
+        const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
+
+        const x = firstMonitor.x;
+        const y = firstMonitor.y;
+        const width = lastMonitor.x + lastMonitor.width - firstMonitor.x;
+        const height = lastMonitor.y + lastMonitor.height - firstMonitor.y;
+
+        // تغییر موقعیت group
+        videoGroup.position({ x, y });
+        console.log("videoGroup::: ", videoGroup);
+
+        // تغییر ابعاد rect به صورت جداگانه
+        // if (videoGroup?.getChildren()) {
+        videoGroup?.getChildren((node) => {
+          if (node instanceof Konva.Rect) {
+            node.width(width);
+            node.height(height);
+          }
+        });
+        // }
+
+        // تنظیم rotation
+        videoGroup.setAttr("rotation", 0);
+
+        // بازسازی لایه
+        getSelectedScene()?.layer.draw();
+
+        const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, uniqId);
+
+        sendOperation("source", {
+          action: "resize",
+          id: uniqId,
+          payload: {
+            source: modifiedVideoURL,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            rotation: "0",
+          },
+        });
+      }
+      // کدهای قبلی را برای گروه اجرا کنید
+    } else {
+      console.log("videoGroup نوع نود دیگری است");
     }
   };
 
@@ -1934,7 +2029,10 @@ function App() {
     let uniqId = mode ? crypto.randomUUID() : videoItem.id;
 
     const selectedSceneLayer = getSelectedScene()?.layer;
-    console.log("selectedSceneLayer::: ", selectedSceneLayer);
+    let selectedStage = null;
+    if (mode) {
+      selectedStage = getSelectedScene()?.stageData;
+    }
 
     if (!selectedSceneLayer) return;
 
@@ -2017,7 +2115,7 @@ function App() {
         );
       }
       selectedSceneLayer.add(image);
-      selectedStage.add(selectedSceneLayer);
+      if (mode) selectedStage.add(selectedSceneLayer);
 
       const transformer = new Konva.Transformer({
         nodes: [image],
@@ -2083,7 +2181,6 @@ function App() {
               : item
           )
         );
-
         sendOperation("source", {
           action: "move",
           id: e.target.attrs.uniqId,
@@ -2097,67 +2194,46 @@ function App() {
     };
   };
 
-  const addRectangle = () => {
-    const selectedSceneLayer = getSelectedScene()?.layer;
-    if (!selectedSceneLayer) {
-      console.error("Selected scene layer not found.");
-      return;
-    }
+  const playVideo = (videoId) => {
+    const video = sources.filter((item) => item.id == videoId);
 
-    const rect = new Konva.Rect({
-      x: 0,
-      y: 0,
-      width: 1920,
-      height: 1080,
-      fill: "lightblue",
-      stroke: "black",
-      strokeWidth: 2,
-      draggable: true,
-      id: `rectangle-${Date.now()}`, // ایجاد ID منحصر به فرد
-    });
-
-    selectedSceneLayer.add(rect);
-    selectedSceneLayer.draw();
-
-    console.log("Rectangle added:", rect);
-  };
-
-  const playVideo = (videoName) => {
-    const video = getSelectedScene()?.resources.find((item) => item.id === videoName)?.videoElement;
     // console.log("video::: ", video);
-    if (video) {
-      video.play();
+    if (video[0].videoElement) {
+      video[0].videoElement.play();
+      // anim = new Konva.Animation((frame) => {}, selectedScene);
+
+      anim.start();
       // sendOperation("source", {
       //   action: "play",
-      //   id: videoName,
+      //   id: videoId,
       // });
 
       // console.log("anim::: ", anim);
-      anim.start();
     }
   };
 
-  const pauseVideo = (videoName) => {
-    const video = getSelectedScene()?.resources.find((item) => item.id === videoName)?.videoElement;
-    if (video) {
-      video.pause();
+  const pauseVideo = (videoId) => {
+    const video = sources.filter((item) => item.id == videoId);
+
+    if (video[0].videoElement) {
+      video[0].videoElement.pause();
       sendOperation("source", {
         action: "pause",
-        id: videoName,
+        id: videoId,
       });
     }
   };
 
-  const toggleLoopVideo = (videoName) => {
+  const toggleLoopVideo = (videoId) => {
     setLoopVideos((prev) => {
-      const isLooping = !prev[videoName];
+      const isLooping = !prev[videoId];
       sendOperation("source", {
         action: "loop",
-        id: videoName,
+        id: videoId,
       });
       return {
         ...prev,
-        [videoName]: isLooping,
+        [videoId]: isLooping,
       };
     });
   };
@@ -2181,6 +2257,7 @@ function App() {
   };
 
   const deleteResourceFromScene = (id) => {
+    console.log("id::: ", id);
     Swal.fire({
       title: "آیا مطمئن هستید؟",
       icon: "warning",
@@ -2191,14 +2268,14 @@ function App() {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        // sendOperation("source", {
-        //   action: "remove",
-        //   id,
-        //   payload: {},
-        // });
+        sendOperation("source", {
+          action: "remove",
+          id,
+          payload: {},
+        });
 
         // updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
-        setSources((prev) => prev.filter((item) => item.uniqId == id));
+        setSources((prev) => prev.filter((item) => item.id !== id));
 
         const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
         if (groupToRemove) {

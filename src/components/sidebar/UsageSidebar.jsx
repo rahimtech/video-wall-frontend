@@ -154,7 +154,7 @@ const UsageSidebar = ({
 
                   <ModalMonitorSelection
                     darkMode={darkMode}
-                    videoName={resource.uniqId}
+                    videoName={resource.uniqId ?? resource.id}
                     monitors={allDataMonitors}
                     fitToMonitors={fitToMonitors}
                   />
