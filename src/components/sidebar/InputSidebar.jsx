@@ -167,7 +167,7 @@ const InputSidebar = ({
                 )}
                 <ModalMonitorSelection
                   darkMode={darkMode}
-                  videoName={resource.id}
+                  videoName={resource.uniqId}
                   monitors={allDataMonitors}
                   fitToMonitors={fitToMonitors}
                   onAddToScene={() => addVideo(resource.videoElement)}
@@ -200,7 +200,7 @@ const InputSidebar = ({
                       پایین
                     </DropdownItem>
                     {resource.type === "video" ? (
-                      <DropdownItem key="add-video" onPress={() => addVideo(resource.videoElement)}>
+                      <DropdownItem key="add-video" onPress={() => addVideo(resource)}>
                         افزودن به صحنه
                       </DropdownItem>
                     ) : resource.type === "image" ? (

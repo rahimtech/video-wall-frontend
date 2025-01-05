@@ -240,7 +240,7 @@ const ResourcesSidebar = ({
                         key="add-video"
                         onPress={() => {
                           videoWalls.length > 0
-                            ? addVideo(resource.videoElement)
+                            ? addVideo(resource)
                             : Swal.fire({
                                 title: "!مانیتوری در صحنه وجود ندارد",
                                 icon: "warning",

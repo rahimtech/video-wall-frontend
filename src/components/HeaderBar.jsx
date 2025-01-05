@@ -38,29 +38,10 @@ const HeaderBar = ({
       scenes: scenes.map((scene) => ({
         id: scene.id,
         name: scene.name,
-        resources: scene.resources.map((r) => {
-          return {
-            id: r.id,
-            type: r.type,
-            content: r.content,
-            name: r.name || "resource",
-            x: r.x || 0,
-            y: r.y || 0,
-            z: r.z || 0,
-            rotation: r.rotation || 0,
-            width: r.width || 400,
-            height: r.height || 250,
-            created_at: r.created_at || new Date().toISOString(),
-          };
-        }),
-        // stageData: scene.stageData || null,
-        // layer: scene.layer || null,
-      })),
-      sources: sources.map((r) => {
-        return {
+        resources: scene.resources.map((r) => ({
           id: r.id,
-          type: r.deviceId ? "input" : r.type,
-          content: r.deviceId ?? r.content,
+          type: r.type,
+          content: r.content,
           name: r.name || "resource",
           x: r.x || 0,
           y: r.y || 0,
@@ -69,8 +50,21 @@ const HeaderBar = ({
           width: r.width || 400,
           height: r.height || 250,
           created_at: r.created_at || new Date().toISOString(),
-        };
-      }),
+        })),
+      })),
+      sources: sources.map((r) => ({
+        id: r.id,
+        type: r.deviceId ? "input" : r.type,
+        content: r.deviceId ?? r.content,
+        name: r.name || "resource",
+        x: r.x || 0,
+        y: r.y || 0,
+        z: r.z || 0,
+        rotation: r.rotation || 0,
+        width: r.width || 400,
+        height: r.height || 250,
+        created_at: r.created_at || new Date().toISOString(),
+      })),
       inputs: inputs.map((input) => ({
         id: input.id || Math.floor(Math.random() * 1000000000),
         key: input.key || 0,
@@ -81,19 +75,24 @@ const HeaderBar = ({
         type: input.type || "HDMI",
         created_at: input.created_at || new Date().toISOString(),
       })),
-      displays: videoWalls.map((display, idx) => ({
-        id: display.id || Math.floor(Math.random() * 1000000000),
-        key: display.key || idx,
+      displays: videoWalls.map((display) => ({
+        id: display.id,
+        monitorUniqId: display.monitorUniqId || display["Monitor ID"],
+        key: display.numberMonitor || 0,
         x: display.x || 0,
         y: display.y || 0,
         width: display.width || 1920,
         height: display.height || 1080,
+        resolution: display["Resolution"] || `${display.width} X ${display.height}`,
         scaleFactor: display.scaleFactor || 1,
         dpi: display.dpi || null,
-        refreshRate: display.refreshRate || 60,
+        refreshRate: display["Frequency"] || 60,
         internal: display.internal || false,
-        name: display.name || `Display-${idx + 1}`,
-        rotation: display.rotation || 0,
+        name: display.name || `مانیتور ${display.numberMonitor}`,
+        primary: display.Primary === "Yes",
+        orientation: display.Orientation || "Default",
+        connected: display.connected || display["Active"] === "Yes",
+        adapter: display.Adapter || "",
         created_at: display.created_at || new Date().toISOString(),
       })),
     };
@@ -104,7 +103,6 @@ const HeaderBar = ({
     const a = document.createElement("a");
     a.href = url;
     const now = new Date();
-    // const formattedDate = now.toISOString().replace(/:/g, "-");
     a.download = `project.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -237,7 +235,10 @@ const HeaderBar = ({
                   confirmButtonColor: "green",
                   denyButtonColor: "gray",
                 }).then((result) => {
-                  if (result.isConfirmed) setConnectionMode(!connectionMode);
+                  if (result.isConfirmed) {
+                    localStorage.setItem("onlineMode", !connectionMode);
+                    setConnectionMode(!connectionMode);
+                  }
                 });
               }}
             >

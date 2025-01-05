@@ -36,6 +36,8 @@ const UsageSidebar = ({
   addInput,
   deleteResourceFromScene,
 }) => {
+  console.log("resources::: ", resources);
+
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
@@ -99,121 +101,123 @@ const UsageSidebar = ({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto ">
         <ul className="flex flex-col gap-2">
-          {resources?.map((resource) => (
-            <li
-              key={resource.id}
-              className={`text-sm flex flex-wrap items-center justify-between ${
-                darkMode ? "bg-gray-700" : "bg-gray-300"
-              } p-2 rounded-md shadow-sm`}
-            >
-              <div className="flex items-center w-[50%]">
-                {editingResourceId === resource.id ? (
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={handleNameChange}
-                    onBlur={() => handleNameSave(resource.id)}
-                    className={` ${darkMode ? "text-black" : "text-white"} p-1 rounded-sm`}
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
-                    onDoubleClick={() => handleDoubleClick(resource)}
-                  >
-                    {resource.name}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 w-[50%] justify-end">
-                {resource.type === "video" && (
-                  <>
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                      onPress={() => playVideo(resource.id)}
+          {resources?.map((resource) => {
+            return (
+              <li
+                key={resource.id}
+                className={`text-sm flex flex-wrap items-center justify-between ${
+                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                } p-2 rounded-md shadow-sm`}
+              >
+                <div className="flex items-center w-[50%]">
+                  {editingResourceId === resource.id ? (
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={handleNameChange}
+                      onBlur={() => handleNameSave(resource.id)}
+                      className={` ${darkMode ? "text-black" : "text-white"} p-1 rounded-sm`}
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
+                      onDoubleClick={() => handleDoubleClick(resource)}
                     >
-                      <FaPlay />
-                    </Button>
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                      onPress={() => pauseVideo(resource.id)}
-                    >
-                      <FaPause />
-                    </Button>
-                  </>
-                )}
+                      {resource.name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 w-[50%] justify-end">
+                  {resource.type === "video" && (
+                    <>
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                        onPress={() => playVideo(resource.id)}
+                      >
+                        <FaPlay />
+                      </Button>
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                        onPress={() => pauseVideo(resource.id)}
+                      >
+                        <FaPause />
+                      </Button>
+                    </>
+                  )}
 
-                <ModalMonitorSelection
-                  darkMode={darkMode}
-                  videoName={resource.id}
-                  monitors={allDataMonitors}
-                  fitToMonitors={fitToMonitors}
-                />
-                <Tooltip content="حذف از صحنه">
-                  <Button
-                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                    size="sm"
-                    variant="light"
-                    color="default"
-                    onPress={() => deleteResourceFromScene(resource.id)}
-                  >
-                    <MdDeleteSweep />
-                  </Button>
-                </Tooltip>
-                <Dropdown>
-                  <DropdownTrigger>
+                  <ModalMonitorSelection
+                    darkMode={darkMode}
+                    videoName={resource.uniqId}
+                    monitors={allDataMonitors}
+                    fitToMonitors={fitToMonitors}
+                  />
+                  <Tooltip content="حذف از صحنه">
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                       size="sm"
                       variant="light"
                       color="default"
+                      onPress={() => deleteResourceFromScene(resource.id)}
                     >
-                      <FaCog />
+                      <MdDeleteSweep />
                     </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu dir="rtl" aria-label="More Actions">
-                    <DropdownItem key="moveUp" onPress={() => moveResource(resource.id, -1)}>
-                      بالا
-                    </DropdownItem>
-                    <DropdownItem key="moveDown" onPress={() => moveResource(resource.id, 1)}>
-                      پایین
-                    </DropdownItem>
-                    {resource.type === "text"
-                      ? [
-                          <DropdownItem key="edit-text" onPress={() => editText(resource)}>
-                            ویرایش متن اصلی
-                          </DropdownItem>,
-                          <DropdownItem
-                            key="edit-color"
-                            onPress={() => {
-                              setColorPickerVisible(!colorPickerVisible);
-                              setColorPickerResourceId(resource.id);
-                            }}
-                          >
-                            انتخاب رنگ متن
-                          </DropdownItem>,
-                        ]
-                      : resource.type === "web"
-                      ? [
-                          <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
-                            ویرایش URL
-                          </DropdownItem>,
-                        ]
-                      : null}
-                    <DropdownItem key="loop" onPress={() => toggleLoopVideo(resource.id)}>
-                      {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </div>
-            </li>
-          ))}
+                  </Tooltip>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                      >
+                        <FaCog />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu dir="rtl" aria-label="More Actions">
+                      <DropdownItem key="moveUp" onPress={() => moveResource(resource.id, -1)}>
+                        بالا
+                      </DropdownItem>
+                      <DropdownItem key="moveDown" onPress={() => moveResource(resource.id, 1)}>
+                        پایین
+                      </DropdownItem>
+                      {resource.type === "text"
+                        ? [
+                            <DropdownItem key="edit-text" onPress={() => editText(resource)}>
+                              ویرایش متن اصلی
+                            </DropdownItem>,
+                            <DropdownItem
+                              key="edit-color"
+                              onPress={() => {
+                                setColorPickerVisible(!colorPickerVisible);
+                                setColorPickerResourceId(resource.id);
+                              }}
+                            >
+                              انتخاب رنگ متن
+                            </DropdownItem>,
+                          ]
+                        : resource.type === "web"
+                        ? [
+                            <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
+                              ویرایش URL
+                            </DropdownItem>,
+                          ]
+                        : null}
+                      <DropdownItem key="loop" onPress={() => toggleLoopVideo(resource.id)}>
+                        {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

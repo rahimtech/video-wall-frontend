@@ -48,7 +48,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                 <div dir="rtl" className="w-full h-full flex flex-col gap-4 overflow-auto">
                   {videoWall.map((item) => (
                     <Card
-                      key={item.id}
+                      key={item["Device ID"]}
                       className="dark:bg-gray-800 dark:text-gray-200 bg-gray-50 text-gray-800 shadow-md"
                       isHoverable
                       isPressable
@@ -58,50 +58,50 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                       <CardHeader>
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-2">
-                            <Badge
-                              color={item.internal ? "primary" : "secondary"}
-                              variant="flat"
-                              className="text-xs"
-                            >
-                              {item.internal ? "داخلی" : "خارجی"}
-                            </Badge>
-                            <h3 className="text-lg font-semibold">{item.name || "نام نامشخص"}</h3>
+                            {item.Disconnected === "No" ? (
+                              <div className="blob"></div>
+                            ) : (
+                              <div className="blobred"></div>
+                            )}
+
+                            <h3 className="text-lg font-semibold">
+                              {item["Name"] || "نام نامشخص"}
+                            </h3>
                           </div>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(item.created_at).toLocaleDateString("fa-IR", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </span>
+                          {/* <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {item["Device ID"]}
+                          </span> */}
                         </div>
                       </CardHeader>
                       <Divider />
                       <CardBody>
-                        <div dir="rtl" className="grid grid-cols-2 gap-2 text-sm rtl ">
+                        <div dir="rtl" className="grid grid-cols-2 gap-2 text-sm">
                           <div>
-                            <strong>عرض:</strong> {item.width}px
+                            <strong>رزولوشن:</strong> {item.Resolution}
                           </div>
                           <div>
-                            <strong>ارتفاع:</strong> {item.height}px
+                            <strong>فرکانس:</strong> {item.Frequency}Hz
                           </div>
                           <div>
-                            <strong>موقعیت X:</strong> {item.x}px
+                            <strong>آداپتور:</strong> {item.Adapter}
                           </div>
                           <div>
-                            <strong>موقعیت Y:</strong> {item.y}px
+                            <strong>کالر بیت:</strong> {item.Colors}-بیت
                           </div>
                           <div>
-                            <strong>نرخ تازه‌سازی:</strong> {item.refreshRate}Hz
+                            <strong>موقعیت:</strong>
+                            {`X: ${item["Left-Top"].split(",")[0]}, Y: ${
+                              item["Left-Top"].split(",")[1]
+                            }`}
                           </div>
                           <div>
-                            <strong>چرخش:</strong> {item.rotation}°
+                            <strong>نام دستگاه:</strong> {item.Name}
                           </div>
                           <div>
-                            <strong>مقیاس:</strong> {item.scaleFactor}
+                            <strong>رزولوشن حداکثری:</strong> {item["Maximum Resolution"]}
                           </div>
                           <div>
-                            <strong>DPI:</strong> {item.dpi || "نامشخص"}
+                            <strong>وضعیت:</strong> {item.Primary === "Yes" ? "اصلی" : "ثانویه"}
                           </div>
                         </div>
                       </CardBody>

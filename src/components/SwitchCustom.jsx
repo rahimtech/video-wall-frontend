@@ -10,6 +10,7 @@ const ThemeSwitch = (props) => {
     useSwitch(props);
 
   useEffect(() => {
+    localStorage.setItem("darkMode", !isSelected);
     props.setDarkMode(!isSelected);
   }, [isSelected]);
 
