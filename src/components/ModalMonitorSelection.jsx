@@ -12,7 +12,7 @@ import {
 import { FaWatchmanMonitoring } from "react-icons/fa";
 import { MdWindow } from "react-icons/md";
 
-const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode }) => {
+const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, item }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedMonitors, setSelectedMonitors] = useState([]);
 
@@ -25,7 +25,7 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode })
   };
 
   const handleApplySelection = () => {
-    fitToMonitors(videoName, selectedMonitors);
+    fitToMonitors(videoName, selectedMonitors, item);
     onOpenChange(false); // Close the modal after applying
   };
 

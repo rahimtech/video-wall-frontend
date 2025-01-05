@@ -54,6 +54,8 @@ const ResourcesSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
+    console.log("resourceId::: ", resourceId);
+    console.log("newName::: ", newName);
     updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
@@ -109,17 +111,17 @@ const ResourcesSidebar = ({
 
             <DropdownMenu aria-label="Static Actions">
               <DropdownItem onPress={() => addResource("video")} key="video">
-                ویدیو
+                افزودن ویدیو
               </DropdownItem>
               <DropdownItem onPress={() => addResource("image")} key="image">
-                تصویر
+                افزودن تصویر
               </DropdownItem>
-              <DropdownItem onPress={() => addResource("text")} key="text">
+              {/* <DropdownItem onPress={() => addResource("text")} key="text">
                 متن
               </DropdownItem>
               <DropdownItem onPress={() => addResource("web")} key="web">
                 وب
-              </DropdownItem>
+              </DropdownItem> */}
             </DropdownMenu>
           </Dropdown>
         </div>
@@ -148,14 +150,25 @@ const ResourcesSidebar = ({
                 ) : (
                   <span
                     className={` ${darkMode ? "text-white" : "text-white"} mr-2 truncate`}
-                    onDoubleClick={() => handleDoubleClick(input)}
+                    // onDoubleClick={() => handleDoubleClick(input)}
                   >
                     {input.name}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1 w-[50%] justify-end">
-                <Dropdown>
+                <Tooltip content="افزودن به صحنه">
+                  <Button
+                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    onPress={() => addInput(input)}
+                  >
+                    <MdAddBox />
+                  </Button>
+                </Tooltip>
+                {/* <Dropdown>
                   <DropdownTrigger>
                     <Button
                       className={`${darkMode ? "text-white" : "text-white"} min-w-fit h-fit p-1`}
@@ -177,7 +190,7 @@ const ResourcesSidebar = ({
                       افزودن به صحنه
                     </DropdownItem>
                   </DropdownMenu>
-                </Dropdown>
+                </Dropdown> */}
               </div>
             </li>
           ))}
@@ -208,7 +221,7 @@ const ResourcesSidebar = ({
                 )}
               </div>
               <div className="flex items-center gap-1 w-[50%] justify-end">
-                <Button
+                {/* <Button
                   className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                   size="sm"
                   variant="light"
@@ -216,8 +229,55 @@ const ResourcesSidebar = ({
                   onPress={() => deleteResource(resource.id)}
                 >
                   <FaTrashAlt />
-                </Button>
-                <Dropdown>
+                </Button> */}
+                <Tooltip content="افزودن به صحنه">
+                  {resource.type == "image" ? (
+                    <>
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                        onPress={() => {
+                          videoWalls.length > 0
+                            ? addImage(resource)
+                            : Swal.fire({
+                                title: "!مانیتوری در صحنه وجود ندارد",
+                                icon: "warning",
+                                confirmButtonText: "باشه",
+                                confirmButtonColor: "gray",
+                              });
+                        }}
+                      >
+                        <MdAddBox />
+                      </Button>
+                    </>
+                  ) : resource.type == "video" ? (
+                    <>
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                        onPress={() => {
+                          videoWalls.length > 0
+                            ? addVideo(resource)
+                            : Swal.fire({
+                                title: "!مانیتوری در صحنه وجود ندارد",
+                                icon: "warning",
+                                confirmButtonText: "باشه",
+                                confirmButtonColor: "gray",
+                              });
+                        }}
+                      >
+                        <MdAddBox />
+                      </Button>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </Tooltip>
+                {/* <Dropdown>
                   <DropdownTrigger>
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -325,7 +385,7 @@ const ResourcesSidebar = ({
                       {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
                     </DropdownItem>
                   </DropdownMenu>
-                </Dropdown>
+                </Dropdown> */}
               </div>
             </li>
           ))}

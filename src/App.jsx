@@ -1,4 +1,4 @@
-import React, { createElement, useEffect, useMemo, useRef, useState } from "react";
+import React, { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Button,
@@ -43,6 +43,8 @@ let socket = null;
 
 function App() {
   const [videoWalls, setVideoWalls] = useState([]);
+  console.log("videoWalls::: ", videoWalls);
+
   // console.log("videoWalls::: ", videoWalls);
 
   const [activeModal, setActiveModal] = useState(null);
@@ -71,6 +73,7 @@ function App() {
   ]);
   const scenesRef = useRef(scenes);
   const videoWallsRef = useRef(videoWalls);
+  const connectionModeRef = useRef(connectionMode);
 
   const [selectedScene, setSelectedScene] = useState(1);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
@@ -86,6 +89,8 @@ function App() {
   const [selectedCollection, setSelectedCollection] = useState(1);
   const [sources, setSources] = useState([]);
   console.log("sources::: ", sources);
+  const [pendingOperations, setPendingOperation] = useState([]);
+  const [flagOperations, setFlagOperation] = useState(false);
 
   const filteredScenes = scenes.filter((scene) => {
     return collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id);
@@ -100,7 +105,6 @@ function App() {
   let counterVideos = 0;
   let allData = [];
   let allDataMonitors = videoWalls;
-  let pendingOperations = [];
 
   const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
   const getSelectedCollection = () => collections.find((coll) => coll.id === selectedCollection.id);
@@ -143,11 +147,10 @@ function App() {
   };
 
   const sendOperation = (action, payload) => {
-    if (connectionMode) {
-      socket.emit(action, payload);
+    if (connectionModeRef.current) {
+      socket?.emit(action, payload);
     } else {
-      pendingOperations.push({ action, payload });
-      // console.log("Operation added to pending queue:", { action, payload });
+      setPendingOperation((prev) => [...prev, { action, payload }]);
     }
   };
 
@@ -312,6 +315,13 @@ function App() {
   useEffect(() => {
     scenesRef.current = scenes;
   }, [scenes]);
+
+  useEffect(() => {
+    connectionModeRef.current = connectionMode;
+    if (connectionMode) {
+      setFlagOperation(true);
+    }
+  }, [connectionMode]);
 
   useEffect(() => {
     videoWallsRef.current = videoWalls;
@@ -774,16 +784,6 @@ function App() {
 
         socket = io(`http://${host}:${port}`);
 
-        socket.on("connect", () => {
-          // console.log("Socket connected");
-          setConnecting(true);
-
-          while (pendingOperations.length > 0) {
-            const operation = pendingOperations.shift();
-            socket.emit(operation.action, operation.payload);
-          }
-        });
-
         socket.on("disconnect", () => {
           setConnecting(false);
         });
@@ -792,6 +792,11 @@ function App() {
           setIsLoading(false);
 
           console.log("INIT DATA: ", data);
+          if (flagOperations) {
+            console.log("Skip INIT==");
+            setFlagOperation(false);
+            return;
+          }
 
           if (data.inputs) {
             const inputs = data.inputs.map((item) => ({
@@ -853,7 +858,7 @@ function App() {
               if (item.source?.startsWith("input:")) {
                 type = "input";
                 content = trimPrefix(item.source, "input:");
-                endObj = { name: "input", deviceId: content };
+                endObj = { name: item.name ?? "input", deviceId: content };
               } else if (item.source?.startsWith("image:")) {
                 type = "image";
                 content = trimPrefix(item.source, "image:");
@@ -862,7 +867,7 @@ function App() {
                 img.src = imageURL;
                 const imageName = "image" + counterImages++;
                 endObj = {
-                  name: imageName,
+                  name: item.name ?? imageName,
                   imageElement: img,
                 };
               } else if (item.source?.startsWith("video:")) {
@@ -875,7 +880,7 @@ function App() {
                 video.setAttribute("id", item.id);
                 endObj = {
                   videoElement: video,
-                  name: videoName,
+                  name: item.name ?? videoName,
                 };
               } else if (item.source.startsWith("iframe:")) {
                 type = "iframe";
@@ -892,7 +897,7 @@ function App() {
                 height: item.height,
                 x: item.x,
                 y: item.y,
-                rotation: 0,
+                rotation: parseInt(item.rotation),
               };
 
               if (type === "image") {
@@ -957,6 +962,10 @@ function App() {
 
         socket.on("update-cameras", (data) => {
           setInputs(data);
+        });
+
+        socket.on("connect", () => {
+          setConnecting(true);
         });
 
         const width = window.innerWidth;
@@ -1026,6 +1035,25 @@ function App() {
   }, [connectionMode]);
 
   useEffect(() => {
+    if (pendingOperations.length > 0 && connectionMode && socket) {
+      socket = io(`http://${host}:${port}`);
+
+      socket.on("connect", () => {
+        setConnecting(true);
+
+        if (pendingOperations.length > 0) {
+          // const operation = pendingOperations.shift();
+          pendingOperations.map((item) => {
+            console.log("sending:", item);
+            socket.emit(item.action, item.payload);
+          });
+          setPendingOperation([]);
+        }
+      });
+    }
+  }, [connectionMode, socket, pendingOperations]);
+
+  useEffect(() => {
     getSelectedScene()?.resources.forEach((item) => {
       if (item.type === "video") {
         const videoElement = item.videoElement;
@@ -1069,7 +1097,7 @@ function App() {
     }
   }, [scenes, selectedScene]);
 
-  const fitToMonitors = (uniqId, selectedMonitors) => {
+  const fitToMonitors = (uniqId, selectedMonitors, item) => {
     const videoGroup = getSelectedScene()
       ?.layer.getChildren()
       .find((child) => child.attrs.uniqId === uniqId);
@@ -1079,10 +1107,6 @@ function App() {
       return;
     }
 
-    // چک کردن نوع نود
-    console.log("نوع videoGroup: ", videoGroup.constructor.name); // نمایش نام سازنده نود
-
-    // اگر videoGroup یک تصویر (Konva.Image) است، برای تغییر اندازه و موقعیت آن باید از متدهای مناسب استفاده کنید
     if (videoGroup instanceof Konva.Image) {
       const firstMonitor = allDataMonitors[selectedMonitors[0]];
       const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
@@ -1092,24 +1116,18 @@ function App() {
       const width = lastMonitor.x + lastMonitor.width - firstMonitor.x;
       const height = lastMonitor.y + lastMonitor.height - firstMonitor.y;
 
-      // تغییر موقعیت و ابعاد برای تصویر
       videoGroup.position({ x, y });
       videoGroup.width(width);
       videoGroup.height(height);
 
-      // تنظیم چرخش
       videoGroup.setAttr("rotation", 0);
 
-      // بازسازی لایه
       getSelectedScene()?.layer.draw();
-
-      const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, uniqId);
 
       sendOperation("source", {
         action: "resize",
         id: uniqId,
         payload: {
-          source: modifiedVideoURL,
           x: x,
           y: y,
           width: width,
@@ -1118,7 +1136,6 @@ function App() {
         },
       });
     } else if (videoGroup instanceof Konva.Group) {
-      console.log("videoGroup یک Konva.Group است");
       if (videoGroup) {
         const firstMonitor = allDataMonitors[selectedMonitors[0]];
         const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
@@ -1138,6 +1155,9 @@ function App() {
           if (node instanceof Konva.Rect) {
             node.width(width);
             node.height(height);
+          } else {
+            node.width(width);
+            node.height(height);
           }
         });
         // }
@@ -1148,13 +1168,10 @@ function App() {
         // بازسازی لایه
         getSelectedScene()?.layer.draw();
 
-        const modifiedVideoURL = generateBlobURL(`video:http://${host}:${port}`, uniqId);
-
         sendOperation("source", {
           action: "resize",
           id: uniqId,
           payload: {
-            source: modifiedVideoURL,
             x: x,
             y: y,
             width: width,
@@ -1418,6 +1435,7 @@ function App() {
     const image = new Image();
     image.src = img.imageElement.src || img.imageElement;
     image.onload = () => {
+      // ساخت تصویر Konva
       const konvaImage = new Konva.Image({
         image: image,
         width: mode ? img.imageElement.width : img.width,
@@ -1425,24 +1443,46 @@ function App() {
         name: "object",
         id: img.id,
         uniqId,
+        x: 0,
+        y: 0,
+      });
+
+      const text = new Konva.Text({
+        x: 0,
+        y: 0,
+        text: `${img.name}\n(${img.type})`,
+        fontSize: 50,
+        fill: "black",
+        fontFamily: "Arial",
+        padding: 5,
+        align: "center",
+      });
+
+      const group = new Konva.Group({
+        x: mode ? 0 : img.x,
+        y: mode ? 0 : img.y,
         draggable: true,
-        x: img.x || 0,
-        y: img.y || 0,
+        uniqId,
+        rotation: img.rotation || 0,
       });
 
-      const transformer = new Konva.Transformer({
-        nodes: [konvaImage],
-        enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-        rotateEnabled: true,
-      });
+      group.add(konvaImage);
+      group.add(text);
 
-      konvaImage.on("click", () => {
+      selectedSceneLayer.add(group);
+
+      group.on("click", () => {
+        const transformer = new Konva.Transformer({
+          nodes: [group],
+          enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+          rotateEnabled: true,
+        });
         selectedSceneLayer.add(transformer);
-        transformer.attachTo(konvaImage);
+        transformer.attachTo(group);
         selectedSceneLayer.draw();
       });
 
-      konvaImage.on("dragend", (e) => {
+      group.on("dragend", (e) => {
         const { x, y } = e.target.position();
         setSources((prev) =>
           prev.map((item) =>
@@ -1459,17 +1499,13 @@ function App() {
         });
       });
 
-      konvaImage.on("transformend", (e) => {
-        const newWidth = konvaImage.width() * konvaImage.scaleX();
-        const newHeight = konvaImage.height() * konvaImage.scaleY();
-        konvaImage.width(newWidth);
-        konvaImage.height(newHeight);
-        konvaImage.scaleX(1);
-        konvaImage.scaleY(1);
+      group.on("transformend", (e) => {
+        const newWidth = konvaImage.width() * group.scaleX();
+        const newHeight = konvaImage.height() * group.scaleY();
 
-        const rotation = Math.round(konvaImage.getAttr("rotation"));
-        const x = konvaImage.x();
-        const y = konvaImage.y();
+        const rotation = Math.round(group.getAttr("rotation"));
+        const x = group.x();
+        const y = group.y();
 
         setSources((prev) =>
           prev.map((item) =>
@@ -1505,7 +1541,7 @@ function App() {
         ? setSources((prev) => [...prev, { ...img, uniqId, sceneId: getSelectedScene().id }])
         : null;
 
-      selectedSceneLayer.add(konvaImage);
+      // بازسازی لایه
       selectedSceneLayer.draw();
     };
 
@@ -1527,6 +1563,7 @@ function App() {
       id: `${input.id}`,
       type: "input",
       uniqId,
+      rotation: input.rotation || 0,
     });
 
     const rect = new Konva.Rect({
@@ -1541,7 +1578,7 @@ function App() {
       x: 10,
       y: 10,
       text: `${input.name}\n(${input.type})`,
-      fontSize: 14,
+      fontSize: 50,
       fill: "black",
     });
 
@@ -1559,6 +1596,7 @@ function App() {
           y: 0,
           width: input.width,
           height: input.height,
+          name: input.name,
         },
       });
     }
@@ -1986,18 +2024,36 @@ function App() {
     });
   };
 
-  const updateResourceName = (resourceId, newName) => {
-    setScenes((prevScenes) =>
-      prevScenes.map((scene) => {
-        if (scene.id === selectedScene) {
-          const updatedResources = scene.resources.map((resource) =>
-            resource.id === resourceId ? { ...resource, name: newName, content: newName } : resource
-          );
-          return { ...scene, resources: updatedResources };
-        }
-        return scene;
-      })
+  const updateResourceName = (resourceId, newName, isSource = true) => {
+    setSources((prev) =>
+      prev.map((item) =>
+        (item.id ?? item.uniqId) === resourceId ? { ...item, name: newName } : item
+      )
     );
+    if (isSource) {
+      sendOperation("source", {
+        action: "resize",
+        id: resourceId,
+        payload: {
+          name: newName,
+        },
+      });
+    }
+    if (isSource == false) {
+      setScenes((prevScenes) =>
+        prevScenes.map((scene) => {
+          if (scene.id === selectedScene) {
+            const updatedResources = scene.resources.map((resource) => {
+              return resource.id === resourceId
+                ? { ...resource, name: newName, content: newName }
+                : resource;
+            });
+            return { ...scene, resources: updatedResources };
+          }
+          return scene;
+        })
+      );
+    }
   };
 
   const updateResourceColor = (resourceId, color) => {
@@ -2026,6 +2082,7 @@ function App() {
   //---------------Start-Video-Segment-----------------
 
   const addVideo = (videoItem, mode = true) => {
+    console.log("videoItem::: ", videoItem);
     let uniqId = mode ? crypto.randomUUID() : videoItem.id;
 
     const selectedSceneLayer = getSelectedScene()?.layer;
@@ -2050,11 +2107,31 @@ function App() {
           y: 0,
           width: videoItem.videoElement.videoWidth,
           height: videoItem.videoElement.videoHeight,
+          name: videoItem.name,
         },
       });
     }
 
-    videoItem.videoElement.onloadeddata = () => {
+    if (mode) {
+      const text = new Konva.Text({
+        x: 0,
+        y: 0,
+        text: `${videoItem.name}\n(${videoItem.type})`,
+        fontSize: 50,
+        fill: "black",
+        fontFamily: "Arial",
+        padding: 5,
+        align: "center",
+      });
+
+      const group = new Konva.Group({
+        x: mode ? 0 : videoItem.x,
+        y: mode ? 0 : videoItem.y,
+        draggable: true,
+        uniqId,
+        rotation: videoItem.rotation || 0,
+      });
+
       const image = new Konva.Image({
         image: videoItem.videoElement,
         width: videoItem.videoElement.videoWidth,
@@ -2062,84 +2139,42 @@ function App() {
         name: "object",
         fill: "gray",
         id: videoItem.id,
-        draggable: true,
         uniqId,
-        x: videoItem.x || 0,
-        y: videoItem.y || 0,
-      });
-
-      const positionText = new Konva.Text({
         x: 0,
-        y: -50,
-        text: `x: 0, y: 0, width: ${videoItem.videoElement.videoWidth}, height: ${videoItem.videoElement.videoHeight}`,
-        fontSize: 34,
-        fill: "white",
+        y: 0,
+        // rotation: videoItem.rotation || 0,
       });
 
-      const resetIcon = new Konva.Text({
-        x: 0,
-        y: -100,
-        text: "🔄",
-        fontSize: 34,
-      });
-
-      resetIcon.on("click", () => {
-        image.position({ x: 0, y: 0 });
-        image.width(videoItem.videoElement.videoWidth);
-        image.height(videoItem.videoElement.videoHeight);
-        positionText.text(
-          `x: 0, y: 0, width: ${videoItem.videoElement.videoWidth}, height: ${videoItem.videoElement.videoHeight}`
-        );
-        selectedSceneLayer.draw();
-        image.setAttr("rotation", 0);
-
-        if (mode) {
-          sendOperation("source", {
-            action: "resize",
-            id: uniqId,
-            payload: {
-              source: modifiedVideoURL,
-              x: 0,
-              y: 0,
-              width: image.width(),
-              height: image.height(),
-              rotation: 0,
-            },
-          });
-        }
-      });
+      group.add(image);
+      group.add(text);
+      selectedSceneLayer.add(group);
 
       if (mode) {
         setSources((prev) =>
           mode ? [...prev, { ...videoItem, uniqId, sceneId: getSelectedScene().id }] : prev
         );
       }
-      selectedSceneLayer.add(image);
       if (mode) selectedStage.add(selectedSceneLayer);
 
       const transformer = new Konva.Transformer({
-        nodes: [image],
+        nodes: [group],
         enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
         rotateEnabled: true,
       });
 
-      image.on("click", () => {
+      group.on("click", () => {
         selectedSceneLayer.add(transformer);
-        transformer.attachTo(image);
+        transformer.attachTo(group);
         selectedSceneLayer.draw();
       });
 
       transformer.on("transformend", (e) => {
-        const newWidth = image.width() * image.scaleX();
-        const newHeight = image.height() * image.scaleY();
-        image.width(newWidth);
-        image.height(newHeight);
-        image.scaleX(1);
-        image.scaleY(1);
+        const newWidth = image.width() * group.scaleX();
+        const newHeight = image.height() * group.scaleY();
 
-        const rotation = Math.round(image.getAttr("rotation"));
-        const x = image.x();
-        const y = image.y();
+        const rotation = Math.round(group.getAttr("rotation"));
+        const x = group.x();
+        const y = group.y();
 
         sendOperation("source", {
           action: "resize",
@@ -2171,7 +2206,7 @@ function App() {
         );
       });
 
-      image.on("dragend", (e) => {
+      group.on("dragend", (e) => {
         const { x, y } = e.target.position();
 
         setSources((prev) =>
@@ -2184,14 +2219,130 @@ function App() {
         sendOperation("source", {
           action: "move",
           id: e.target.attrs.uniqId,
-          payload: { x: image.x(), y: image.y() },
+          payload: { x, y },
         });
 
         selectedSceneLayer.draw();
       });
 
       videoItem.loop = loopVideos[videoItem.name] || false;
-    };
+    } else {
+      videoItem.videoElement.onloadeddata = () => {
+        const text = new Konva.Text({
+          x: 0,
+          y: 0,
+          text: `${videoItem.name}\n(${videoItem.type})`,
+          fontSize: 50,
+          fill: "black",
+          fontFamily: "Arial",
+          padding: 5,
+          align: "center",
+        });
+
+        const group = new Konva.Group({
+          x: mode ? 0 : videoItem.x,
+          y: mode ? 0 : videoItem.y,
+          draggable: true,
+          uniqId,
+          rotation: videoItem.rotation || 0,
+        });
+
+        const image = new Konva.Image({
+          image: videoItem.videoElement,
+          width: videoItem.width,
+          height: videoItem.height,
+          name: "object",
+          fill: "gray",
+          id: videoItem.id,
+          uniqId,
+          x: 0,
+          y: 0,
+          // rotation: videoItem.rotation || 0,
+        });
+
+        group.add(image);
+        group.add(text);
+
+        if (mode) {
+          setSources((prev) =>
+            mode ? [...prev, { ...videoItem, uniqId, sceneId: getSelectedScene().id }] : prev
+          );
+        }
+        selectedSceneLayer.add(group);
+        if (mode) selectedStage.add(selectedSceneLayer);
+
+        const transformer = new Konva.Transformer({
+          nodes: [group],
+          enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+          rotateEnabled: true,
+        });
+
+        group.on("click", () => {
+          selectedSceneLayer.add(transformer);
+          transformer.attachTo(group);
+          selectedSceneLayer.draw();
+        });
+
+        transformer.on("transformend", (e) => {
+          const newWidth = image.width() * group.scaleX();
+          const newHeight = image.height() * group.scaleY();
+
+          const rotation = Math.round(group.getAttr("rotation"));
+          const x = group.x();
+          const y = group.y();
+
+          sendOperation("source", {
+            action: "resize",
+            id: e.target.attrs.uniqId,
+            payload: {
+              source: modifiedVideoURL,
+              x,
+              y,
+              width: newWidth,
+              height: newHeight,
+              rotation,
+            },
+          });
+
+          setSources((prev) =>
+            prev.map((item) =>
+              item.uniqId === e.target.attrs.uniqId
+                ? {
+                    ...item,
+                    x,
+                    y,
+                    width: newWidth,
+                    height: newHeight,
+                    rotation,
+                    sceneId: getSelectedScene().id,
+                  }
+                : item
+            )
+          );
+        });
+
+        group.on("dragend", (e) => {
+          const { x, y } = e.target.position();
+
+          setSources((prev) =>
+            prev.map((item) =>
+              item.uniqId === e.target.attrs.uniqId
+                ? { ...item, x, y, sceneId: getSelectedScene().id }
+                : item
+            )
+          );
+          sendOperation("source", {
+            action: "move",
+            id: e.target.attrs.uniqId,
+            payload: { x, y },
+          });
+
+          selectedSceneLayer.draw();
+        });
+
+        videoItem.loop = loopVideos[videoItem.name] || false;
+      };
+    }
   };
 
   const playVideo = (videoId) => {
@@ -2300,91 +2451,6 @@ function App() {
 
   //---------------End-Video-Segment-----------------
 
-  // const addToScene = ({ deviceId, width, height }) => {
-  //   const x = 0;
-  //   const y = 0;
-  //   const id = crypto.randomUUID();
-
-  //   const inputGroup = new Konva.Group({
-  //     x: x,
-  //     y: y,
-  //     draggable: true,
-  //     id: `input-${deviceId}`,
-  //   });
-
-  //   const rect = new Konva.Rect({
-  //     x: 0,
-  //     y: 0,
-  //     width: width,
-  //     height: height,
-  //     fill: "blue",
-  //     stroke: "white",
-  //     strokeWidth: 2,
-  //   });
-
-  //   inputGroup.add(rect);
-
-  //   layer.add(inputGroup);
-  //   layer.draw();
-
-  //   const transformer = new Konva.Transformer({
-  //     nodes: [inputGroup],
-  //     enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-  //     rotateEnabled: true,
-  //   });
-
-  //   layer.add(transformer);
-  //   layer.draw();
-
-  //   transformer.on("transformend", (e) => {
-  //     const scaleX = e.target.attrs.scaleX;
-  //     const scaleY = e.target.attrs.scaleY;
-  //     const newWidth = rect.width() * scaleX;
-  //     const newHeight = rect.height() * scaleY;
-
-  //     sendOperation("source", {
-  //       action: "resize",
-  //       id,
-  //       payload: {
-  //         x: e.target.attrs.x,
-  //         y: e.target.attrs.y,
-  //         width: newWidth,
-  //         height: newHeight,
-  //         rotation: e.target.attrs.rotation,
-  //       },
-  //     });
-  //   });
-
-  //   inputGroup.on("dragend", (e) => {
-  //     sendOperation("source", {
-  //       action: "move",
-  //       id,
-  //       payload: {
-  //         x: e.target.attrs.x,
-  //         y: e.target.attrs.y,
-  //       },
-  //     });
-  //   });
-
-  //   inputGroup.on("click", () => {
-  //     transformer.attachTo(inputGroup);
-  //     layer.draw();
-  //   });
-
-  //   stage.on("click", (e) => {
-  //     if (e.target === stage || e.target === layer) {
-  //       transformer.detach();
-  //       layer.draw();
-  //     }
-  //   });
-
-  //   sendOperation("source", {
-  //     action: "add",
-  //     id,
-  //     payload: { x, y, width, height, source: `input:${deviceId}` },
-  //   });
-  // };
-
   const IconSidebar = ({ modals, openModal }) => (
     <div className="absolute left-[10px] flex flex-col gap-2 top-[50px] z-[100] h-fit">
       <Tooltip showArrow={true} placement="right-start" content="منابع">
@@ -2436,7 +2502,7 @@ function App() {
 
   // ----------------- Monotor-Setting ---------------
 
-  const LayoutDropdown = () => {
+  const LayoutDropdownArrMonitor = () => {
     return (
       <div className="relative left-0 top-[200px] z-[100]">
         <Dropdown>
@@ -2465,6 +2531,189 @@ function App() {
           </DropdownMenu>
         </Dropdown>
       </div>
+    );
+  };
+
+  const MonitorLayoutModal = () => {
+    const { isOpen, onOpen, onOpenChange } = useDisclosure();
+    const [selectedLayout, setSelectedLayout] = useState(null);
+    const [arrangedMonitors, setArrangedMonitors] = useState([]);
+    const [selectedMonitors, setSelectedMonitors] = useState([]); // اضافه کردن وضعیت برای ذخیره مانیتورهای انتخاب شده
+
+    const handleLayoutSelect = (key) => {
+      const [rows, cols] = key.split("x").map(Number);
+      arrangeMonitors(rows, cols);
+      setSelectedLayout(key);
+    };
+
+    const arrangeMonitors = (rows, cols) => {
+      let monitorIndex = 0;
+      const gap = 10;
+      const monitorWidth = videoWalls[0].width;
+      const monitorHeight = videoWalls[0].height;
+
+      const updatedMonitors = [];
+
+      const newArrangedMonitors = Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: cols }, (_, col) => {
+          if (monitorIndex >= videoWalls.length) return null;
+
+          const x = col * (monitorWidth + gap);
+          const y = row * (monitorHeight + gap);
+
+          const monitor = videoWalls[monitorIndex];
+
+          updatedMonitors.push({
+            monitorId: monitor.id,
+            position: { x, y },
+          });
+
+          monitorIndex++;
+          return {
+            ...monitor,
+            position: { x, y },
+          };
+        })
+      );
+
+      setArrangedMonitors(newArrangedMonitors);
+    };
+
+    const handleMonitorSelect = (rowIndex, colIndex, selectedMonitor) => {
+      const newArrangedMonitors = [...arrangedMonitors];
+      newArrangedMonitors[rowIndex][colIndex] = selectedMonitor;
+      setArrangedMonitors(newArrangedMonitors);
+
+      // بروزرسانی selectedMonitors
+      setSelectedMonitors((prevSelected) => [...prevSelected, selectedMonitor.id]);
+    };
+
+    const availableMonitors = (rowIndex, colIndex) => {
+      // فیلتر کردن مانیتورهای قابل انتخاب (آنهایی که هنوز انتخاب نشده‌اند)
+      return videoWalls.filter((wall) => !selectedMonitors.includes(wall.id));
+    };
+
+    const resetSelections = () => {
+      setArrangedMonitors([]);
+      setSelectedMonitors([]);
+      setSelectedLayout(null);
+    };
+
+    return (
+      <>
+        <Button className="z-[1000]" onPress={onOpen}>
+          چیدمان مانیتورها
+        </Button>
+
+        <Modal scrollBehavior="outside" isOpen={isOpen} onOpenChange={onOpenChange}>
+          <ModalContent className="w-full">
+            {(onClose) => (
+              <>
+                <ModalHeader>انتخاب چیدمان</ModalHeader>
+                <ModalBody>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button size="sm" fullWidth variant="solid" color="primary">
+                        چیدمان مانیتورها
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      aria-label="تنظیم چیدمان"
+                      color="secondary"
+                      onAction={handleLayoutSelect}
+                    >
+                      <DropdownItem key="2x2">۲×۲</DropdownItem>
+                      <DropdownItem key="3x3">۳×۳</DropdownItem>
+                      <DropdownItem key="4x4">۴×۴</DropdownItem>
+                      <DropdownItem key="5x5">۵×۵</DropdownItem>
+                      <DropdownItem key="6x6">۶×۶</DropdownItem>
+                      <DropdownItem key="7x7">۷×۷</DropdownItem>
+                      <DropdownItem key="8x8">۸×۸</DropdownItem>
+                      <DropdownItem key="9x9">۹×۹</DropdownItem>
+                      <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+
+                  {selectedLayout && (
+                    <div className="monitor-layout">
+                      <h3>چیدمان {selectedLayout}</h3>
+                      <div
+                        className="grid-layout"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: `repeat(${selectedLayout.split("x")[1]}, 1fr)`,
+                          gap: "10px",
+                          width: "100%", // استفاده از 100% عرض برای سازگاری
+                        }}
+                      >
+                        {arrangedMonitors.map((row, rowIndex) => (
+                          <div
+                            key={rowIndex}
+                            className="row"
+                            style={{ display: "flex", flexDirection: "row" }}
+                          >
+                            {row.map((monitor, colIndex) => (
+                              <div
+                                key={colIndex}
+                                className="monitor-box"
+                                style={{
+                                  width: "100%",
+                                  height: "100px",
+                                  border: "1px solid #ccc",
+                                  padding: "10px",
+                                }}
+                              >
+                                <p>{monitor ? monitor.name : "خالی"}</p>
+                                <Dropdown>
+                                  <DropdownTrigger>
+                                    <Button size="sm" variant="solid">
+                                      انتخاب مانیتور
+                                    </Button>
+                                  </DropdownTrigger>
+                                  <DropdownMenu>
+                                    {availableMonitors(rowIndex, colIndex).map((wall) => (
+                                      <DropdownItem
+                                        key={wall.id}
+                                        onPress={() =>
+                                          handleMonitorSelect(rowIndex, colIndex, wall)
+                                        }
+                                      >
+                                        {wall.name}
+                                      </DropdownItem>
+                                    ))}
+                                  </DropdownMenu>
+                                </Dropdown>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* دکمه ریست */}
+                  <Button
+                    color="danger"
+                    variant="outline"
+                    onPress={resetSelections}
+                    style={{ marginTop: "20px" }}
+                  >
+                    ریست کردن انتخاب‌ها
+                  </Button>
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="danger" variant="light" onPress={onClose}>
+                    بستن
+                  </Button>
+                  <Button color="primary" onPress={onClose}>
+                    ذخیره
+                  </Button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      </>
     );
   };
 
@@ -2646,7 +2895,7 @@ function App() {
       />
       {isToggleVideoWall && videoWalls.length > 0 && (
         <div className="flex flex-col absolute right-0 m-4 gap-3 ">
-          <LayoutDropdown />
+          <MonitorLayoutModal />
           <MonitorPositionEditor
             monitors={videoWalls}
             updateMonitorPosition={updateMonitorPosition}

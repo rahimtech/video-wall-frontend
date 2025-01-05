@@ -36,8 +36,6 @@ const UsageSidebar = ({
   addInput,
   deleteResourceFromScene,
 }) => {
-  console.log("resources::: ", resources);
-
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
@@ -54,6 +52,7 @@ const UsageSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
+    console.log("resourceId::: ", resourceId);
     updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
@@ -153,6 +152,7 @@ const UsageSidebar = ({
                   )}
 
                   <ModalMonitorSelection
+                    item={resource}
                     darkMode={darkMode}
                     videoName={resource.uniqId ?? resource.id}
                     monitors={allDataMonitors}
