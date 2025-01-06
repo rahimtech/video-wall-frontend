@@ -1,7 +1,14 @@
 import React from "react";
-import { FaDownload, FaNetworkWired, FaUpload, FaWifi } from "react-icons/fa";
+import { FaDownload, FaNetworkWired, FaPowerOff, FaUpload, FaWifi } from "react-icons/fa";
 import SwitchCustom from "./SwitchCustom";
-import { Button, Tooltip } from "@nextui-org/react";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Tooltip,
+} from "@nextui-org/react";
 import { RiLayout4Fill, RiRefreshFill } from "react-icons/ri";
 import { TbFreezeRow, TbLayoutSidebarLeftCollapse, TbRefresh } from "react-icons/tb";
 import { TbLayoutOff } from "react-icons/tb";
@@ -23,6 +30,7 @@ import { CgArrangeBack } from "react-icons/cg";
 import { TfiPanel } from "react-icons/tfi";
 import JSZip from "jszip";
 import axios from "axios";
+import { AiOutlinePoweroff } from "react-icons/ai";
 
 const HeaderBar = ({
   darkMode,
@@ -164,14 +172,12 @@ const HeaderBar = ({
             setInputs(jsonData.inputs);
             let x = jsonData.sources;
             const newSources = x.map((item) => {
-              console.log("item::: ", item);
               let type;
               let content;
               let endObj = {};
 
               let fixedContent = item.source?.replace(/\\/g, "/");
 
-              console.log("item.source::: ", item.source);
               if (item.source?.startsWith("input:")) {
                 type = "input";
                 content = trimPrefix(item.source, "input:");
@@ -190,13 +196,11 @@ const HeaderBar = ({
               } else if (item.source?.startsWith("video:")) {
                 type = "video";
                 content = trimPrefix(item.source, "video:");
-                console.log("content::: ", content);
                 const video = document.createElement("video");
                 video.src = content;
                 const videoName = item.name;
 
                 video.setAttribute("name", videoName);
-
                 video.setAttribute("id", item.id);
                 endObj = {
                   videoElement: video,
@@ -253,7 +257,6 @@ const HeaderBar = ({
         },
       });
 
-      // دانلود فایل ZIP
       const response = await axios.get("/dist.zip", {
         responseType: "arraybuffer",
       });
@@ -261,7 +264,6 @@ const HeaderBar = ({
       const zip = new JSZip();
       const extractedZip = await zip.loadAsync(response.data);
 
-      // استخراج فایل‌ها
       const files = Object.keys(extractedZip.files);
       for (const filename of files) {
         const file = extractedZip.files[filename];
@@ -365,6 +367,58 @@ const HeaderBar = ({
               <MdSystemUpdateAlt size={20} />
             </Button>
           </Tooltip> */}
+
+          <Dropdown>
+            <DropdownTrigger>
+              <Button
+                className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
+                size="lg"
+                variant="solid"
+                color={"default"}
+              >
+                <AiOutlinePoweroff size={20} />
+              </Button>
+            </DropdownTrigger>
+
+            <DropdownMenu
+              onAction={(e) => {
+                console.log("e::: ", e);
+                if (e == "reset") {
+                  Swal.fire({
+                    title: "آیا سیستم ری‌استارت شود؟",
+                    showDenyButton: true,
+                    showCancelButton: false,
+                    confirmButtonText: "بله",
+                    denyButtonText: `خیر`,
+                    confirmButtonColor: "green",
+                    denyButtonColor: "gray",
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                      socket.emit("shell", "shutdown.exe /r /f /t 0");
+                    }
+                  });
+                } else if (e == "off") {
+                  Swal.fire({
+                    title: "آیا سیستم خاموش شود؟",
+                    showDenyButton: true,
+                    showCancelButton: false,
+                    confirmButtonText: "بله",
+                    denyButtonText: `خیر`,
+                    confirmButtonColor: "green",
+                    denyButtonColor: "gray",
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                      socket.emit("shell", "shutdown.exe /s /f /t 0");
+                    }
+                  });
+                }
+              }}
+              dir="rtl"
+            >
+              <DropdownItem key="reset">ریست کردن</DropdownItem>
+              <DropdownItem key="off">خاموش کردن</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
 
           <Tooltip content={"تازه‌سازی کامل"}>
             <Button
@@ -477,11 +531,11 @@ const HeaderBar = ({
               variant="solid"
               color="default"
               onPress={async () => {
-                const defaultStaticIP = "192.168.1.101";
+                const defaultStaticIP = localStorage.getItem("host") ?? "192.168.1.101";
                 const defaultSubnetMask = "255.255.255.0";
                 const defaultGateway = "192.168.1.1";
                 const defaultDNS = "8.8.8.8";
-
+                let flagDHCP = false;
                 const { value: formValues } = await Swal.fire({
                   confirmButtonColor: "gray",
                   title: "تنظیمات شبکه",
@@ -555,16 +609,22 @@ const HeaderBar = ({
                         Swal.showValidationMessage("لطفاً یک DNS معتبر وارد کنید (مثال: 8.8.8.8)");
                         return false;
                       }
-
+                      localStorage.setItem("host", staticIP);
                       return { ipType, staticIP, subnetMask, gateway, dns };
                     }
-
+                    flagDHCP = true;
                     return { ipType };
                   },
                 });
 
+                if (flagDHCP) {
+                  const newIp = prompt("لطفا آی‌ پی جدید را از درایور خوانده و وارد کنید");
+                  localStorage.setItem("host", newIp);
+                  location.reload();
+                  flagDHCP = false;
+                }
+
                 if (formValues) {
-                  console.log("formValues::: ", formValues);
                   if (formValues.ipType === "static") {
                     socket.emit("state", {
                       ipType: formValues.ipType,
@@ -574,6 +634,7 @@ const HeaderBar = ({
                       dns: formValues.dns,
                     });
                   } else {
+                    // localStorage.setItem('host',dhcp)
                     socket.emit("state", { ipType: "dhcp" });
                   }
 
@@ -603,6 +664,7 @@ const HeaderBar = ({
               <MdDownload size={20} />
             </Button>
           </Tooltip>
+
           <Tooltip content="خروجی گرفتن از کانفیگ ویدئووال">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}

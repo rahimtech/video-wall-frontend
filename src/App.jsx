@@ -35,6 +35,7 @@ import UsageSidebar from "./components/sidebar/UsageSidebar";
 import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-icons/md";
 import { BsDatabase, BsDatabaseFill, BsDatabaseFillAdd } from "react-icons/bs";
 import { RiPagesFill } from "react-icons/ri";
+import { v4 as uuidv4 } from "uuid";
 
 let anim;
 let motherLayer;
@@ -95,8 +96,17 @@ function App() {
     return collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id);
   });
 
-  let host = config.host;
-  let port = config.port;
+  let host = localStorage.getItem("host") ?? config.host;
+  let port = localStorage.getItem("port") ?? config.port;
+  useEffect(() => {
+    if (!localStorage.getItem("host")) {
+      localStorage.setItem("host", config.host);
+      localStorage.setItem("port", config.port);
+    } else {
+      host = localStorage.getItem("host");
+      port = localStorage.getItem("port");
+    }
+  }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
 
   const con = useMyContext();
   let arrayCollisions = [];
@@ -773,8 +783,8 @@ function App() {
         }
         const response = await axios.get("/config.json");
         const data = response.data;
-        if (data.host) host = data.host;
-        if (data.port) port = data.port;
+        if (data.host) host = localStorage.getItem("host") ?? data.host;
+        if (data.port) port = localStorage.getItem("port") ?? data.port;
 
         socket = io(`http://${host}:${port}`);
 
@@ -1198,7 +1208,7 @@ function App() {
         cancelButtonColor: "gray",
       }).then((result) => {
         if (result.isConfirmed && result.value) {
-          const id = crypto.randomUUID();
+          const id = uuidv4();
 
           let newResource = {
             type: "text",
@@ -1228,7 +1238,7 @@ function App() {
         cancelButtonColor: "gray",
       }).then((result) => {
         if (result.isConfirmed && result.value) {
-          const id = crypto.randomUUID();
+          const id = uuidv4();
           const webURL = result.value;
 
           let newResource = {
@@ -1321,7 +1331,7 @@ function App() {
         const imageURL = URL.createObjectURL(file);
         let img = new Image();
         img.src = imageURL;
-        const id = crypto.randomUUID();
+        const id = uuidv4();
         const imageName = file.name.split(".").slice(0, -1).join(".");
         img.addEventListener("load", async () => {
           const sourceName = await uploadVideo(file, id);
@@ -1343,7 +1353,7 @@ function App() {
       } else if (fileType === "video" && type === "video") {
         const video = document.createElement("video");
         video.src = URL.createObjectURL(file);
-        const id = crypto.randomUUID();
+        const id = uuidv4();
         const videoName = file.name.split(".").slice(0, -1).join(".");
         video.setAttribute("name", videoName);
         const sourceName = await uploadVideo(file, id);
@@ -1400,7 +1410,7 @@ function App() {
   //---------------End-Resource-Segment-----------------
 
   const addImage = (img, mode = true) => {
-    let uniqId = mode ? crypto.randomUUID() : img.id;
+    let uniqId = mode ? uuidv4() : img.id;
     const selectedSceneLayer = getSelectedScene()?.layer;
     if (!selectedSceneLayer) return;
 
@@ -1547,7 +1557,7 @@ function App() {
   };
 
   const addInput = (input, mode = true) => {
-    let uniqId = mode ? crypto.randomUUID() : input.id;
+    let uniqId = mode ? uuidv4() : input.id;
 
     const selectedSceneLayer = getSelectedScene()?.layer;
     if (!selectedSceneLayer) return;
@@ -1675,7 +1685,7 @@ function App() {
 
   const addWeb = (webResource) => {
     const { id, content } = webResource;
-    let uniqId = crypto.randomUUID();
+    let uniqId = uuidv4();
 
     const selectedSceneLayer = getSelectedScene()?.layer;
     const selectedStage = getSelectedScene()?.stageData;
@@ -1825,7 +1835,7 @@ function App() {
   const addText = (text) => {
     const selectedSceneLayer = getSelectedScene()?.layer;
     const selectedStage = getSelectedScene()?.stageData;
-    let uniqId = crypto.randomUUID();
+    let uniqId = uuidv4();
 
     if (!selectedSceneLayer || !selectedStage) return;
 
@@ -2089,7 +2099,7 @@ function App() {
   //---------------Start-Video-Segment-----------------
 
   const addVideo = (videoItem, mode = true) => {
-    let uniqId = mode ? crypto.randomUUID() : videoItem.id;
+    let uniqId = mode ? uuidv4() : videoItem.id;
 
     const selectedSceneLayer = getSelectedScene()?.layer;
     let selectedStage = null;
