@@ -244,52 +244,60 @@ const HeaderBar = ({
 
   const handleUpdate = async () => {
     try {
+      // نمایش لودینگ
       Swal.fire({
-        title: "در حال دانلود به‌روزرسانی...",
+        title: "در حال دانلود و استخراج فایل...",
         allowOutsideClick: false,
         didOpen: () => {
           Swal.showLoading();
         },
       });
 
+      // دانلود فایل ZIP
       const response = await axios.get("/dist.zip", {
         responseType: "arraybuffer",
       });
 
       const zip = new JSZip();
-      console.log("zip::: ", zip);
       const extractedZip = await zip.loadAsync(response.data);
-      console.log("extractedZip::: ", extractedZip);
 
-      // فایل‌ها را استخراج کنید
+      // استخراج فایل‌ها
       const files = Object.keys(extractedZip.files);
-      console.log("files::: ", files);
-      files.forEach(async (filename) => {
-        const fileData = await extractedZip.files[filename].async("blob");
-        console.log(`Extracted file: ${filename}`, fileData);
+      for (const filename of files) {
+        const file = extractedZip.files[filename];
 
-        // در اینجا می‌توانید فایل‌ها را ذخیره کنید
-        // اما توجه کنید این بخش در مرورگر انجام نمی‌شود
-      });
+        if (!file.dir) {
+          const fileContent = await file.async("blob");
+          saveFileLocally(filename, fileContent);
+        }
+      }
 
       Swal.close();
       Swal.fire({
         icon: "success",
-        title: "به‌روزرسانی با موفقیت انجام شد!",
+        title: "به‌روزرسانی با موفقیت انجام شد و فایل‌ها استخراج شدند!",
         showConfirmButton: false,
         timer: 1500,
       });
-
-      // تازه‌سازی برنامه
-      window.location.reload();
     } catch (error) {
       console.error("Error updating application:", error);
       Swal.fire({
         icon: "error",
         title: "خطا در به‌روزرسانی",
-        text: "دانلود یا جایگزینی فایل‌ها با خطا مواجه شد.",
+        text: "دانلود یا استخراج فایل‌ها با خطا مواجه شد.",
       });
     }
+  };
+
+  const saveFileLocally = (filename, blobContent) => {
+    const url = URL.createObjectURL(blobContent);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -331,7 +339,7 @@ const HeaderBar = ({
 
           <ModalInfo darkMode={darkMode} />
 
-          <Tooltip content={"آپدیت نرم‌افزار"}>
+          {/* <Tooltip content={"آپدیت نرم‌افزار"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -356,7 +364,7 @@ const HeaderBar = ({
             >
               <MdSystemUpdateAlt size={20} />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
 
           <Tooltip content={"تازه‌سازی کامل"}>
             <Button
@@ -464,37 +472,119 @@ const HeaderBar = ({
 
           <Tooltip content="تنظیمات شبکه">
             <Button
-              className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg  p-1`}
+              className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
               size="lg"
               variant="solid"
               color="default"
               onPress={async () => {
+                const defaultStaticIP = "192.168.1.101";
+                const defaultSubnetMask = "255.255.255.0";
+                const defaultGateway = "192.168.1.1";
+                const defaultDNS = "8.8.8.8";
+
                 const { value: formValues } = await Swal.fire({
                   confirmButtonColor: "gray",
                   title: "تنظیمات شبکه",
                   html: `
-                  
-                  <input type="text" id="swal-input1" class="swal2-input">
-                  <p>Static Ip</p>
-                  <input type="text" id="swal-input2" class="swal2-input">
-                  <p>Subnet Mask</p>
-                  <input type="text" id="swal-input3" class="swal2-input">
-                  <p>Gateway</p>
-                  <input type="text" id="swal-input4" class="swal2-input">
-                  <p>Interface</p>
-                  `,
+                  <label>نوع IP</label>
+                  <select id="swal-ip-type" class="swal2-select">
+                    <option value="static" selected>Static</option>
+                    <option value="dynamic">Dynamic</option>
+                  </select>
+                  <br />
+                    <label>Static IP</label>
+                    <input type="text" value="${defaultStaticIP}" id="swal-input1" class="swal2-input">
+                    <label>Subnet Mask</label>
+                    <input type="text" value="${defaultSubnetMask}" id="swal-input2" class="swal2-input">
+                    <label>Gateway</label>
+                    <input type="text" value="${defaultGateway}" id="swal-input3" class="swal2-input">
+                    <br />
+                    <label>DNS</label>
+                    <input type="text" value="${defaultDNS}" id="swal-input4" class="swal2-input">
+                   `,
+                  didOpen: () => {
+                    const ipTypeSelect = document.getElementById("swal-ip-type");
+                    const staticFields = [
+                      document.getElementById("swal-input1"),
+                      document.getElementById("swal-input2"),
+                      document.getElementById("swal-input3"),
+                      document.getElementById("swal-input4"),
+                    ];
+
+                    ipTypeSelect.addEventListener("change", (e) => {
+                      const isStatic = e.target.value === "static";
+                      staticFields.forEach((field) => {
+                        field.disabled = !isStatic;
+                        if (!isStatic) field.value = "";
+                      });
+                    });
+                  },
                   focusConfirm: false,
                   preConfirm: () => {
-                    return [
-                      document.getElementById("swal-input1").value,
-                      document.getElementById("swal-input2").value,
-                      document.getElementById("swal-input3").value,
-                      document.getElementById("swal-input4").value,
-                    ];
+                    const ipType = document.getElementById("swal-ip-type").value;
+                    const staticIP = document.getElementById("swal-input1").value.trim();
+                    const subnetMask = document.getElementById("swal-input2").value.trim();
+                    const gateway = document.getElementById("swal-input3").value.trim();
+                    const dns = document.getElementById("swal-input4").value.trim();
+
+                    if (ipType === "static") {
+                      const ipRegex =
+                        /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$/;
+                      const subnetMaskRegex =
+                        /^(128|192|224|240|248|252|254|255)\.0\.0\.0$|^255\.(0|128|192|224|240|248|252|254)\.0\.0$|^255\.255\.(0|128|192|224|240|248|252|254)\.0$|^255\.255\.255\.(0|128|192|224|240|248|252|254|255)$/;
+
+                      if (!ipRegex.test(staticIP)) {
+                        Swal.showValidationMessage(
+                          "لطفاً یک Static IP معتبر وارد کنید (مثال: 192.168.1.101)"
+                        );
+                        return false;
+                      }
+                      if (!subnetMaskRegex.test(subnetMask)) {
+                        Swal.showValidationMessage(
+                          "لطفاً یک Subnet Mask معتبر وارد کنید (مثال: 255.255.255.0)"
+                        );
+                        return false;
+                      }
+                      if (!ipRegex.test(gateway)) {
+                        Swal.showValidationMessage(
+                          "لطفاً یک Gateway معتبر وارد کنید (مثال: 192.168.1.1)"
+                        );
+                        return false;
+                      }
+                      if (!ipRegex.test(dns)) {
+                        Swal.showValidationMessage("لطفاً یک DNS معتبر وارد کنید (مثال: 8.8.8.8)");
+                        return false;
+                      }
+
+                      return { ipType, staticIP, subnetMask, gateway, dns };
+                    }
+
+                    return { ipType };
                   },
                 });
+
                 if (formValues) {
-                  Swal.fire(JSON.stringify(formValues));
+                  console.log("formValues::: ", formValues);
+                  if (formValues.ipType === "static") {
+                    socket.emit("state", {
+                      ipType: formValues.ipType,
+                      staticIP: formValues.staticIP,
+                      subnetMask: formValues.subnetMask,
+                      gateway: formValues.gateway,
+                      dns: formValues.dns,
+                    });
+                  } else {
+                    socket.emit("state", { ipType: "dhcp" });
+                  }
+
+                  Swal.fire({
+                    icon: "success",
+                    title: "تنظیمات با موفقیت اعمال شد!",
+                    text:
+                      formValues.ipType === "static"
+                        ? `Static IP: ${formValues.staticIP}\nSubnet Mask: ${formValues.subnetMask}\nGateway: ${formValues.gateway}\nDNS: ${formValues.dns}`
+                        : "تنظیمات برای IP Dynamic اعمال شد!",
+                  });
                 }
               }}
             >

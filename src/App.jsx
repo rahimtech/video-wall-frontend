@@ -240,13 +240,13 @@ function App() {
 
         group.on("dragmove", (e) => {
           const { x, y } = e.target.position();
-          const newX = Math.round(x / step) * step; // گام‌های ۵ پیکسلی
+          const newX = Math.round(x / step) * step;
           const newY = Math.round(y / step) * step;
 
           const textNode = group.findOne(".monitorText");
-          textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`); // به‌روزرسانی متن
+          textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`);
 
-          e.target.position({ x: newX, y: newY }); // اعمال موقعیت جدید با گام‌های ۵ پیکسلی
+          e.target.position({ x: newX, y: newY });
         });
 
         group.on("dragend", (e) => {
@@ -327,12 +327,10 @@ function App() {
   }, [videoWalls]);
 
   const arrangeMForScenes = (updatedVideoWalls) => {
-    // شناسایی بالاچپ‌ترین مانیتور
     let minX = Infinity;
     let minY = Infinity;
     let primaryMonitor = null;
 
-    // یافتن مانیتور بالاچپ
     updatedVideoWalls.forEach((wall) => {
       if (wall.x < minX || (wall.x === minX && wall.y < minY)) {
         minX = wall.x;
@@ -341,12 +339,10 @@ function App() {
       }
     });
 
-    // اضافه کردن ویژگی `primary` به هر مانیتور
     updatedVideoWalls.forEach((wall) => {
       wall.primary = wall["Monitor ID"] === primaryMonitor ? "Yes" : "No";
     });
 
-    // ارسال عملیات به سرور برای به‌روزرسانی مختصات و ویژگی `primary`
     sendOperation(
       "arrange-displays",
       updatedVideoWalls.map((item) => ({
@@ -357,7 +353,6 @@ function App() {
       }))
     );
 
-    // فعال‌سازی حالت لودینگ اگر اتصال برقرار است
     if (connectionMode === true) {
       setIsLoading(true);
     }
