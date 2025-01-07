@@ -815,6 +815,12 @@ function App() {
 
           if (data.displays) {
             const displays = data.displays.map((monitor, index) => {
+              const displaysMatrix = {};
+              const displayWidth = 3840; // TODO: auto-detect?
+              const displayHeight = 2160; // TODO: auto-detect?
+              const w = displayWidth;
+              const h = displayHeight;
+              const a = 256; // around px
               const [xLeft, yTop] = monitor["Left-Top"]
                 .split(",")
                 .map((v) => parseInt(v.trim(), 10));
@@ -823,19 +829,31 @@ function App() {
                 .split(",")
                 .map((v) => parseInt(v.trim(), 10));
 
+              const x = xLeft;
+              const y = yTop;
               const width = xRight - xLeft;
               const height = yBottom - yTop;
+              let monitorIndex = null;
+              if (x == 0 && y == 0) {
+                monitorIndex = 1;
+              } else if (x >= w && x < w + a && y > -a && y <= a) {
+                monitorIndex = 2;
+              } else if (x > -a && x < a && y == h) {
+                monitorIndex = 3;
+              } else {
+                monitorIndex = 4;
+              }
 
-              const rawName = monitor["Name"] || `display-${index}`;
-              const match = rawName.match(/DISPLAY(\d+)/i);
-              const parsedNumber = match && match[1] ? match[1] : index + 1;
+              // const rawName = monitor["Name"] || `display-${index}`;
+              // const match = rawName.match(/DISPLAY(\d+)/i);
+              // const parsedNumber = match && match[1] ? match[1] : index + 1;
 
-              const id = `display-${parsedNumber}`;
-              const name = `مانیتور ${parsedNumber}`;
+              const id = `display-${monitorIndex}`;
+              const name = `مانیتور ${monitorIndex}`;
 
               return {
                 ...monitor,
-                numberMonitor: parseInt(parsedNumber),
+                numberMonitor: parseInt(monitorIndex),
                 id,
                 name,
                 x: xLeft,
@@ -850,6 +868,82 @@ function App() {
             setVideoWalls(displays);
             addMonitorsToScenes(displays);
           }
+
+          // if (data.displays) {
+          //   const displays = data.displays.map((monitor, index) => {
+          //     const [xLeft, yTop] = monitor["Left-Top"]
+          //       .split(",")
+          //       .map((v) => parseInt(v.trim(), 10));
+
+          //     const [xRight, yBottom] = monitor["Right-Bottom"]
+          //       .split(",")
+          //       .map((v) => parseInt(v.trim(), 10));
+
+          //     const width = xRight - xLeft;
+          //     const height = yBottom - yTop;
+
+          //     return {
+          //       ...monitor,
+          //       x: xLeft,
+          //       y: yTop,
+          //       width,
+          //       height,
+          //       connected: monitor.connected !== false,
+          //       monitorUniqId: monitor["Monitor ID"],
+          //     };
+          //   });
+
+          //   const sortedDisplays = displays
+          //     .sort((a, b) => {
+          //       if (a.y === b.y) {
+          //         return a.x - b.x;
+          //       }
+          //       return a.y - b.y;
+          //     })
+          //     .map((monitor, index) => {
+          //       let parsedNumber;
+          //       let name;
+          //       if (monitor.x === 0 && monitor.y === 0) {
+          //         parsedNumber = 1;
+          //         name = `مانیتور ${parsedNumber}`;
+          //       } else if (monitor.y === 0) {
+          //         parsedNumber = index + 1;
+          //         name = `مانیتور ردیف بالا ${parsedNumber}`;
+          //       } else if (monitor.x === 0) {
+          //         parsedNumber = index + 1;
+          //         name = `مانیتور ستون چپ ${parsedNumber}`;
+          //       } else {
+          //         parsedNumber = index + 1;
+          //         name = `مانیتور دیگر ${parsedNumber}`;
+          //       }
+
+          //       const id = `display-${parsedNumber}`;
+
+          //       return {
+          //         ...monitor,
+          //         id,
+          //         name,
+          //         numberMonitor: parsedNumber, // شماره مانیتور
+          //       };
+          //     });
+
+          //   // // به هر مانیتور یک شماره جدید اختصاص می‌دهیم
+          //   // const displaysWithNumbers = sortedDisplays.map((monitor, newIndex) => {
+          //   //   const parsedNumber = newIndex + 1;
+          //   //   const id = `display-${parsedNumber}`;
+          //   //   const name = `مانیتور ${parsedNumber}`;
+
+          //   //   return {
+          //   //     ...monitor,
+          //   //     id,
+          //   //     name,
+          //   //     numberMonitor: parsedNumber, // شماره جدید مانیتور
+          //   //   };
+          //   // });
+
+          //   setVideoWalls(sortedDisplays);
+          //   addMonitorsToScenes(sortedDisplays);
+          // }
 
           if (data.sources) {
             const sources = data.sources.map((item) => {
@@ -1103,6 +1197,7 @@ function App() {
   }, [scenes, selectedScene]);
 
   const fitToMonitors = (uniqId, selectedMonitors, item) => {
+    console.log("selectedMonitors::: ", selectedMonitors);
     const videoGroup = getSelectedScene()
       ?.layer.getChildren()
       .find((child) => child.attrs.uniqId === uniqId);

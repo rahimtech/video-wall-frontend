@@ -15,15 +15,7 @@ import { TbLayoutOff } from "react-icons/tb";
 import { TbLayout } from "react-icons/tb";
 import ModalVideoWall from "./videowall/ModalVideoWall";
 import Swal from "sweetalert2";
-import {
-  MdDownload,
-  MdLogout,
-  MdOutlineResetTv,
-  MdRefresh,
-  MdSystemUpdateAlt,
-  MdUpdate,
-  MdUpload,
-} from "react-icons/md";
+import { MdDownload, MdLogout, MdOutlineResetTv, MdRefresh, MdUpload } from "react-icons/md";
 import { PiNetwork } from "react-icons/pi";
 import ModalInfo from "./ModalInfo";
 import { CgArrangeBack } from "react-icons/cg";
@@ -382,7 +374,6 @@ const HeaderBar = ({
 
             <DropdownMenu
               onAction={(e) => {
-                console.log("e::: ", e);
                 if (e == "reset") {
                   Swal.fire({
                     title: "آیا سیستم ری‌استارت شود؟",
@@ -719,7 +710,7 @@ const HeaderBar = ({
             </Button>
           </Tooltip>
 
-          <Tooltip
+          {/* <Tooltip
             content={
               isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
             }
@@ -781,7 +772,7 @@ const HeaderBar = ({
                 <TbLayoutOff size={20} />
               </Button>
             )}
-          </Tooltip>
+          </Tooltip> */}
         </div>
       </div>
 
