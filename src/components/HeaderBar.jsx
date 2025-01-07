@@ -117,6 +117,7 @@ const HeaderBar = ({
           created_at: display.created_at || new Date().toISOString(), // زمان ایجاد
           "Left-Top": display["Left-Top"] || null, // مختصات بالا-چپ
           "Right-Bottom": display["Right-Bottom"] || null, // مختصات پایین-راست
+          index: display.numberMonitor,
         };
       }),
     };
@@ -219,7 +220,6 @@ const HeaderBar = ({
               if (type === "image") {
                 addImage(endObj, false);
               } else if (type === "input") {
-                console.log("endObj::: ", endObj);
                 addInput(endObj, false);
               } else if (type === "video") {
                 addVideo(endObj, false);

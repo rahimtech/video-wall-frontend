@@ -164,7 +164,6 @@ function App() {
   };
 
   const addMonitorsToScenes = (jsonData) => {
-    console.log("jsonData::: ", jsonData);
     if (!jsonData || !Array.isArray(jsonData)) {
       Swal.fire({
         title: "خطا",
@@ -201,7 +200,7 @@ function App() {
           catFix: "monitor",
           width: monitor.width,
           height: monitor.height,
-          fill: monitor.connected ? "#161616" : "red", // وضعیت اتصال
+          fill: monitor.connected ? "#161616" : "red",
           stroke: "white",
           name: "fillShape",
           strokeWidth: 3,
@@ -705,27 +704,24 @@ function App() {
   function handleDisplayError(updatedDisplays) {
     console.log("🟠 Updated displays received from server:", updatedDisplays);
 
-    // به‌روزرسانی scenes با setScenes
     setScenes((prevScenes) =>
       prevScenes.map((scene) => {
-        const { layer } = scene; // دسترسی به لایه هر صحنه
+        const { layer } = scene;
         if (!layer) return scene;
+        console.log("layer::: ", layer);
 
-        // پردازش هر نمایشگر
         updatedDisplays.forEach((display) => {
-          const rawName = display["Name"] || `display-${index}`;
-          const match = rawName.match(/DISPLAY(\d+)/i);
-          const parsedNumber = match && match[1] ? match[1] : index + 1;
-          const group = layer.findOne(`#monitor-group-${parsedNumber}`); // یافتن گروه مانیتور
+          const group = layer.findOne(`#monitor-group-${display.index}`);
+          console.log("group::: ", group);
 
           if (group) {
             const rect = group.findOne("Rect");
             const text = group.findOne(".monitorText");
 
+            console.log("display.connected::: ", display.connected);
             if (!display.connected) {
-              // مانیتور قطع شده
-              if (rect) rect.fill("red"); // تغییر رنگ به قرمز
-              if (text) text.text(`Monitor ${parsedNumber} (Disconnected)`);
+              if (rect) rect.fill("red");
+              if (text) text.text(`Monitor ${display.index} (Disconnected)`);
 
               if (!group.findOne(".disconnectIcon")) {
                 const disconnectIcon = new Konva.Text({
@@ -739,9 +735,8 @@ function App() {
                 group.add(disconnectIcon);
               }
             } else {
-              // مانیتور متصل است
               if (rect) rect.fill("#161616");
-              if (text) text.text(`Monitor ${parsedNumber}`);
+              if (text) text.text(`Monitor ${display.index}`);
 
               const disconnectIcon = group.findOne(".disconnectIcon");
               if (disconnectIcon) disconnectIcon.destroy();
@@ -749,8 +744,8 @@ function App() {
           }
         });
 
-        layer.draw(); // بازسازی لایه
-        return scene; // بازگرداندن لایه به‌روزرسانی شده
+        layer.draw();
+        return scene;
       })
     );
   }
@@ -803,11 +798,11 @@ function App() {
 
           if (data.inputs) {
             const inputs = data.inputs.map((item) => ({
-              id: item.deviceId,
-              deviceId: item.deviceId,
-              width: item.width,
-              height: item.height,
-              name: item.label,
+              id: item?.deviceId,
+              deviceId: item?.deviceId,
+              width: item?.width,
+              height: item?.height,
+              name: item?.label,
               type: "input",
             }));
             setInputs(inputs);
@@ -815,51 +810,18 @@ function App() {
 
           if (data.displays) {
             const displays = data.displays.map((monitor, index) => {
-              const displaysMatrix = {};
-              const displayWidth = 3840; // TODO: auto-detect?
-              const displayHeight = 2160; // TODO: auto-detect?
-              const w = displayWidth;
-              const h = displayHeight;
-              const a = 256; // around px
-              const [xLeft, yTop] = monitor["Left-Top"]
-                .split(",")
-                .map((v) => parseInt(v.trim(), 10));
-
-              const [xRight, yBottom] = monitor["Right-Bottom"]
-                .split(",")
-                .map((v) => parseInt(v.trim(), 10));
-
-              const x = xLeft;
-              const y = yTop;
-              const width = xRight - xLeft;
-              const height = yBottom - yTop;
-              let monitorIndex = null;
-              if (x == 0 && y == 0) {
-                monitorIndex = 1;
-              } else if (x >= w && x < w + a && y > -a && y <= a) {
-                monitorIndex = 2;
-              } else if (x > -a && x < a && y == h) {
-                monitorIndex = 3;
-              } else {
-                monitorIndex = 4;
-              }
-
-              // const rawName = monitor["Name"] || `display-${index}`;
-              // const match = rawName.match(/DISPLAY(\d+)/i);
-              // const parsedNumber = match && match[1] ? match[1] : index + 1;
-
-              const id = `display-${monitorIndex}`;
-              const name = `مانیتور ${monitorIndex}`;
+              const id = `display-${monitor.index}`;
+              const name = `مانیتور ${monitor.index}`;
 
               return {
                 ...monitor,
-                numberMonitor: parseInt(monitorIndex),
+                numberMonitor: parseInt(monitor.index),
                 id,
                 name,
-                x: xLeft,
-                y: yTop,
-                width,
-                height,
+                x: monitor.x,
+                y: monitor.y,
+                width: monitor.width,
+                height: monitor.height,
                 connected: monitor.connected !== false,
                 monitorUniqId: monitor["Monitor ID"],
               };
@@ -1207,21 +1169,27 @@ function App() {
       return;
     }
 
+    if (selectedMonitors.length === 0) {
+      console.error("No monitors selected");
+      return;
+    }
+
+    const allSelectedData = selectedMonitors.map((id) => allDataMonitors[id]);
+    const minX = Math.min(...allSelectedData.map((monitor) => monitor.x));
+    const minY = Math.min(...allSelectedData.map((monitor) => monitor.y));
+    const maxX = Math.max(...allSelectedData.map((monitor) => monitor.x + monitor.width));
+    const maxY = Math.max(...allSelectedData.map((monitor) => monitor.y + monitor.height));
+
+    const x = minX;
+    const y = minY;
+    const width = maxX - minX;
+    const height = maxY - minY;
+
     if (videoGroup instanceof Konva.Image) {
-      const firstMonitor = allDataMonitors[selectedMonitors[0]];
-      const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
-
-      const x = firstMonitor.x;
-      const y = firstMonitor.y;
-      const width = lastMonitor.x + lastMonitor.width - firstMonitor.x;
-      const height = lastMonitor.y + lastMonitor.height - firstMonitor.y;
-
       videoGroup.position({ x, y });
       videoGroup.width(width);
       videoGroup.height(height);
-
       videoGroup.setAttr("rotation", 0);
-
       getSelectedScene()?.layer.draw();
 
       sendOperation("source", {
@@ -1236,51 +1204,30 @@ function App() {
         },
       });
     } else if (videoGroup instanceof Konva.Group) {
-      if (videoGroup) {
-        const firstMonitor = allDataMonitors[selectedMonitors[0]];
-        const lastMonitor = allDataMonitors[selectedMonitors[selectedMonitors.length - 1]];
+      videoGroup.position({ x, y });
+      videoGroup?.getChildren((node) => {
+        if (node instanceof Konva.Rect) {
+          node.width(width);
+          node.height(height);
+        } else {
+          node.width(width);
+          node.height(height);
+        }
+      });
+      videoGroup.setAttr("rotation", 0);
+      getSelectedScene()?.layer.draw();
 
-        const x = firstMonitor.x;
-        const y = firstMonitor.y;
-        const width = lastMonitor.x + lastMonitor.width - firstMonitor.x;
-        const height = lastMonitor.y + lastMonitor.height - firstMonitor.y;
-
-        // تغییر موقعیت group
-        videoGroup.position({ x, y });
-        console.log("videoGroup::: ", videoGroup);
-
-        // تغییر ابعاد rect به صورت جداگانه
-        // if (videoGroup?.getChildren()) {
-        videoGroup?.getChildren((node) => {
-          if (node instanceof Konva.Rect) {
-            node.width(width);
-            node.height(height);
-          } else {
-            node.width(width);
-            node.height(height);
-          }
-        });
-        // }
-
-        // تنظیم rotation
-        videoGroup.setAttr("rotation", 0);
-
-        // بازسازی لایه
-        getSelectedScene()?.layer.draw();
-
-        sendOperation("source", {
-          action: "resize",
-          id: uniqId,
-          payload: {
-            x: x,
-            y: y,
-            width: width,
-            height: height,
-            rotation: "0",
-          },
-        });
-      }
-      // کدهای قبلی را برای گروه اجرا کنید
+      sendOperation("source", {
+        action: "resize",
+        id: uniqId,
+        payload: {
+          x: x,
+          y: y,
+          width: width,
+          height: height,
+          rotation: "0",
+        },
+      });
     } else {
       console.log("videoGroup نوع نود دیگری است");
     }
@@ -1538,6 +1485,8 @@ function App() {
         height: mode ? img.imageElement.height : img.height,
         name: "object",
         id: img.id,
+        stroke: "white",
+        strokeWidth: 2,
         uniqId,
         x: 0,
         y: 0,
@@ -1674,6 +1623,8 @@ function App() {
       height: input.height,
       fill: "lightblue",
       id: uniqId,
+      stroke: "white",
+      strokeWidth: 2,
       uniqId,
     });
 
@@ -1800,6 +1751,8 @@ function App() {
       height: 1080,
       fill: "lightgray",
       stroke: "black",
+      strokeWidth: 2,
+      stroke: "white",
       strokeWidth: 2,
       uniqId,
     });
@@ -2254,6 +2207,8 @@ function App() {
         fill: "gray",
         id: videoItem.id,
         uniqId,
+        stroke: "white",
+        strokeWidth: 2,
         x: 0,
         y: 0,
         // rotation: videoItem.rotation || 0,
@@ -2373,6 +2328,8 @@ function App() {
           name: "object",
           fill: "gray",
           id: uniqId,
+          stroke: "white",
+          strokeWidth: 2,
           uniqId,
           x: 0,
           y: 0,
