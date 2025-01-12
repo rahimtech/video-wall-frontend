@@ -49,7 +49,7 @@ const ModalInfo = ({ darkMode }) => {
                   </p>
                   <ul className="list-disc pl-6 mt-2">
                     <li>مدیریت نمایشگرها در ابعاد مختلف</li>
-                    <li>تنظیم رزولوشن و موقعیت نمایشگرها</li>
+                    {/* <li>تنظیم رزولوشن و موقعیت نمایشگرها</li> */}
                     <li>پشتیبانی از مانیتورهای چندگانه</li>
                     <li>نمایش محتوای متنوع به صورت پویا</li>
                   </ul>
@@ -57,7 +57,7 @@ const ModalInfo = ({ darkMode }) => {
                     برای کسب اطلاعات بیشتر، می‌توانید به وب‌سایت رسمی شرکت مراجعه کنید:
                   </p>
                   <a
-                    href="https://www.mrk.co.ir"
+                    href="https://mrk.co.ir/videowall/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500 underline"

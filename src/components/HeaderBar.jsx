@@ -106,18 +106,19 @@ const HeaderBar = ({
           height: display.height || 1080, // ارتفاع نمایشگر
           Resolution: display.resolution || `${display.width || 1920} X ${display.height || 1080}`, // رزولوشن
           ScaleFactor: display.scaleFactor || 1, // نسبت مقیاس
-          Dpi: display.dpi || null, // تراکم پیکسلی
+          Dpi: display.dpi || null,
           RefreshRate: display.refreshRate || display["Frequency"] || 60, // نرخ تازه‌سازی
-          Internal: display.internal || false, // داخلی یا خارجی بودن نمایشگر
-          Name: display.name || `مانیتور ${display.numberMonitor || 0}`, // نام نمایشگر
-          Primary: display.Primary || display.Primary === "Yes", // آیا نمایشگر اصلی است؟
-          Orientation: display.orientation || display.Orientation || "Default", // جهت‌گیری
-          connected: display.connected || display["Active"] === "Yes", // آیا متصل است؟
-          Adapter: display.adapter || display.Adapter || "", // آداپتور
-          created_at: display.created_at || new Date().toISOString(), // زمان ایجاد
-          "Left-Top": display["Left-Top"] || null, // مختصات بالا-چپ
-          "Right-Bottom": display["Right-Bottom"] || null, // مختصات پایین-راست
+          Internal: display.internal || false,
+          Name: display.name || `مانیتور ${display.numberMonitor || 0}`,
+          Primary: display.Primary || display.Primary === "Yes",
+          Orientation: display.orientation || display.Orientation || "Default",
+          connected: display.connected || display["Active"] === "Yes",
+          Adapter: display.adapter || display.Adapter || "",
+          created_at: display.created_at || new Date().toISOString(),
+          "Left-Top": display["Left-Top"] || null,
+          "Right-Bottom": display["Right-Bottom"] || null,
           index: display.numberMonitor,
+          numberMonitor: display.numberMonitor,
         };
       }),
     };

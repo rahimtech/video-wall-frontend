@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./style/input.css";
 import { MyContextProvider } from "./context/MyContext";
+import config from "../public/config.json";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -13,8 +14,8 @@ const Login = ({ setCheckLogin }) => {
     const password = event.target.password.value;
 
     // یوزرنیم و پسورد معتبر
-    const validUsername = "admin";
-    const validPassword = "1234";
+    const validUsername = config.username;
+    const validPassword = config.password;
 
     if (username === validUsername && password === validPassword) {
       // ذخیره ورود در localStorage

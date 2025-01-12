@@ -1159,7 +1159,6 @@ function App() {
   }, [scenes, selectedScene]);
 
   const fitToMonitors = (uniqId, selectedMonitors, item) => {
-    console.log("selectedMonitors::: ", selectedMonitors);
     const videoGroup = getSelectedScene()
       ?.layer.getChildren()
       .find((child) => child.attrs.uniqId === uniqId);
@@ -1750,10 +1749,8 @@ function App() {
       width: 1920,
       height: 1080,
       fill: "lightgray",
-      stroke: "black",
       strokeWidth: 2,
       stroke: "white",
-      strokeWidth: 2,
       uniqId,
     });
 
@@ -2486,7 +2483,6 @@ function App() {
   };
 
   const deleteResourceFromScene = (id) => {
-    console.log("id::: ", id);
     Swal.fire({
       title: "آیا مطمئن هستید؟",
       icon: "warning",
