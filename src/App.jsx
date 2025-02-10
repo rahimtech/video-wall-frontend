@@ -44,9 +44,6 @@ let socket = null;
 
 function App() {
   const [videoWalls, setVideoWalls] = useState([]);
-  console.log("videoWalls::: ", videoWalls);
-
-  // console.log("videoWalls::: ", videoWalls);
 
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
@@ -67,7 +64,6 @@ function App() {
     localStorage.getItem("onlineMode") === "true" ? true : false || false
   );
   const [inputs, setInputs] = useState([]);
-  //New-Commands
 
   const [scenes, setScenes] = useState([
     { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: new Konva.Layer() },
@@ -91,6 +87,7 @@ function App() {
   const [sources, setSources] = useState([]);
   const [pendingOperations, setPendingOperation] = useState([]);
   const [flagOperations, setFlagOperation] = useState(false);
+  const [resources, setResources] = useState([]);
 
   const filteredScenes = scenes.filter((scene) => {
     return collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id);
@@ -98,6 +95,7 @@ function App() {
 
   let host = localStorage.getItem("host") ?? config.host;
   let port = localStorage.getItem("port") ?? config.port;
+
   useEffect(() => {
     if (!localStorage.getItem("host")) {
       localStorage.setItem("host", config.host);
@@ -190,7 +188,7 @@ function App() {
           y: monitor.y,
           clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
           draggable: true,
-          id: `monitor-group-${monitor.numberMonitor}`,
+          id: `monitor-group-${monitor.id}`,
           catFix: "monitor",
         });
 
@@ -211,8 +209,8 @@ function App() {
           x: 10,
           y: 10,
           text: monitor.connected
-            ? `Monitor ${monitor.numberMonitor}\nX: ${monitor.x}, Y: ${monitor.y}`
-            : `Monitor ${monitor.numberMonitor} (Disconnected)`,
+            ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
+            : `Monitor ${monitor.id} (Disconnected)`,
           fontSize: 50,
           fill: "white",
           align: "left",
@@ -224,8 +222,8 @@ function App() {
           x: 10,
           y: 10,
           text: monitor.connected
-            ? `Monitor ${monitor.numberMonitor}`
-            : `Monitor ${monitor.numberMonitor} (Disconnected)`, // متن بر اساس وضعیت اتصال
+            ? `Monitor ${monitor.id}`
+            : `Monitor ${monitor.id} (Disconnected)`, // متن بر اساس وضعیت اتصال
           fontSize: 50,
           fill: "white",
           align: "left",
@@ -358,7 +356,7 @@ function App() {
         "Monitor ID": item["Monitor ID"],
         x: item.x,
         y: item.y,
-        primary: item.primary, // ارسال ویژگی `primary`
+        primary: item.primary, // `primary`
       }))
     );
 
@@ -366,7 +364,6 @@ function App() {
       setIsLoading(true);
     }
 
-    // به‌روزرسانی صحنه‌ها با مختصات جدید مانیتورها
     const updatedScenesIn = scenesRef.current.map((scene) => {
       const layer = scene.layer;
       if (!layer) return scene;
@@ -379,9 +376,7 @@ function App() {
 
           const monitorId = parseInt(group.id().split("-")[2], 10);
 
-          const matchingWall = updatedVideoWalls.find(
-            (wall) => parseInt(wall.numberMonitor) === monitorId
-          );
+          const matchingWall = updatedVideoWalls.find((wall) => parseInt(wall.id) === monitorId);
 
           if (matchingWall) {
             const { x: newX, y: newY } = matchingWall;
@@ -438,7 +433,7 @@ function App() {
             textNode.text(`Monitor ${monitorId}\nX: ${x}, Y: ${y}`);
           }
 
-          const wallIndex = updatedVideoWalls.findIndex((m) => m.numberMonitor === monitorId);
+          const wallIndex = updatedVideoWalls.findIndex((m) => m.id === monitorId);
           if (wallIndex !== -1) {
             updatedVideoWalls[wallIndex] = { ...updatedVideoWalls[wallIndex], x, y };
           }
@@ -484,7 +479,7 @@ function App() {
         y: monitor.y,
         clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
         draggable: true,
-        id: `monitor-group-${monitor.numberMonitor}`,
+        id: `monitor-group-${monitor.id}`,
         catFix: "monitor",
       });
 
@@ -496,19 +491,19 @@ function App() {
         catFix: "monitor",
         width: monitor.width,
         height: monitor.height,
-        fill: isConnected ? "#161616" : "red", // رنگ بر اساس اتصال
+        fill: isConnected ? "#161616" : "red",
         stroke: "white",
         name: "fillShape",
         strokeWidth: 3,
-        id: `monitor-${monitor.numberMonitor}`,
+        id: `monitor-${monitor.id}`,
       });
 
       const text = new Konva.Text({
         x: 10,
         y: 10,
         text: isConnected
-          ? `Monitor ${monitor.numberMonitor}\nX: ${monitor.x}, Y: ${monitor.y}`
-          : `Monitor ${monitor.numberMonitor} (Disconnected)`, // متن بر اساس اتصال
+          ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
+          : `Monitor ${monitor.id} (Disconnected)`, // متن بر اساس اتصال
         fontSize: 50,
         fill: "white",
         align: "left",
@@ -623,12 +618,12 @@ function App() {
     setSelectedScene(newId);
     // selectedCollection();
 
-    // Swal.fire({
-    //   title: "صحنه اضافه شد",
-    //   icon: "success",
-    //   confirmButtonText: "متوجه شدم",
-    //   confirmButtonColor: "green",
-    // });
+    Swal.fire({
+      title: "صحنه اضافه شد",
+      icon: "success",
+      confirmButtonText: "متوجه شدم",
+      confirmButtonColor: "green",
+    });
   };
 
   const deleteScene = (id) => {
@@ -642,6 +637,15 @@ function App() {
       denyButtonColor: "gray",
     }).then((result) => {
       if (result.isConfirmed) {
+        if (scenes.length <= 1) {
+          Swal.fire({
+            title: "باید حتما یک صحنه وجود داشته باشد!",
+            icon: "warning",
+            confirmButtonText: "باشه",
+            confirmButtonColor: "gray",
+          });
+          return;
+        }
         const updatedScenes = scenes.filter((scene) => scene.id !== id);
         const updatedSourcesUsage = sources.filter((item) => item.sceneId !== id);
         // console.log("updatedSourcesUsage::: ", updatedSourcesUsage);
@@ -810,20 +814,21 @@ function App() {
 
           if (data.displays) {
             const displays = data.displays.map((monitor, index) => {
-              const id = `display-${monitor.index}`;
-              const name = `مانیتور ${monitor.index}`;
+              console.log("monitor::: ", monitor);
+              // const id = `display-${monitor.index}`;
+              // const name = `مانیتور ${monitor.id}`;
 
               return {
                 ...monitor,
-                numberMonitor: parseInt(monitor.index),
-                id,
-                name,
+                // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
+                id: monitor.id,
+                name: monitor.name,
                 x: monitor.x,
                 y: monitor.y,
                 width: monitor.width,
                 height: monitor.height,
-                connected: monitor.connected !== false,
-                monitorUniqId: monitor["Monitor ID"],
+                connected: monitor.connected,
+                monitorUniqId: monitor.monitorUniqId,
               };
             });
 
@@ -1017,7 +1022,8 @@ function App() {
 
               return endObj;
             });
-            updateSceneResources([...newResource, ...getSelectedScene().resources]);
+            setResources(newResource);
+            // updateSceneResources([...newResource, ...getSelectedScene().resources]);
           }
         });
 
@@ -1301,6 +1307,7 @@ function App() {
       });
     }
   };
+
   const deleteResource = (fileName) => {
     Swal.fire({
       title: "آیا مطمئن هستید؟",
@@ -1316,7 +1323,7 @@ function App() {
           .delete(`http://${host}:${port}/delete/${trimPrefix(fileName, "uploads/")}`)
           .then(console.log("deleted"));
 
-        updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== fileName));
+        setResources(resources.filter((res) => res.id !== fileName));
 
         const groupToRemove = getSelectedScene()?.layer.findOne(`#${fileName}`);
         if (groupToRemove) {
@@ -1326,9 +1333,7 @@ function App() {
           // console.error(`Group with id ${id} not found`);
         }
 
-        const videoElement = getSelectedScene()?.resources.find(
-          (item) => item.id === fileName
-        )?.videoElement;
+        const videoElement = resources.find((item) => item.id === fileName)?.videoElement;
         if (videoElement) {
           videoElement.pause();
           videoElement.src = "";
@@ -2543,7 +2548,7 @@ function App() {
           <BsDatabaseFill size={17} />
         </Button>
       </Tooltip>
-      {/* <Tooltip showArrow={true} placement="right-start" content="صحنه‌ها">
+      <Tooltip showArrow={true} placement="right-start" content="صحنه‌ها">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
           size="sm"
@@ -2564,7 +2569,7 @@ function App() {
         >
           <MdCollectionsBookmark size={17} />
         </Button>
-      </Tooltip> */}
+      </Tooltip>
       <Tooltip showArrow={true} placement="right-start" content="ورودی و فایل‌های استفاده شده">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
@@ -2581,37 +2586,37 @@ function App() {
 
   // ----------------- Monotor-Setting ---------------
 
-  // const LayoutDropdownArrMonitor = () => {
-  //   return (
-  //     <div className="relative left-0 top-[200px] z-[100]">
-  //       <Dropdown>
-  //         <DropdownTrigger>
-  //           <Button size="sm" fullWidth variant="solid" color="primary">
-  //             چیدمان مانیتورها
-  //           </Button>
-  //         </DropdownTrigger>
-  //         <DropdownMenu
-  //           aria-label="تنظیم چیدمان"
-  //           color="secondary"
-  //           onAction={(key) => {
-  //             const [rows, cols] = key.split("x").map(Number);
-  //             arrangeMonitors(rows, cols);
-  //           }}
-  //         >
-  //           <DropdownItem key="2x2">۲×۲</DropdownItem>
-  //           <DropdownItem key="3x3">۳×۳</DropdownItem>
-  //           <DropdownItem key="4x4">۴×۴</DropdownItem>
-  //           <DropdownItem key="5x5">۵×۵</DropdownItem>
-  //           <DropdownItem key="6x6">۶×۶</DropdownItem>
-  //           <DropdownItem key="7x7">۷×۷</DropdownItem>
-  //           <DropdownItem key="8x8">۸×۸</DropdownItem>
-  //           <DropdownItem key="9x9">۹×۹</DropdownItem>
-  //           <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
-  //         </DropdownMenu>
-  //       </Dropdown>
-  //     </div>
-  //   );
-  // };
+  const LayoutDropdownArrMonitor = () => {
+    return (
+      <div className="relative left-0 top-[200px] z-[100]">
+        <Dropdown>
+          <DropdownTrigger>
+            <Button size="sm" fullWidth variant="solid" color="primary">
+              چیدمان مانیتورها
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu
+            aria-label="تنظیم چیدمان"
+            color="secondary"
+            onAction={(key) => {
+              const [rows, cols] = key.split("x").map(Number);
+              arrangeMonitors(rows, cols);
+            }}
+          >
+            <DropdownItem key="2x2">۲×۲</DropdownItem>
+            <DropdownItem key="3x3">۳×۳</DropdownItem>
+            <DropdownItem key="4x4">۴×۴</DropdownItem>
+            <DropdownItem key="5x5">۵×۵</DropdownItem>
+            <DropdownItem key="6x6">۶×۶</DropdownItem>
+            <DropdownItem key="7x7">۷×۷</DropdownItem>
+            <DropdownItem key="8x8">۸×۸</DropdownItem>
+            <DropdownItem key="9x9">۹×۹</DropdownItem>
+            <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </div>
+    );
+  };
 
   const MonitorLayoutModal = () => {
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -2824,7 +2829,7 @@ function App() {
           {monitors.map((monitor) => (
             // <Tooltip content={`تغییر مانیتور ${monitor.name}`} key={monitor.id}>
             <Button size="sm" color="primary" onPress={() => openModal(monitor)} className="m-1">
-              مانیتور {monitor.numberMonitor}
+              مانیتور {monitor.id}
             </Button>
             // </Tooltip>
           ))}
@@ -2932,6 +2937,7 @@ function App() {
       layer.draw();
     }
   };
+
   return (
     <main
       className={`${
@@ -3023,7 +3029,7 @@ function App() {
       ) : (
         <>
           <motion.div
-            className={`grid grid-cols-2 gap-[10px] p-[10px] w-full h-[350px] border-t overflow-y-auto items-center ${
+            className={`grid grid-cols-4 gap-[10px] p-[10px] w-full h-[350px] border-t overflow-y-auto items-center ${
               darkMode ? "" : "shadow-custome"
             } `}
             style={{ backgroundColor: darkMode ? "#222" : "#fff" }}
@@ -3062,7 +3068,7 @@ function App() {
                 />
                 {/* Sources Sidebar */}
                 <ResourcesSidebar
-                  resources={getSelectedScene()?.resources}
+                  resources={resources}
                   darkMode={darkMode}
                   allDataMonitors={allDataMonitors}
                   fitToMonitors={fitToMonitors}
@@ -3087,7 +3093,7 @@ function App() {
                   videoWalls={videoWalls}
                 />
                 {/* Scenes Sidebar */}
-                {/* <ScenesSidebar
+                <ScenesSidebar
                   scenes={filteredScenes} // Use filteredScenes instead of all scenes
                   darkMode={darkMode}
                   selectedScene={selectedScene}
@@ -3097,10 +3103,10 @@ function App() {
                   setEditingSceneId={setEditingSceneId}
                   handleEditSceneName={handleEditSceneName}
                   deleteScene={deleteScene}
-                /> */}
+                />
 
                 {/* CollectionsSidebar Sidebar */}
-                {/* <CollectionsSidebar
+                <CollectionsSidebar
                   scenes={scenes}
                   darkMode={darkMode}
                   collections={collections}
@@ -3109,7 +3115,7 @@ function App() {
                   selectedCollection={selectedCollection} // Pass selected collection
                   setSelectedScene={setSelectedScene} // Pass setSelectedScene function
                   filteredScenes={filteredScenes}
-                /> */}
+                />
               </>
             )}
           </motion.div>
@@ -3136,7 +3142,7 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <ResourcesSidebar
-              resources={getSelectedScene()?.resources}
+              resources={resources}
               darkMode={darkMode}
               allDataMonitors={allDataMonitors}
               fitToMonitors={fitToMonitors}
@@ -3195,7 +3201,7 @@ function App() {
         </ModalContent>
       </Modal>
 
-      {/* <Modal scrollBehavior="outside" isOpen={activeModal === "scenes"} onClose={closeModal}>
+      <Modal scrollBehavior="outside" isOpen={activeModal === "scenes"} onClose={closeModal}>
         <ModalContent>
           <ModalBody className="p-0">
             <ScenesSidebar
@@ -3228,7 +3234,7 @@ function App() {
             />
           </ModalBody>
         </ModalContent>
-      </Modal> */}
+      </Modal>
     </main>
   );
 }

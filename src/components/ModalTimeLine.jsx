@@ -34,6 +34,7 @@ const ModalTimeLine = ({
   const [endDate, setEndDate] = useState(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [generalTime, setGeneralTime] = useState(null);
 
   // Load existing timeline for the selected collection
   // useEffect(() => {
@@ -43,17 +44,19 @@ const ModalTimeLine = ({
 
   // افزودن صحنه به تایم‌لاین
   const addSceneToTimeLine = () => {
-    if (!selectedScene || !startDate || !endDate || !startTime || !endTime) {
+    // if (!selectedScene || !startDate || !endDate || !startTime || !endTime || !generalTime) {
+    if (!selectedScene || !generalTime) {
       alert("لطفاً تمام فیلدها را پر کنید.");
       return;
     }
 
     const newEntry = {
       sceneId: selectedScene.currentKey,
-      startDate: startDate.format("YYYY-MM-DD"),
-      endDate: endDate.format("YYYY-MM-DD"),
-      startTime,
-      endTime,
+      // startDate: startDate.format("YYYY-MM-DD"),
+      // endDate: endDate.format("YYYY-MM-DD"),
+      // startTime,
+      // endTime,
+      generalTime,
     };
 
     setTimeLine((prev) => [...prev, newEntry]);
@@ -98,10 +101,11 @@ const ModalTimeLine = ({
   // ریست کردن فیلدهای ورودی
   const resetFields = () => {
     setSelectedScene("");
-    setStartDate(null);
-    setEndDate(null);
-    setStartTime("");
-    setEndTime("");
+    // setStartDate(null);
+    // setEndDate(null);
+    // setStartTime("");
+    // setEndTime("");
+    setGeneralTime(null);
   };
 
   const handleOpenModal = (collection = null) => {
@@ -143,19 +147,7 @@ const ModalTimeLine = ({
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-4">
-                  <Select
-                    className="w-full"
-                    placeholder="انتخاب صحنه"
-                    value={selectedScene}
-                    onSelectionChange={setSelectedScene}
-                    aria-label="انتخاب صحنه"
-                  >
-                    {collectionScenes.map((scene) => (
-                      <SelectItem key={scene.id} value={scene.id}>
-                        {scene.name}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  {/* 
                   <div className="flex gap-4">
                     <DatePicker
                       value={startDate}
@@ -191,7 +183,32 @@ const ModalTimeLine = ({
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
                     />
+                  </div> */}
+
+                  <Select
+                    className="w-full"
+                    placeholder="انتخاب صحنه"
+                    value={selectedScene}
+                    onSelectionChange={setSelectedScene}
+                    aria-label="انتخاب صحنه"
+                  >
+                    {collectionScenes.map((scene) => (
+                      <SelectItem key={scene.id} value={scene.id}>
+                        {scene.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
+
+                  <div className="flex gap-4">
+                    <Input
+                      className="w-full"
+                      label="ساعت شروع"
+                      type="number"
+                      value={generalTime}
+                      onChange={(e) => setGeneralTime(e.target.value)}
+                    />
                   </div>
+
                   <Button
                     color="primary"
                     className="flex items-center gap-2 justify-center w-full"
@@ -212,10 +229,12 @@ const ModalTimeLine = ({
                           <div className="text-sm">
                             <strong>صحنه {entry.sceneId}:</strong>{" "}
                             {collectionScenes.find((s) => s.id === entry.sceneId)?.name}
-                            <br />
+                            {/* <br />
                             <strong>تاریخ:</strong> {entry.startDate} تا {entry.endDate}
                             <br />
-                            <strong>ساعت:</strong> {entry.startTime} تا {entry.endTime}
+                            <strong>ساعت:</strong> {entry.startTime} تا {entry.endTime} */}
+                            <br />
+                            <strong>مدت زمان:</strong> {entry.generalTime}
                           </div>
                           <div className="flex items-center gap-2">
                             <Button

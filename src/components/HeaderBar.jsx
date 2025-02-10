@@ -464,7 +464,7 @@ const HeaderBar = ({
             </Button>
           </Tooltip>
 
-          <Tooltip content={"تازه‌سازی نمایشگر"}>
+          {/* <Tooltip content={"تازه‌سازی نمایشگر"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -514,7 +514,7 @@ const HeaderBar = ({
             >
               <CgArrangeBack size={20} />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
 
           <Tooltip content="تنظیمات شبکه">
             <Button
@@ -711,7 +711,7 @@ const HeaderBar = ({
             </Button>
           </Tooltip>
 
-          {/* <Tooltip
+          <Tooltip
             content={
               isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
             }
@@ -773,7 +773,7 @@ const HeaderBar = ({
                 <TbLayoutOff size={20} />
               </Button>
             )}
-          </Tooltip> */}
+          </Tooltip>
         </div>
       </div>
 

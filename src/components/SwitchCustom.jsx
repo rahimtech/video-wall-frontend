@@ -6,7 +6,7 @@ export default function SwitchCustom({ setDarkMode, darkMode }) {
   return (
     <Button
       size="sm"
-      className={`min-w-fit px-2 shadow-md  cursor-pointer`}
+      className={`min-w-fit px-2 shadow-md cursor-pointer`}
       variant="solid"
       color={darkMode ? "default" : "primary"}
       onPress={() => {

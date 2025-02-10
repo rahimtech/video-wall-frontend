@@ -54,8 +54,6 @@ const ResourcesSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
-    console.log("resourceId::: ", resourceId);
-    console.log("newName::: ", newName);
     updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
@@ -116,12 +114,12 @@ const ResourcesSidebar = ({
               <DropdownItem onPress={() => addResource("image")} key="image">
                 افزودن تصویر
               </DropdownItem>
-              {/* <DropdownItem onPress={() => addResource("text")} key="text">
-                متن
+              <DropdownItem onPress={() => addResource("text")} key="text">
+                افزودن متن
               </DropdownItem>
               <DropdownItem onPress={() => addResource("web")} key="web">
-                وب
-              </DropdownItem> */}
+                افزودن صفحه وب
+              </DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </div>
