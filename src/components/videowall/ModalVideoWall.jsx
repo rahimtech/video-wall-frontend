@@ -12,6 +12,7 @@ import {
   CardBody,
   Divider,
   Badge,
+  Chip,
 } from "@nextui-org/react";
 import { BsGrid3X3 } from "react-icons/bs";
 
@@ -42,7 +43,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-lg font-bold">
-                جزئیات ویدیووال‌ها
+                {videoWall.length > 0 ? "جزئیات ویدیووال" : "مانیتوری وجود ندارد ⚠️"}
               </ModalHeader>
               <ModalBody>
                 <div dir="rtl" className="w-full h-full flex flex-col gap-4 overflow-auto">
@@ -64,9 +65,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                               <div className="blobred"></div>
                             )}
 
-                            <h3 className="text-lg font-semibold">
-                              {item["Name"] || "نام نامشخص"}
-                            </h3>
+                            <h3 className="text-lg font-semibold">{item.name || "نام نامشخص"}</h3>
                           </div>
                           {/* <span className="text-sm text-gray-500 dark:text-gray-400">
                             {item["Device ID"]}
@@ -75,34 +74,37 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                       </CardHeader>
                       <Divider />
                       <CardBody>
-                        <div dir="rtl" className="grid grid-cols-2 gap-2 text-sm">
+                        <div dir="rtl" className="">
                           <div>
-                            <strong>رزولوشن:</strong> {item.Resolution}
+                            <strong>رزولوشن:</strong>
+                            <div className="flex gap-1">
+                              <Chip color="secondary">{`${item.width}`}</Chip>*
+                              <Chip color="secondary">{`${item.height}`}</Chip>
+                            </div>
                           </div>
-                          <div>
+                          {/* <div>
                             <strong>فرکانس:</strong> {item.Frequency}Hz
                           </div>
                           <div>
                             <strong>آداپتور:</strong> {item.Adapter}
-                          </div>
-                          <div>
+                          </div> */}
+                          {/* <div>
                             <strong>کالر بیت:</strong> {item.Colors}-بیت
-                          </div>
+                          </div> */}
                           <div>
                             <strong>موقعیت:</strong>
-                            {`X: ${item["Left-Top"].split(",")[0]}, Y: ${
-                              item["Left-Top"].split(",")[1]
-                            }`}
+                            <Chip color="primary">{`X: ${item.x}`}</Chip>
+                            <Chip color="primary">{`Y: ${item.y}`}</Chip>
                           </div>
                           <div>
-                            <strong>نام دستگاه:</strong> {item.Name}
+                            <strong>شماره مانیتور:</strong> {item.id}
                           </div>
-                          <div>
+                          {/* <div>
                             <strong>رزولوشن حداکثری:</strong> {item["Maximum Resolution"]}
-                          </div>
-                          <div>
+                          </div> */}
+                          {/* <div>
                             <strong>وضعیت:</strong> {item.Primary === "Yes" ? "اصلی" : "ثانویه"}
-                          </div>
+                          </div> */}
                         </div>
                       </CardBody>
                     </Card>

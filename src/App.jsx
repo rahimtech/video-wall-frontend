@@ -810,11 +810,11 @@ function App() {
               type: "input",
             }));
             setInputs(inputs);
+            // setResources([inputs, ...resources]);
           }
 
           if (data.displays) {
             const displays = data.displays.map((monitor, index) => {
-              console.log("monitor::: ", monitor);
               // const id = `display-${monitor.index}`;
               // const name = `مانیتور ${monitor.id}`;
 
@@ -835,82 +835,6 @@ function App() {
             setVideoWalls(displays);
             addMonitorsToScenes(displays);
           }
-
-          // if (data.displays) {
-          //   const displays = data.displays.map((monitor, index) => {
-          //     const [xLeft, yTop] = monitor["Left-Top"]
-          //       .split(",")
-          //       .map((v) => parseInt(v.trim(), 10));
-
-          //     const [xRight, yBottom] = monitor["Right-Bottom"]
-          //       .split(",")
-          //       .map((v) => parseInt(v.trim(), 10));
-
-          //     const width = xRight - xLeft;
-          //     const height = yBottom - yTop;
-
-          //     return {
-          //       ...monitor,
-          //       x: xLeft,
-          //       y: yTop,
-          //       width,
-          //       height,
-          //       connected: monitor.connected !== false,
-          //       monitorUniqId: monitor["Monitor ID"],
-          //     };
-          //   });
-
-          //   const sortedDisplays = displays
-          //     .sort((a, b) => {
-          //       if (a.y === b.y) {
-          //         return a.x - b.x;
-          //       }
-          //       return a.y - b.y;
-          //     })
-          //     .map((monitor, index) => {
-          //       let parsedNumber;
-          //       let name;
-          //       if (monitor.x === 0 && monitor.y === 0) {
-          //         parsedNumber = 1;
-          //         name = `مانیتور ${parsedNumber}`;
-          //       } else if (monitor.y === 0) {
-          //         parsedNumber = index + 1;
-          //         name = `مانیتور ردیف بالا ${parsedNumber}`;
-          //       } else if (monitor.x === 0) {
-          //         parsedNumber = index + 1;
-          //         name = `مانیتور ستون چپ ${parsedNumber}`;
-          //       } else {
-          //         parsedNumber = index + 1;
-          //         name = `مانیتور دیگر ${parsedNumber}`;
-          //       }
-
-          //       const id = `display-${parsedNumber}`;
-
-          //       return {
-          //         ...monitor,
-          //         id,
-          //         name,
-          //         numberMonitor: parsedNumber, // شماره مانیتور
-          //       };
-          //     });
-
-          //   // // به هر مانیتور یک شماره جدید اختصاص می‌دهیم
-          //   // const displaysWithNumbers = sortedDisplays.map((monitor, newIndex) => {
-          //   //   const parsedNumber = newIndex + 1;
-          //   //   const id = `display-${parsedNumber}`;
-          //   //   const name = `مانیتور ${parsedNumber}`;
-
-          //   //   return {
-          //   //     ...monitor,
-          //   //     id,
-          //   //     name,
-          //   //     numberMonitor: parsedNumber, // شماره جدید مانیتور
-          //   //   };
-          //   // });
-
-          //   setVideoWalls(sortedDisplays);
-          //   addMonitorsToScenes(sortedDisplays);
-          // }
 
           if (data.sources) {
             const sources = data.sources.map((item) => {
@@ -978,6 +902,7 @@ function App() {
             setSources(sources);
           }
 
+          //resources
           if (data.files) {
             const newResource = data.files.map((item) => {
               let type;
@@ -1271,8 +1196,8 @@ function App() {
             rotation: 0,
             created_at: new Date().toISOString(),
           };
-
-          updateSceneResources([newResource, ...getSelectedScene().resources]);
+          setResources(newResource);
+          // updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
       });
     } else if (type === "web") {
@@ -1301,8 +1226,9 @@ function App() {
             rotation: 0,
             created_at: new Date().toISOString(),
           };
+          setResources(newResource);
 
-          updateSceneResources([newResource, ...getSelectedScene().resources]);
+          // updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
       });
     }
@@ -1354,8 +1280,8 @@ function App() {
     const updatedResources = [...resources];
     const [movedResource] = updatedResources.splice(index, 1);
     updatedResources.splice(newIndex, 0, movedResource);
-
-    updateSceneResources(updatedResources);
+    setResources(updatedResources);
+    // updateSceneResources(updatedResources);
 
     const resourceNode = getSelectedScene()?.layer.findOne(`#${id}`);
     if (resourceNode) {
@@ -1394,7 +1320,8 @@ function App() {
             rotation: 0,
             created_at: new Date().toISOString(),
           };
-          updateSceneResources([newResource, ...getSelectedScene().resources]);
+          setResources(newResource);
+          // updateSceneResources([newResource, ...getSelectedScene().resources]);
         });
       } else if (fileType === "video" && type === "video") {
         const video = document.createElement("video");
@@ -1421,8 +1348,8 @@ function App() {
           rotation: 0,
           created_at: new Date().toISOString(),
         };
-
-        updateSceneResources([newResource, ...getSelectedScene().resources]);
+        setResources(newResource);
+        // updateSceneResources([newResource, ...getSelectedScene().resources]);
       } else {
         // console.error("Unsupported file type.");
       }

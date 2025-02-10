@@ -99,7 +99,7 @@ const HeaderBar = ({
         return {
           id: display.id, // شناسه یکتا
           monitorUniqId: display.monitorUniqId || display["Monitor ID"], // شناسه سخت‌افزاری نمایشگر
-          key: display.numberMonitor || 0, // کلید یکتا برای React
+          key: display.id || 0, // کلید یکتا برای React
           x: display.x || 0, // مختصات افقی
           y: display.y || 0, // مختصات عمودی
           width: display.width || 1920, // عرض نمایشگر
@@ -109,7 +109,7 @@ const HeaderBar = ({
           Dpi: display.dpi || null,
           RefreshRate: display.refreshRate || display["Frequency"] || 60, // نرخ تازه‌سازی
           Internal: display.internal || false,
-          Name: display.name || `مانیتور ${display.numberMonitor || 0}`,
+          Name: display.name || `مانیتور ${display.id || 0}`,
           Primary: display.Primary || display.Primary === "Yes",
           Orientation: display.orientation || display.Orientation || "Default",
           connected: display.connected || display["Active"] === "Yes",
@@ -117,8 +117,7 @@ const HeaderBar = ({
           created_at: display.created_at || new Date().toISOString(),
           "Left-Top": display["Left-Top"] || null,
           "Right-Bottom": display["Right-Bottom"] || null,
-          index: display.numberMonitor,
-          numberMonitor: display.numberMonitor,
+          index: display.id,
         };
       }),
     };
