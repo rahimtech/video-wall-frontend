@@ -13,11 +13,12 @@ import {
 import { FaWatchmanMonitoring } from "react-icons/fa";
 import { MdWindow } from "react-icons/md";
 import Toolbar from "react-multi-date-picker/plugins/toolbar";
+import { useMyContext } from "../../../../context/MyContext";
 
 const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, item }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedMonitors, setSelectedMonitors] = useState([]);
-
+  const { getSelectedScene, allDataMonitors, sendOperation } = useMyContext();
   const handleMonitorSelection = (index) => {
     setSelectedMonitors((prevSelected) =>
       prevSelected.includes(index)
@@ -27,7 +28,13 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, i
   };
 
   const handleApplySelection = () => {
-    fitToMonitors(videoName, selectedMonitors, item);
+    fitToMonitors({
+      uniqId: videoName,
+      selectedMonitors,
+      getSelectedScene,
+      allDataMonitors,
+      sendOperation,
+    });
     onOpenChange(false); // Close the modal after applying
   };
 

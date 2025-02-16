@@ -1,6 +1,6 @@
 import React from "react";
 import { FaDownload, FaNetworkWired, FaPowerOff, FaUpload, FaWifi } from "react-icons/fa";
-import SwitchCustom from "./SwitchCustom";
+import SwitchCustom from "../SwitchCustom";
 import {
   Button,
   Dropdown,
@@ -13,46 +13,50 @@ import { RiLayout4Fill, RiRefreshFill } from "react-icons/ri";
 import { TbFreezeRow, TbLayoutSidebarLeftCollapse, TbRefresh } from "react-icons/tb";
 import { TbLayoutOff } from "react-icons/tb";
 import { TbLayout } from "react-icons/tb";
-import ModalVideoWall from "./videowall/ModalVideoWall";
+import ModalVideoWall from "../ModalVideoWall";
 import Swal from "sweetalert2";
 import { MdDownload, MdLogout, MdOutlineResetTv, MdRefresh, MdUpload } from "react-icons/md";
 import { PiNetwork } from "react-icons/pi";
-import ModalInfo from "./ModalInfo";
+import ModalInfo from "../ModalInfo";
 import { CgArrangeBack } from "react-icons/cg";
 import { TfiPanel } from "react-icons/tfi";
 import JSZip from "jszip";
 import axios from "axios";
 import { AiOutlinePoweroff } from "react-icons/ai";
+import { useMyContext } from "../../../context/MyContext";
 
-const HeaderBar = ({
-  darkMode,
-  setDarkMode,
-  connecting,
-  toggleLayout,
-  isToggleLayout,
-  setVideoWalls,
-  setInputs,
-  addMonitorsToScenes,
-  setCollections,
-  addResource,
-  setScenes,
-  collections,
-  scenes,
-  inputs,
-  videoWalls,
-  sources,
-  connectionMode,
-  setConnectionMode,
-  isToggleVideoWall,
-  setIsToggleVideoWall,
-  setSources,
-  trimPrefix,
-  addImage,
-  addInput,
-  addVideo,
-  selectedScene,
-  socket,
-}) => {
+const HeaderBar = ({ toggleLayout }) => {
+  let {
+    videoWalls,
+    setVideoWalls,
+    isToggleLayout,
+    isToggleVideoWall,
+    setIsToggleVideoWall,
+    darkMode,
+    setDarkMode,
+    connecting,
+    connectionMode,
+    setConnectionMode,
+    inputs,
+    setInputs,
+    scenes,
+    setScenes,
+    selectedScene,
+    collections,
+    sources,
+    setSources,
+    counterImages,
+    addMonitorsToScenes,
+    addVideo,
+    addImage,
+    addInput,
+    getSelectedScene,
+    sendOperation,
+    url,
+    loopVideos,
+    generateBlobImageURL,
+  } = useMyContext();
+
   const handleExportProject = () => {
     const data = {
       collections: collections,
@@ -181,7 +185,7 @@ const HeaderBar = ({
                 const imageURL = content;
                 let img = new Image();
                 img.src = imageURL;
-                const imageName = "image" + counterImages++;
+                let imageName = "image" + counterImages++;
                 endObj = {
                   name: item.name ?? imageName,
                   imageElement: img,
@@ -218,11 +222,33 @@ const HeaderBar = ({
               };
 
               if (type === "image") {
-                addImage(endObj, false);
+                addImage({
+                  img: endObj,
+                  mode: false,
+                  getSelectedScene,
+                  setSources,
+                  sendOperation,
+                  url,
+                  generateBlobImageURL,
+                });
               } else if (type === "input") {
-                addInput(endObj, false);
+                addInput({
+                  input: endObj,
+                  mode: false,
+                  getSelectedScene,
+                  setSources,
+                  sendOperation,
+                });
               } else if (type === "video") {
-                addVideo(endObj, false);
+                addVideo({
+                  videoItem: endObj,
+                  mode: false,
+                  getSelectedScene,
+                  setSources,
+                  sendOperation,
+                  url,
+                  loopVideos,
+                });
                 // addRectangle();
               }
               return endObj;

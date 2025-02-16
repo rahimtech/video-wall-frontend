@@ -15,28 +15,27 @@ import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import { MdAddBox, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
 import { PiTimerBold } from "react-icons/pi";
-import ModalTimeLine from "../ModalTimeLine";
-import api from "../../api/api";
-import { useMyContext } from "../../context/MyContext";
+import ModalTimeLine from "./ModalTimeLine";
+import api from "@/api/api";
+import { useMyContext } from "@/context/MyContext";
 
-const CollectionsSidebar = ({
-  filteredScenes,
-  scenes,
-  darkMode,
-  collections,
-  setCollections,
-  setSelectedCollection,
-  selectedCollection,
-  setSelectedScene,
-  setIsLoading,
-}) => {
-  console.log("collections::: ", collections);
+const CollectionsSidebar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newCollectionName, setNewCollectionName] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState([]);
   const [editingCollection, setEditingCollection] = useState(null);
-  const { host, port, url } = useMyContext();
+  const {
+    setIsLoading,
+    setSelectedScene,
+    collections,
+    setCollections,
+    selectedCollection,
+    setSelectedCollection,
+    filteredScenes,
+    url,
+    darkMode,
+  } = useMyContext();
   let idSave = null;
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
@@ -44,7 +43,6 @@ const CollectionsSidebar = ({
   };
 
   const handleOpenModal = (collection = null) => {
-    console.log("collection::: ", collection);
     if (collection) {
       idSave = collection.id;
       setEditingCollection(collection.id);
@@ -80,26 +78,26 @@ const CollectionsSidebar = ({
 
           api.updateProgram(url, collection.id, { name: newCollectionName });
 
-          return updatedCollection; // بازگشت مجموعه به روز شده
+          return updatedCollection;
         }
-        return collection; // در غیر این صورت مجموعه بدون تغییر
+        return collection;
       });
 
       // به روز رسانی state collections با مجموعه‌های جدید
       setCollections(newCollections);
     } else {
-      let newCol = { id: Date.now(), name: newCollectionName, scenes: selectedScenes };
-      setCollections((prev) => [...prev, newCol]);
-
-      setSelectedCollection(newCol.id);
-      setSelectedScene(newCol.scenes[0]);
-
       try {
         setIsLoading(true);
+        console.log("tesrt");
         const dataCol = await api.createProgram(url, {
-          name: newCol.name,
+          name: newCollectionName,
           metadata: {},
         });
+        let newCol = { id: dataCol.id, name: newCollectionName, scenes: selectedScenes };
+        setCollections((prev) => [...prev, newCol]);
+
+        setSelectedCollection(newCol.id);
+        setSelectedScene(newCol.scenes[0]);
       } catch (err) {
         console.log(err);
       } finally {

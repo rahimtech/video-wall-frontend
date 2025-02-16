@@ -1,11 +1,46 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import config from "../../public/config.json";
 import api from "../api/api";
+import { deleteSourceFromScene } from "../components/konva/common/deleteSourceFromScene";
+import { fitToMonitors } from "../components/konva/common/FitToMonitor";
+import { addImage } from "../components/konva/items/image/ImageKonva";
+import { addInput } from "../components/konva/items/input/InputKonva";
+import {
+  LayoutDropdownArrMonitor,
+  MonitorLayoutModal,
+  MonitorPositionEditor,
+  updateKonvaMonitorPosition,
+  updateMonitorPosition,
+} from "../components/konva/items/monitor/position/MonitorPosition";
+import {
+  addMonitorsToScenes,
+  arrangeMForScenes,
+  arrangeMonitors,
+  generateMonitorsForLayer,
+} from "../components/konva/items/monitor/MonitorKonva";
+import { addText, editText } from "../components/konva/items/text/TextKonva";
+import {
+  addVideo,
+  pauseVideo,
+  playVideo,
+  toggleLoopVideo,
+} from "../components/konva/items/video/VideoKonva";
+import { addWeb, editWeb } from "../components/konva/items/web/WebKonva";
+import { IconMenuSidebar } from "../components/sidebar/common/IconMenuSidebar";
 
-// ایجاد کانتکست
+import {
+  addScene,
+  deleteScene,
+  handleEditSceneName,
+} from "../components/sidebar/scenes/ScenesCrud";
+import { io } from "socket.io-client";
+
 const MyContext = createContext();
 
 export const MyContextProvider = ({ children }) => {
+  let anim;
+  let motherLayer;
+  let motherStage;
   let host = localStorage.getItem("host") ?? config.host;
   let port = localStorage.getItem("port") ?? config.port;
 
@@ -15,6 +50,7 @@ export const MyContextProvider = ({ children }) => {
 
   // States
   const [videoWalls, setVideoWalls] = useState([]);
+  const [socket, setSocket] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
   const closeModal = () => setActiveModal(null);
@@ -55,6 +91,18 @@ export const MyContextProvider = ({ children }) => {
   let counterImages = 0;
   let counterVideos = 0;
   let allDataMonitors = videoWalls;
+
+  function generateBlobURL(newBaseURL, videoName) {
+    const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
+
+    return newBlobURL;
+  }
+
+  function generateBlobImageURL(newBaseURL, videoName) {
+    const newBlobURL = `${newBaseURL}/${videoName}.mp4`;
+
+    return newBlobURL;
+  }
 
   // const filteredScenes = scenes.filter((scene) =>
   //   collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id)
@@ -105,7 +153,9 @@ export const MyContextProvider = ({ children }) => {
     setUrl(`http://${host}:${port}`);
   }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
 
-  const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
+  const getSelectedScene = () => {
+    return scenes.find((scene) => scene.id === selectedScene);
+  };
 
   useEffect(() => {
     if (!url) {
@@ -117,17 +167,19 @@ export const MyContextProvider = ({ children }) => {
         const dataCol = await api.getPrograms(url);
         console.log("dataCol::: ", dataCol);
         fetchDataColl = dataCol;
-        setCollections(dataCol);
+        setCollections(dataCol ?? []);
 
         const dataSen = await api.getScenes(url);
         console.log("dataSen::: ", dataSen);
-        fetchDataScene = dataSen.map((item) => ({
-          name: item.name,
-          id: item.id,
-          resources: [],
-          stageData: null,
-          layer: new Konva.Layer(),
-        }));
+        fetchDataScene =
+          dataSen ??
+          [].map((item) => ({
+            name: item.name,
+            id: item.id,
+            resources: [],
+            stageData: null,
+            layer: new Konva.Layer(),
+          }));
         setScenes(fetchDataScene);
       } catch (err) {
         console.log(err);
@@ -138,6 +190,74 @@ export const MyContextProvider = ({ children }) => {
 
     initData();
   }, [url]);
+
+  const createNewStage = (isLayer) => {
+    const stage = new Konva.Stage({
+      container: `containerKonva-${selectedScene}`,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      draggable: true,
+    });
+    const newLayer = new Konva.Layer();
+
+    var scaleBy = 1.04;
+    stage.on("wheel", (e) => {
+      e.evt.preventDefault();
+      var oldScale = stage.scaleX();
+      var pointer = stage.getPointerPosition();
+      var mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+      let direction = e.evt.deltaY > 0 ? -1 : 1;
+      if (e.evt.ctrlKey) direction = -direction;
+      var newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      stage.scale({ x: newScale, y: newScale });
+      var newPos = {
+        x: pointer.x - mousePointTo.x * newScale,
+        y: pointer.y - mousePointTo.y * newScale,
+      };
+      stage.position(newPos);
+    });
+
+    stage.position({ x: 380, y: 200 });
+    stage.scale({ x: 0.09, y: 0.09 });
+
+    stage.add(isLayer ?? newLayer);
+    motherLayer = newLayer;
+    motherStage = stage;
+    return { stage, layer: isLayer ?? newLayer };
+  };
+
+  useEffect(() => {
+    if (connectionMode) {
+      setSocket(io(`http://${host}:${port}`));
+      let tempSocket = io(`http://${host}:${port}`);
+      tempSocket.on("connect", () => {
+        console.log("Connected to WebSocket!");
+      });
+
+      tempSocket.on("disconnect", () => {
+        console.log("Disconnected from WebSocket");
+      });
+
+      return () => {
+        tempSocket.disconnect();
+      };
+    } else {
+      setSocket(null);
+    }
+  }, [connectionMode, host, port]);
+
+  const sendOperation = (action, payload) => {
+    console.log("payload::: ", payload);
+    if (connectionModeRef.current) {
+      console.log("socket::: ", socket);
+      socket?.emit(action, payload);
+    } else {
+      setPendingOperation((prev) => [...prev, { action, payload }]);
+    }
+  };
 
   return (
     <MyContext.Provider
@@ -200,6 +320,40 @@ export const MyContextProvider = ({ children }) => {
         url,
         flagReset,
         setFlagReset,
+        generateBlobURL,
+        generateBlobImageURL,
+        LayoutDropdownArrMonitor,
+        MonitorLayoutModal,
+        MonitorPositionEditor,
+        updateKonvaMonitorPosition,
+        updateMonitorPosition,
+
+        addMonitorsToScenes,
+        arrangeMForScenes,
+        arrangeMonitors,
+        generateMonitorsForLayer,
+
+        addVideo,
+        pauseVideo,
+        playVideo,
+        toggleLoopVideo,
+
+        addScene,
+        deleteScene,
+        handleEditSceneName,
+        deleteSourceFromScene,
+        fitToMonitors,
+        addImage,
+        addInput,
+        addText,
+        editText,
+        addWeb,
+        editWeb,
+        IconMenuSidebar,
+        createNewStage,
+        sendOperation,
+        socket,
+        anim,
       }}
     >
       {children}

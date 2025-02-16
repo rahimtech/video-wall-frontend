@@ -17,8 +17,8 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import { PiTimerBold } from "react-icons/pi";
 import { FaPlus, FaTrashAlt, FaArrowUp, FaArrowDown } from "react-icons/fa";
-import { useMyContext } from "../context/MyContext";
-import api from "../api/api";
+import { useMyContext } from "../../../context/MyContext";
+import api from "../../../api/api";
 
 const ModalTimeLine = ({
   darkMode,
@@ -228,9 +228,9 @@ const ModalTimeLine = ({
                 </div>
 
                 <div dir="rtl" className="mt-4">
-                  {timeLine.length > 0 ? (
+                  {timeLine?.length > 0 ? (
                     <ul className="flex flex-col gap-2">
-                      {timeLine.map((entry, index) => (
+                      {timeLine?.map((entry, index) => (
                         <li
                           key={index}
                           className={`flex items-center justify-between p-3 shadow-md bg-gray-100 text-black rounded-md`}

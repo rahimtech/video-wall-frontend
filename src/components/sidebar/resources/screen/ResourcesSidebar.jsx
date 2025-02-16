@@ -8,41 +8,228 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/fa";
-import ModalMonitorSelection from "../ModalMonitorSelection";
 import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 import Swal from "sweetalert2";
+import { useMyContext } from "@/context/MyContext";
+import { v4 as uuidv4 } from "uuid";
 
-const ResourcesSidebar = ({
-  resources,
-  darkMode,
-  allDataMonitors,
-  fitToMonitors,
-  addVideo,
-  playVideo,
-  pauseVideo,
-  toggleLoopVideo,
-  moveResource,
-  deleteResource,
-  loopVideos,
-  addResource,
-  addImage,
-  addText,
-  addWeb,
-  editWeb,
-  editText,
-  updateResourceName,
-  updateResourceColor,
-  inputs,
-  addInput,
-  deleteResourceFromScene,
-  videoWalls,
-}) => {
+const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [colorPickerResourceId, setColorPickerResourceId] = useState(null);
+  const {
+    videoWalls,
+    darkMode,
+    inputs,
+    resources,
+    addVideo,
+    addImage,
+    addInput,
+    getSelectedScene,
+    setSources,
+    sendOperation,
+    url,
+    loopVideos,
+    generateBlobImageURL,
+    setResources,
+    setMiniLoad,
+  } = useMyContext();
+
+  const uploadMedia = async (file, videoName) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("videoName", videoName);
+    setMiniLoad(true);
+    try {
+      const response = await axios.post(`http://${host}:${port}/upload`, formData, videoName, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      // console.log("File uploaded successfully:", response.data.filePath);
+      return response.data.filePath;
+    } catch (error) {
+      // console.error("Error uploading file:", error);
+    } finally {
+      setMiniLoad(false);
+    }
+  };
+
+  const addResource = (type) => {
+    if (type === "video" || type === "image") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = type === "video" ? "video/*" : "image/*";
+      input.onchange = (e) => handleFileInput(e, type);
+      input.click();
+    } else if (type === "text") {
+      Swal.fire({
+        title: "متن خود را وارد کنید:",
+        input: "text",
+        showCancelButton: true,
+        confirmButtonColor: "green",
+        cancelButtonColor: "gray",
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          const id = uuidv4();
+
+          let newResource = {
+            type: "text",
+            id,
+            color: "black",
+            name: result.value,
+            content: result.value,
+            width: 200,
+            height: 200,
+            x: 0,
+            y: 0,
+            z: 0,
+            rotation: 0,
+            created_at: new Date().toISOString(),
+          };
+          setResources(newResource);
+          // updateSceneResources([newResource, ...getSelectedScene().resources]);
+        }
+      });
+    } else if (type === "web") {
+      Swal.fire({
+        title: "Enter the URL:",
+        input: "url",
+        inputPlaceholder: "https://example.com",
+        showCancelButton: true,
+        confirmButtonColor: "green",
+        cancelButtonColor: "gray",
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          const id = uuidv4();
+          const webURL = result.value;
+
+          let newResource = {
+            type: "web",
+            id,
+            name: webURL,
+            content: webURL,
+            width: 1920,
+            height: 1080,
+            x: 0,
+            y: 0,
+            z: 0,
+            rotation: 0,
+            created_at: new Date().toISOString(),
+          };
+          setResources(newResource);
+
+          // updateSceneResources([newResource, ...getSelectedScene().resources]);
+        }
+      });
+    }
+  };
+
+  const deleteResource = (fileName) => {
+    Swal.fire({
+      title: "آیا مطمئن هستید؟",
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "خیر",
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "بله",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setMiniLoad(true);
+        try {
+          await axios
+            .delete(`http://${host}:${port}/delete/${trimPrefix(fileName, "uploads/")}`)
+            .then(console.log("deleted"));
+        } finally {
+          setMiniLoad(false);
+        }
+
+        setResources(resources.filter((res) => res.id !== fileName));
+
+        const groupToRemove = getSelectedScene()?.layer.findOne(`#${fileName}`);
+        if (groupToRemove) {
+          groupToRemove.destroy();
+          getSelectedScene()?.layer.draw();
+        } else {
+          // console.error(`Group with id ${id} not found`);
+        }
+
+        const videoElement = resources.find((item) => item.id === fileName)?.videoElement;
+        if (videoElement) {
+          videoElement.pause();
+          videoElement.src = "";
+        }
+      } else {
+        return;
+      }
+    });
+  };
+
+  const handleFileInput = async (e, type) => {
+    const file = e.target.files[0];
+
+    if (file) {
+      const fileType = file.type.split("/")[0];
+      if (fileType === "image" && type === "image") {
+        const imageURL = URL.createObjectURL(file);
+        let img = new Image();
+        img.src = imageURL;
+        const id = uuidv4();
+        const imageName = file.name.split(".").slice(0, -1).join(".");
+        img.addEventListener("load", async () => {
+          const sourceName = await uploadMedia(file, id);
+          let newResource = {
+            type: "image",
+            id: sourceName,
+            name: imageName,
+            imageElement: img,
+            content: img.src,
+            width: img.width,
+            height: img.height,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            created_at: new Date().toISOString(),
+          };
+          setResources((prev) => [newResource, ...prev]);
+          // updateSceneResources([newResource, ...getSelectedScene().resources]);
+        });
+      } else if (fileType === "video" && type === "video") {
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(file);
+        const id = uuidv4();
+        const videoName = file.name.split(".").slice(0, -1).join(".");
+        video.setAttribute("name", videoName);
+        const sourceName = await uploadMedia(file, id);
+        video.setAttribute("id", sourceName);
+
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+
+        let newResource = {
+          type: "video",
+          id: sourceName,
+          name: videoName,
+          videoElement: video,
+          content: video.src,
+          width,
+          height,
+          x: 0,
+          y: 0,
+          rotation: 0,
+          created_at: new Date().toISOString(),
+        };
+        setResources((prev) => [newResource, ...prev]);
+        // updateSceneResources([newResource, ...getSelectedScene().resources]);
+      } else {
+        // console.error("Unsupported file type.");
+      }
+    }
+  };
 
   const handleDoubleClick = (resource) => {
     setEditingResourceId(resource.id);
@@ -54,17 +241,16 @@ const ResourcesSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
-    updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
   };
 
-  const handleColorChange = (color) => {
-    setSelectedColor(color.hex);
-    if (colorPickerResourceId) {
-      updateResourceColor(colorPickerResourceId, color.hex);
-    }
-  };
+  // const handleColorChange = (color) => {
+  //   setSelectedColor(color.hex);
+  //   if (colorPickerResourceId) {
+  //     updateSourceColor(colorPickerResourceId, color.hex);
+  //   }
+  // };
 
   return (
     <div
@@ -161,7 +347,7 @@ const ResourcesSidebar = ({
                     size="sm"
                     variant="light"
                     color="default"
-                    onPress={() => addInput(input)}
+                    onPress={() => addInput({ input, getSelectedScene, setSources, sendOperation })}
                   >
                     <MdAddBox />
                   </Button>
@@ -178,10 +364,10 @@ const ResourcesSidebar = ({
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu aria-label="More Actions">
-                    <DropdownItem key="moveUp" onPress={() => moveResource(input.id, -1)}>
+                    <DropdownItem key="moveUp" onPress={() => moveSource(input.id, -1)}>
                       بالا
                     </DropdownItem>
-                    <DropdownItem key="moveDown" onPress={() => moveResource(input.id, 1)}>
+                    <DropdownItem key="moveDown" onPress={() => moveSource(input.id, 1)}>
                       پایین
                     </DropdownItem>
                     <DropdownItem key="add-image" onPress={() => addInput(input)}>
@@ -238,7 +424,14 @@ const ResourcesSidebar = ({
                         color="default"
                         onPress={() => {
                           videoWalls.length > 0
-                            ? addImage(resource)
+                            ? addImage({
+                                img: resource,
+                                getSelectedScene,
+                                setSources,
+                                sendOperation,
+                                url,
+                                generateBlobImageURL,
+                              })
                             : Swal.fire({
                                 title: "!مانیتوری در صحنه وجود ندارد",
                                 icon: "warning",
@@ -259,7 +452,14 @@ const ResourcesSidebar = ({
                         color="default"
                         onPress={() => {
                           videoWalls.length > 0
-                            ? addVideo(resource)
+                            ? addVideo({
+                                videoItem: resource,
+                                getSelectedScene,
+                                setSources,
+                                sendOperation,
+                                url,
+                                loopVideos,
+                              })
                             : Swal.fire({
                                 title: "!مانیتوری در صحنه وجود ندارد",
                                 icon: "warning",
@@ -287,10 +487,10 @@ const ResourcesSidebar = ({
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu aria-label="More Actions">
-                    <DropdownItem key="moveUp" onPress={() => moveResource(resource.id, -1)}>
+                    <DropdownItem key="moveUp" onPress={() => moveSource(resource.id, -1)}>
                       بالا
                     </DropdownItem>
-                    <DropdownItem key="moveDown" onPress={() => moveResource(resource.id, 1)}>
+                    <DropdownItem key="moveDown" onPress={() => moveSource(resource.id, 1)}>
                       پایین
                     </DropdownItem>
                     {resource.type === "video" ? (

@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  Tooltip,
-} from "@nextui-org/react";
+import { Button, Tooltip } from "@nextui-org/react";
 import {
   FaPlay,
   FaPause,
@@ -16,40 +9,86 @@ import {
   FaArrowDown,
   FaArrowUp,
 } from "react-icons/fa";
-import ModalMonitorSelection from "../ModalMonitorSelection";
+import ModalMonitorSelection from "../scenes/screen/ModalMonitorSelection";
 import { MdAddBox, MdDelete, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 import { BsArrowDown } from "react-icons/bs";
+import { useMyContext } from "@/context/MyContext";
 
-const UsageSidebar = ({
-  resources,
-  darkMode,
-  allDataMonitors,
-  fitToMonitors,
-  addVideo,
-  playVideo,
-  pauseVideo,
-  toggleLoopVideo,
-  moveResource,
-  deleteResource,
-  loopVideos,
-  addResource,
-  addImage,
-  addText,
-  addWeb,
-  editWeb,
-  editText,
-  updateResourceName,
-  updateResourceColor,
-  inputs,
-  addInput,
-  deleteResourceFromScene,
-}) => {
+const UsageSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [colorPickerResourceId, setColorPickerResourceId] = useState(null);
+  const {
+    darkMode,
+    setScenes,
+    selectedScene,
+    sources,
+    setSources,
+    allDataMonitors,
+    getSelectedScene,
+    deleteSourceFromScene,
+    fitToMonitors,
+    sendOperation,
+  } = useMyContext();
+
+  let usageSources = null;
+  usageSources = sources.filter((item) => item.sceneId === getSelectedScene()?.id) ?? [];
+
+  const updateSourceName = (resourceId, newName, isSource = true) => {
+    setSources((prev) =>
+      prev.map((item) =>
+        (item.id ?? item.uniqId) === resourceId ? { ...item, name: newName } : item
+      )
+    );
+    if (isSource) {
+      sendOperation("source", {
+        action: "resize",
+        id: resourceId,
+        payload: {
+          name: newName,
+        },
+      });
+    }
+    if (isSource == false) {
+      setScenes((prevScenes) =>
+        prevScenes.map((scene) => {
+          if (scene.id === selectedScene) {
+            const updatedResources = scene.usageSources.map((resource) => {
+              return resource.id === resourceId
+                ? { ...resource, name: newName, content: newName }
+                : resource;
+            });
+            return { ...scene, usageSources: updatedResources };
+          }
+          return scene;
+        })
+      );
+    }
+  };
+
+  const updateSourceColor = (resourceId, color) => {
+    setScenes((prevScenes) =>
+      prevScenes.map((scene) =>
+        scene.id === selectedScene
+          ? {
+              ...scene,
+              usageSources: scene.usageSources.map((resource) =>
+                resource.id === resourceId ? { ...resource, color } : resource
+              ),
+            }
+          : scene
+      )
+    );
+
+    const textNode = getSelectedScene()?.layer.findOne(`#${resourceId}`);
+    if (textNode) {
+      textNode.fill(color);
+      getSelectedScene()?.layer.draw();
+    }
+  };
 
   const handleDoubleClick = (resource) => {
     setEditingResourceId(resource.id);
@@ -61,7 +100,7 @@ const UsageSidebar = ({
   };
 
   const handleNameSave = (resourceId) => {
-    updateResourceName(resourceId, newName);
+    updateSourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
   };
@@ -69,7 +108,31 @@ const UsageSidebar = ({
   const handleColorChange = (color) => {
     setSelectedColor(color.hex);
     if (colorPickerResourceId) {
-      updateResourceColor(colorPickerResourceId, color.hex);
+      updateSourceColor(colorPickerResourceId, color.hex);
+    }
+  };
+
+  const moveSource = (id, direction) => {
+    const resources = [...sources];
+    const index = resources.findIndex((res) => res.id === id);
+    if (index === -1) return;
+
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= resources.length) return;
+
+    const updatedResources = [...sources];
+    const [movedResource] = updatedResources.splice(index, 1);
+    updatedResources.splice(newIndex, 0, movedResource);
+    setSources(updatedResources);
+
+    const resourceNode = getSelectedScene()?.layer.findOne(`#${id}`);
+    if (resourceNode) {
+      if (direction > 0) {
+        resourceNode.moveDown();
+      } else {
+        resourceNode.moveUp();
+      }
+      getSelectedScene()?.layer.draw();
     }
   };
 
@@ -102,7 +165,7 @@ const UsageSidebar = ({
       <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-md font-semibold">
-            ورودی و فایل‌های استفاده شده {`(${resources.length})`}
+            ورودی و فایل‌های استفاده شده {`(${usageSources.length})`}
           </h2>
         </div>
       </div>
@@ -110,7 +173,7 @@ const UsageSidebar = ({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto ">
         <ul className="flex flex-col gap-2">
-          {resources?.map((resource) => {
+          {usageSources?.map((resource) => {
             return (
               <li
                 key={resource.id}
@@ -167,7 +230,7 @@ const UsageSidebar = ({
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() => moveResource(resource.id, -1)}
+                      onPress={() => moveSource(resource.id, -1)}
                     >
                       <FaArrowUp size={15} />
                     </Button>
@@ -178,7 +241,7 @@ const UsageSidebar = ({
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() => moveResource(resource.id, 1)}
+                      onPress={() => moveSource(resource.id, 1)}
                     >
                       <FaArrowDown size={15} />
                     </Button>
@@ -197,7 +260,14 @@ const UsageSidebar = ({
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() => deleteResourceFromScene(resource.uniqId ?? resource.id)}
+                      onPress={() =>
+                        deleteSourceFromScene({
+                          id: resource.uniqId ?? resource.id,
+                          getSelectedScene,
+                          setSources,
+                          sendOperation,
+                        })
+                      }
                     >
                       <MdDelete size={15} />
                     </Button>
@@ -215,10 +285,10 @@ const UsageSidebar = ({
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu dir="rtl" aria-label="More Actions">
-                      <DropdownItem key="moveUp" onPress={() => moveResource(resource.id, -1)}>
+                      <DropdownItem key="moveUp" onPress={() => moveSource(resource.id, -1)}>
                         بالا
                       </DropdownItem>
-                      <DropdownItem key="moveDown" onPress={() => moveResource(resource.id, 1)}>
+                      <DropdownItem key="moveDown" onPress={() => moveSource(resource.id, 1)}>
                         پایین
                       </DropdownItem>
                       {resource.type === "text"
