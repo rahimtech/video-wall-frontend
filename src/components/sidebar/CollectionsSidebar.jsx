@@ -16,6 +16,8 @@ import { MdAddBox, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
 import { PiTimerBold } from "react-icons/pi";
 import ModalTimeLine from "../ModalTimeLine";
+import api from "../../api/api";
+import { useMyContext } from "../../context/MyContext";
 
 const CollectionsSidebar = ({
   filteredScenes,
@@ -26,61 +28,86 @@ const CollectionsSidebar = ({
   setSelectedCollection,
   selectedCollection,
   setSelectedScene,
+  setIsLoading,
 }) => {
+  console.log("collections::: ", collections);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [newCollectionName, setNewCollectionName] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState([]);
   const [editingCollection, setEditingCollection] = useState(null);
-
+  const { host, port, url } = useMyContext();
+  let idSave = null;
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
-    setSelectedScene(collections.find((item) => item.id == key).scenes[0]);
+    setSelectedScene(collections.find((item) => item.id == key).schedules[0]);
   };
 
   const handleOpenModal = (collection = null) => {
+    console.log("collection::: ", collection);
     if (collection) {
+      idSave = collection.id;
       setEditingCollection(collection.id);
       setNewCollectionName(collection.name);
-      setSelectedScenes(collection.scenes);
+      setSelectedScenes(collection?.schedules?.map((s) => s.scene_id));
     } else {
       setEditingCollection(null);
       setNewCollectionName("");
-      setSelectedScenes([]);
+      // setSelectedScenes([]);
     }
     onOpen();
   };
 
-  const handleSaveCollection = () => {
+  const handleSaveCollection = async () => {
     if (newCollectionName.length <= 0) {
       setIsInvalid(true);
       return;
     }
     setIsInvalid(false);
+
     if (editingCollection) {
-      setCollections((prev) =>
-        prev.map((collection) => {
-          if (collection.id === editingCollection) {
-            let newCol = { ...collection, name: newCollectionName, scenes: selectedScenes };
-            setSelectedCollection(selectedCollection); // Set the selected collection in App component
-            if (collection.scenes.length > 0) {
-              setSelectedScene(collection.scenes[0]); // Select the first scene in the collection
-            }
-            return newCol;
-          } else {
-            return collection;
+      const newCollections = collections.map((collection) => {
+        if (collection.id === editingCollection) {
+          let updatedCollection = { ...collection, name: newCollectionName };
+
+          let newSchedules = [...collection.schedules];
+          for (const s of selectedScenes) {
+            const addResult = api.addSceneToProgram(url, collection.id, s, 60, true);
+            newSchedules.push(addResult);
           }
-        })
-      );
+
+          updatedCollection.schedules = newSchedules;
+
+          api.updateProgram(url, collection.id, { name: newCollectionName });
+
+          return updatedCollection; // بازگشت مجموعه به روز شده
+        }
+        return collection; // در غیر این صورت مجموعه بدون تغییر
+      });
+
+      // به روز رسانی state collections با مجموعه‌های جدید
+      setCollections(newCollections);
     } else {
       let newCol = { id: Date.now(), name: newCollectionName, scenes: selectedScenes };
-      let uniqId = Date.now();
       setCollections((prev) => [...prev, newCol]);
 
-      setSelectedCollection(uniqId);
+      setSelectedCollection(newCol.id);
       setSelectedScene(newCol.scenes[0]);
+
+      try {
+        setIsLoading(true);
+        const dataCol = await api.createProgram(url, {
+          name: newCol.name,
+          metadata: {},
+        });
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    onClose();
+
+    onClose(); // بستن مدال
   };
 
   const handleDeleteCollection = (id) => {
@@ -107,6 +134,8 @@ const CollectionsSidebar = ({
             });
             return prev.filter((collection) => collection.id !== id);
           });
+
+          api.deleteProgram(url, id);
         }
       });
     }
@@ -128,7 +157,7 @@ const CollectionsSidebar = ({
       }}
     >
       <div className="flex justify-between px-2 items-center mb-3">
-        <h2 className="text-md font-semibold">مجموعه‌ها</h2>
+        <h2 className="text-md font-semibold">برنامه پخش</h2>
 
         <Button
           className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
@@ -142,57 +171,61 @@ const CollectionsSidebar = ({
       </div>
 
       <ul className="flex flex-col gap-2">
-        {collections.map((collection) => (
-          <li
-            key={collection.id}
-            onClick={() => handleCollectionClick(collection.id)}
-            className={`text-sm flex items-center justify-between w-full ${
-              selectedCollection && selectedCollection === collection.id
-                ? "bg-blue-500 text-white"
-                : darkMode
-                ? "bg-gray-700"
-                : "bg-gray-300"
-            } p-2 rounded-md shadow-sm cursor-pointer`}
-          >
-            <span className="truncate">{collection.name}</span>
-            <div className="flex gap-1">
-              <Button
-                className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                size="sm"
-                variant="light"
-                color="default"
-                onPress={(e) => {
-                  handleOpenModal(collection);
-                }}
-              >
-                <MdEdit size={15} />
-              </Button>
-              <ModalTimeLine
-                setCollections={setCollections}
-                darkMode={darkMode}
-                collectionScenes={filteredScenes}
-                collections={collections}
-                selectedCollection={selectedCollection}
-                setSelectedCollection={setSelectedCollection}
-                collectionSelected={collection}
-              />
-              <Button
-                className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                size="sm"
-                variant="light"
-                color="default"
-                onPress={(e) => {
-                  handleDeleteCollection(collection.id);
-                }}
-              >
-                <FaTrashAlt size={15} />
-              </Button>
-            </div>
-          </li>
-        ))}
+        {collections ? (
+          collections.map((collection) => (
+            <li
+              key={collection.id}
+              onClick={() => handleCollectionClick(collection.id)}
+              className={`text-sm flex items-center justify-between w-full ${
+                selectedCollection && selectedCollection === collection.id
+                  ? "bg-blue-500 text-white"
+                  : darkMode
+                  ? "bg-gray-700"
+                  : "bg-gray-300"
+              } p-2 rounded-md shadow-sm cursor-pointer`}
+            >
+              <span className="truncate">{collection.name}</span>
+              <div className="flex gap-1">
+                <Button
+                  className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                  size="sm"
+                  variant="light"
+                  color="default"
+                  onPress={(e) => {
+                    handleOpenModal(collection);
+                  }}
+                >
+                  <MdEdit size={15} />
+                </Button>
+                <ModalTimeLine
+                  setCollections={setCollections}
+                  darkMode={darkMode}
+                  collectionScenes={filteredScenes}
+                  collections={collections}
+                  selectedCollection={selectedCollection}
+                  setSelectedCollection={setSelectedCollection}
+                  collectionSelected={collection}
+                />
+                <Button
+                  className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                  size="sm"
+                  variant="light"
+                  color="default"
+                  onPress={(e) => {
+                    handleDeleteCollection(collection.id);
+                  }}
+                >
+                  <FaTrashAlt size={15} />
+                </Button>
+              </div>
+            </li>
+          ))
+        ) : (
+          <div>load</div>
+        )}
       </ul>
 
-      <Modal dir="rtl" isOpen={isOpen} onClose={onClose}>
+      <Modal scrollBehavior="outside" dir="rtl" isOpen={isOpen} onClose={onClose}>
         <ModalContent>
           <ModalHeader className="mt-5">
             <Input
@@ -202,7 +235,7 @@ const CollectionsSidebar = ({
               onChange={(e) => setNewCollectionName(e.target.value)}
             />
           </ModalHeader>
-          <ModalBody>
+          {/* <ModalBody>
             {scenes.map((scene) => (
               <Checkbox
                 key={scene.id}
@@ -212,9 +245,9 @@ const CollectionsSidebar = ({
                 {scene.name}
               </Checkbox>
             ))}
-          </ModalBody>
+          </ModalBody> */}
           <ModalFooter>
-            <Button className="w-full" color="primary" onPress={handleSaveCollection}>
+            <Button className="w-full" color="primary" onPress={() => handleSaveCollection()}>
               ذخیره
             </Button>
           </ModalFooter>

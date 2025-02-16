@@ -74,12 +74,12 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                       </CardHeader>
                       <Divider />
                       <CardBody>
-                        <div dir="rtl" className="">
-                          <div>
+                        <div dir="rtl" className="flex flex-col gap-2">
+                          <div className="flex items-center gap-1">
                             <strong>رزولوشن:</strong>
                             <div className="flex gap-1">
-                              <Chip color="secondary">{`${item.width}`}</Chip>*
-                              <Chip color="secondary">{`${item.height}`}</Chip>
+                              <Chip size="sm" color="secondary">{`طول: ${item.width}`}</Chip>*
+                              <Chip size="sm" color="secondary">{`ارتفاع: ${item.height}`}</Chip>
                             </div>
                           </div>
                           {/* <div>
@@ -91,13 +91,16 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                           {/* <div>
                             <strong>کالر بیت:</strong> {item.Colors}-بیت
                           </div> */}
-                          <div>
+                          <div className="flex items-center gap-1">
                             <strong>موقعیت:</strong>
-                            <Chip color="primary">{`X: ${item.x}`}</Chip>
-                            <Chip color="primary">{`Y: ${item.y}`}</Chip>
+                            <div className="flex gap-1">
+                              <Chip size="sm" color="primary">{`X: ${item.x}`}</Chip>
+                              <Chip size="sm" color="primary">{`Y: ${item.y}`}</Chip>
+                            </div>
                           </div>
-                          <div>
-                            <strong>شماره مانیتور:</strong> {item.id}
+                          <div className="flex gap-1">
+                            <strong>شماره مانیتور:</strong>
+                            <Chip size="sm" color="primary">{`${item.id}`}</Chip>
                           </div>
                           {/* <div>
                             <strong>رزولوشن حداکثری:</strong> {item["Maximum Resolution"]}

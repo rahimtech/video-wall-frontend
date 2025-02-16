@@ -7,10 +7,19 @@ import {
   DropdownTrigger,
   Tooltip,
 } from "@nextui-org/react";
-import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/fa";
+import {
+  FaPlay,
+  FaPause,
+  FaTrashAlt,
+  FaCog,
+  FaRemoveFormat,
+  FaArrowDown,
+  FaArrowUp,
+} from "react-icons/fa";
 import ModalMonitorSelection from "../ModalMonitorSelection";
 import { MdAddBox, MdDelete, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
+import { BsArrowDown } from "react-icons/bs";
 
 const UsageSidebar = ({
   resources,
@@ -152,6 +161,29 @@ const UsageSidebar = ({
                     </>
                   )} */}
 
+                  <Tooltip content="اولویت بالا">
+                    <Button
+                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                      size="sm"
+                      variant="light"
+                      color="default"
+                      onPress={() => moveResource(resource.id, -1)}
+                    >
+                      <FaArrowUp size={15} />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="اولویت پایین">
+                    <Button
+                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                      size="sm"
+                      variant="light"
+                      color="default"
+                      onPress={() => moveResource(resource.id, 1)}
+                    >
+                      <FaArrowDown size={15} />
+                    </Button>
+                  </Tooltip>
+
                   <ModalMonitorSelection
                     item={resource}
                     darkMode={darkMode}
@@ -170,6 +202,7 @@ const UsageSidebar = ({
                       <MdDelete size={15} />
                     </Button>
                   </Tooltip>
+
                   {/* <Dropdown>
                     <DropdownTrigger>
                       <Button

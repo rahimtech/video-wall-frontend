@@ -36,6 +36,8 @@ import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-
 import { BsDatabase, BsDatabaseFill, BsDatabaseFillAdd } from "react-icons/bs";
 import { RiPagesFill } from "react-icons/ri";
 import { v4 as uuidv4 } from "uuid";
+import { CircularProgress, heroui } from "@heroui/react";
+import api from "./api/api";
 
 let anim;
 let motherLayer;
@@ -43,78 +45,64 @@ let motherStage;
 let socket = null;
 
 function App() {
-  const [videoWalls, setVideoWalls] = useState([]);
+  let {
+    host,
+    port,
+    videoWalls,
+    setVideoWalls,
+    activeModal,
+    isToggleLayout,
+    setIsToggleLayout,
+    isLoading,
+    setIsLoading,
+    miniLoad,
+    setMiniLoad,
+    isToggleVideoWall,
+    setIsToggleVideoWall,
+    loopVideos,
+    setLoopVideos,
+    darkMode,
+    setDarkMode,
+    connecting,
+    setConnecting,
+    connectionMode,
+    setConnectionMode,
+    inputs,
+    setInputs,
+    scenes,
+    setScenes,
+    scenesRef,
+    videoWallsRef,
+    connectionModeRef,
+    selectedScene,
+    setSelectedScene,
+    isBottomControlsVisible,
+    setIsBottomControlsVisible,
+    editingSceneId,
+    setEditingSceneId,
+    collections,
+    setCollections,
+    selectedCollection,
+    setSelectedCollection,
+    sources,
+    setSources,
+    pendingOperations,
+    setPendingOperation,
+    flagOperations,
+    setFlagOperation,
+    resources,
+    setResources,
+    filteredScenes,
+    arrayCollisions,
+    counterImages,
+    counterVideos,
+    allDataMonitors,
+    getSelectedScene,
+    openModal,
+    closeModal,
+    url,
+  } = useMyContext();
 
-  const [activeModal, setActiveModal] = useState(null);
-  const openModal = (modalType) => setActiveModal(modalType);
-  const closeModal = () => setActiveModal(null);
-  const [isToggleLayout, setIsToggleLayout] = useState(
-    localStorage.getItem("layout") === "true" ? true : false || false
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [isToggleVideoWall, setIsToggleVideoWall] = useState(false);
-
-  const [loopVideos, setLoopVideos] = useState({});
-
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("darkMode") === "true" ? true : false || false
-  );
-  const [connecting, setConnecting] = useState(false);
-  const [connectionMode, setConnectionMode] = useState(
-    localStorage.getItem("onlineMode") === "true" ? true : false || false
-  );
-  const [inputs, setInputs] = useState([]);
-
-  const [scenes, setScenes] = useState([
-    { id: 1, name: "صحنه 1", resources: [], stageData: null, layer: new Konva.Layer() },
-  ]);
-  const scenesRef = useRef(scenes);
-  const videoWallsRef = useRef(videoWalls);
-  const connectionModeRef = useRef(connectionMode);
-
-  const [selectedScene, setSelectedScene] = useState(1);
-  const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
-  const [editingSceneId, setEditingSceneId] = useState(null);
-  const [collections, setCollections] = useState([
-    {
-      id: 1,
-      name: "مجموعه ۱",
-      scenes: [1],
-    },
-  ]);
-
-  const [selectedCollection, setSelectedCollection] = useState(1);
-  const [sources, setSources] = useState([]);
-  const [pendingOperations, setPendingOperation] = useState([]);
-  const [flagOperations, setFlagOperation] = useState(false);
-  const [resources, setResources] = useState([]);
-
-  const filteredScenes = scenes.filter((scene) => {
-    return collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id);
-  });
-
-  let host = localStorage.getItem("host") ?? config.host;
-  let port = localStorage.getItem("port") ?? config.port;
-
-  useEffect(() => {
-    if (!localStorage.getItem("host")) {
-      localStorage.setItem("host", config.host);
-      localStorage.setItem("port", config.port);
-    } else {
-      host = localStorage.getItem("host");
-      port = localStorage.getItem("port");
-    }
-  }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
-
-  const con = useMyContext();
-  let arrayCollisions = [];
-  let counterImages = 0;
-  let counterVideos = 0;
-  let allData = [];
-  let allDataMonitors = videoWalls;
-
-  const getSelectedScene = () => scenes.find((scene) => scene.id === selectedScene);
-  const getSelectedCollection = () => collections.find((coll) => coll.id === selectedCollection.id);
   const createNewStage = (isLayer) => {
     const stage = new Konva.Stage({
       container: `containerKonva-${selectedScene}`,
@@ -173,7 +161,7 @@ function App() {
     }
 
     const step = 5;
-
+    console.log("sdaddads", scenes);
     const updatedScenes = scenes.map((scene) => {
       const layer = scene.layer;
       if (layer) {
@@ -205,25 +193,25 @@ function App() {
           id: `monitor-${index}`,
         });
 
-        const text2 = new Konva.Text({
-          x: 10,
-          y: 10,
-          text: monitor.connected
-            ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
-            : `Monitor ${monitor.id} (Disconnected)`,
-          fontSize: 50,
-          fill: "white",
-          align: "left",
-          verticalAlign: "top",
-          name: "monitorText",
-        });
+        // const text2 = new Konva.Text({
+        //   x: 10,
+        //   y: 10,
+        //   text: monitor.connected
+        //     ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
+        //     : `Monitor ${monitor.id} (Disconnected)`,
+        //   fontSize: 50,
+        //   fill: "white",
+        //   align: "left",
+        //   verticalAlign: "top",
+        //   name: "monitorText",
+        // });
 
         const text = new Konva.Text({
           x: 10,
           y: 10,
           text: monitor.connected
-            ? `Monitor ${monitor.id}`
-            : `Monitor ${monitor.id} (Disconnected)`, // متن بر اساس وضعیت اتصال
+            ? `Monitor ${monitor.id} (${monitor.monitorNumber})`
+            : `Monitor ${monitor.id} (Disconnected)`,
           fontSize: 50,
           fill: "white",
           align: "left",
@@ -306,16 +294,17 @@ function App() {
 
         group.add(rect);
         group.add(text);
-        group.add(text2);
+        // group.add(text2);
 
         layer.add(group);
       });
 
       layer.draw();
+      console.log("scene::: ", scene);
       return scene;
     });
 
-    setScenes(updatedScenes);
+    // setScenes(updatedScenes);
   };
 
   useEffect(() => {
@@ -503,7 +492,7 @@ function App() {
         y: 10,
         text: isConnected
           ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
-          : `Monitor ${monitor.id} (Disconnected)`, // متن بر اساس اتصال
+          : `Monitor ${monitor.id} (Disconnected)`,
         fontSize: 50,
         fill: "white",
         align: "left",
@@ -598,7 +587,7 @@ function App() {
     layer.draw();
   };
 
-  const addScene = () => {
+  const addScene = async () => {
     const newId = scenes.length > 0 ? Math.max(...scenes.map((scene) => scene.id)) + 1 : 1;
 
     const newLayer = new Konva.Layer();
@@ -609,9 +598,18 @@ function App() {
       layer: newLayer,
     };
 
+    try {
+      setIsLoading(true);
+      await api.createScene(url, { name: newScene.name, metadata: {} });
+    } catch {
+      console.log("Faild Add Scene");
+    } finally {
+      setIsLoading(false);
+    }
+
     setCollections((prev) =>
       prev.map((item) =>
-        item.id == selectedCollection ? { ...item, scenes: [...item.scenes, newId] } : item
+        item.id == selectedCollection ? { ...item, scenes: [...item.schedules, newId] } : item
       )
     );
     setScenes((prevScenes) => [...prevScenes, newScene]);
@@ -648,6 +646,16 @@ function App() {
         }
         const updatedScenes = scenes.filter((scene) => scene.id !== id);
         const updatedSourcesUsage = sources.filter((item) => item.sceneId !== id);
+
+        try {
+          setIsLoading(true);
+          api.deleteScene(`http://${host}:${port}`, id);
+        } catch (err) {
+          console.log(err);
+        } finally {
+          setIsLoading(false);
+        }
+
         // console.log("updatedSourcesUsage::: ", updatedSourcesUsage);
         setScenes(updatedScenes);
         setSources(updatedSourcesUsage);
@@ -662,6 +670,16 @@ function App() {
     setScenes((prevScenes) =>
       prevScenes.map((scene) => (scene.id === id ? { ...scene, name: newName } : scene))
     );
+
+    try {
+      setIsLoading(true);
+      api.updateScene(url, id, { name: newName });
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setIsLoading(false);
+    }
+
     setEditingSceneId(null);
   };
 
@@ -677,6 +695,7 @@ function App() {
     return newBlobURL;
   }
 
+  //Unreaggble scenes items ...
   useEffect(() => {
     let updated = false;
 
@@ -699,33 +718,29 @@ function App() {
       layer.draw();
       return scene;
     });
-
     if (updated) {
       setScenes(updatedScenes);
     }
   }, [isToggleVideoWall, scenes]);
 
   function handleDisplayError(updatedDisplays) {
-    console.log("🟠 Updated displays received from server:", updatedDisplays);
+    // console.log("🟠 Updated displays received from server:", updatedDisplays);
 
     setScenes((prevScenes) =>
       prevScenes.map((scene) => {
         const { layer } = scene;
         if (!layer) return scene;
-        console.log("layer::: ", layer);
 
-        updatedDisplays.forEach((display) => {
-          const group = layer.findOne(`#monitor-group-${display.index}`);
-          console.log("group::: ", group);
+        updatedDisplays?.forEach((display) => {
+          const group = layer.findOne(`#monitor-group-${display.id}`);
 
           if (group) {
             const rect = group.findOne("Rect");
             const text = group.findOne(".monitorText");
 
-            console.log("display.connected::: ", display.connected);
             if (!display.connected) {
               if (rect) rect.fill("red");
-              if (text) text.text(`Monitor ${display.index} (Disconnected)`);
+              if (text) text.text(`Monitor ${display.id} (Disconnected)`);
 
               if (!group.findOne(".disconnectIcon")) {
                 const disconnectIcon = new Konva.Text({
@@ -740,7 +755,7 @@ function App() {
               }
             } else {
               if (rect) rect.fill("#161616");
-              if (text) text.text(`Monitor ${display.index}`);
+              if (text) text.setAttr("text", `Monitor ${display.id}`);
 
               const disconnectIcon = group.findOne(".disconnectIcon");
               if (disconnectIcon) disconnectIcon.destroy();
@@ -815,9 +830,6 @@ function App() {
 
           if (data.displays) {
             const displays = data.displays.map((monitor, index) => {
-              // const id = `display-${monitor.index}`;
-              // const name = `مانیتور ${monitor.id}`;
-
               return {
                 ...monitor,
                 // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
@@ -829,6 +841,7 @@ function App() {
                 height: monitor.height,
                 connected: monitor.connected,
                 monitorUniqId: monitor.monitorUniqId,
+                monitorNumber: monitor.monitorNumber,
               };
             });
 
@@ -841,7 +854,6 @@ function App() {
               let type;
               let content;
               let endObj = {};
-
               let fixedContent = item.source?.replace(/\\/g, "/");
 
               if (item.source?.startsWith("input:")) {
@@ -886,6 +898,7 @@ function App() {
                 height: item.height,
                 x: item.x,
                 y: item.y,
+                name: item.name ?? "",
                 rotation: parseInt(item.rotation),
               };
 
@@ -896,6 +909,9 @@ function App() {
               } else if (type === "video") {
                 addVideo(endObj, false);
                 // addRectangle();
+              } else if (type == "iframe") {
+                console.log("content::: ", content);
+                addWeb(endObj, false);
               }
               return endObj;
             });
@@ -1062,6 +1078,11 @@ function App() {
     getSelectedScene()?.stageData?.on("click", (e) => {
       if (e.target === getSelectedScene()?.stageData || e.target.attrs.catFix == "monitor") {
         selectedSceneLayer.find("Transformer").forEach((tr) => tr.detach());
+
+        selectedSceneLayer.find("Group").forEach((group) => {
+          group.draggable(false);
+        });
+
         selectedSceneLayer.draw();
       }
     });
@@ -1070,15 +1091,18 @@ function App() {
   useEffect(() => {
     const selectedScene = getSelectedScene();
     if (!selectedScene || selectedScene.stageData) return;
+
     const containerId = `containerKonva-${selectedScene.id}`;
     const container = document.getElementById(containerId);
+
     if (container) {
       const { stage, layer } = createNewStage(selectedScene.layer);
-      if (scenes.length > 1 || scenes.length == 0) {
+      if (scenes.length > 1 || scenes.length === 0) {
         generateMonitorsForLayer(layer, videoWalls);
       } else {
         anim = new Konva.Animation(() => {}, scenes[0].newLayer);
       }
+
       setScenes((prevScenes) =>
         prevScenes.map((scene) =>
           scene.id === selectedScene.id
@@ -1245,9 +1269,14 @@ function App() {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        await axios
-          .delete(`http://${host}:${port}/delete/${trimPrefix(fileName, "uploads/")}`)
-          .then(console.log("deleted"));
+        setMiniLoad(true);
+        try {
+          await axios
+            .delete(`http://${host}:${port}/delete/${trimPrefix(fileName, "uploads/")}`)
+            .then(console.log("deleted"));
+        } finally {
+          setMiniLoad(false);
+        }
 
         setResources(resources.filter((res) => res.id !== fileName));
 
@@ -1271,17 +1300,17 @@ function App() {
   };
 
   const moveResource = (id, direction) => {
-    const resources = getSelectedScene()?.resources;
+    const resources = [...sources];
     const index = resources.findIndex((res) => res.id === id);
     if (index === -1) return;
+
     const newIndex = index + direction;
     if (newIndex < 0 || newIndex >= resources.length) return;
 
-    const updatedResources = [...resources];
+    const updatedResources = [...sources];
     const [movedResource] = updatedResources.splice(index, 1);
     updatedResources.splice(newIndex, 0, movedResource);
-    setResources(updatedResources);
-    // updateSceneResources(updatedResources);
+    setSources(updatedResources);
 
     const resourceNode = getSelectedScene()?.layer.findOne(`#${id}`);
     if (resourceNode) {
@@ -1306,7 +1335,7 @@ function App() {
         const id = uuidv4();
         const imageName = file.name.split(".").slice(0, -1).join(".");
         img.addEventListener("load", async () => {
-          const sourceName = await uploadVideo(file, id);
+          const sourceName = await uploadMedia(file, id);
           let newResource = {
             type: "image",
             id: sourceName,
@@ -1320,7 +1349,7 @@ function App() {
             rotation: 0,
             created_at: new Date().toISOString(),
           };
-          setResources(newResource);
+          setResources((prev) => [newResource, ...prev]);
           // updateSceneResources([newResource, ...getSelectedScene().resources]);
         });
       } else if (fileType === "video" && type === "video") {
@@ -1329,7 +1358,7 @@ function App() {
         const id = uuidv4();
         const videoName = file.name.split(".").slice(0, -1).join(".");
         video.setAttribute("name", videoName);
-        const sourceName = await uploadVideo(file, id);
+        const sourceName = await uploadMedia(file, id);
         video.setAttribute("id", sourceName);
 
         const width = video.videoWidth;
@@ -1348,7 +1377,7 @@ function App() {
           rotation: 0,
           created_at: new Date().toISOString(),
         };
-        setResources(newResource);
+        setResources((prev) => [newResource, ...prev]);
         // updateSceneResources([newResource, ...getSelectedScene().resources]);
       } else {
         // console.error("Unsupported file type.");
@@ -1409,7 +1438,6 @@ function App() {
     const image = new Image();
     image.src = img.imageElement.src || img.imageElement;
     image.onload = () => {
-      // ساخت تصویر Konva
       const konvaImage = new Konva.Image({
         image: image,
         width: mode ? img.imageElement.width : img.width,
@@ -1434,12 +1462,14 @@ function App() {
         id: uniqId,
         padding: 5,
         align: "center",
+        width: mode ? img.imageElement.width : img.width,
+        ellipsis: true,
       });
 
       const group = new Konva.Group({
         x: mode ? 0 : img.x,
         y: mode ? 0 : img.y,
-        draggable: true,
+        draggable: false,
         uniqId,
         id: uniqId,
         rotation: img.rotation || 0,
@@ -1451,6 +1481,7 @@ function App() {
       selectedSceneLayer.add(group);
 
       group.on("click", () => {
+        group.draggable(true);
         const transformer = new Konva.Transformer({
           nodes: [group],
           enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
@@ -1522,7 +1553,6 @@ function App() {
         ? setSources((prev) => [...prev, { ...img, uniqId, sceneId: getSelectedScene().id }])
         : null;
 
-      // بازسازی لایه
       selectedSceneLayer.draw();
     };
 
@@ -1540,7 +1570,7 @@ function App() {
     const group = new Konva.Group({
       x: input.x || 0,
       y: input.y || 0,
-      draggable: true,
+      draggable: false,
       id: uniqId,
       type: "input",
       uniqId,
@@ -1600,6 +1630,7 @@ function App() {
     transformer.flipEnabled(false);
 
     group.on("click", () => {
+      group.draggable(true);
       selectedSceneLayer.add(transformer);
       transformer.attachTo(group);
       selectedSceneLayer.draw();
@@ -1660,26 +1691,30 @@ function App() {
 
   //---------------Start-Web-Segment-----------------
 
-  const addWeb = (webResource) => {
-    const { id, content } = webResource;
-    let uniqId = uuidv4();
+  const addWeb = (webResource, mode = true) => {
+    const { id, content, x, y, width, height } = webResource;
+    let uniqId = mode ? uuidv4() : id;
 
     const selectedSceneLayer = getSelectedScene()?.layer;
-    const selectedStage = getSelectedScene()?.stageData;
 
-    if (!selectedSceneLayer || !selectedStage) return;
+    let selectedStage = null;
+    if (mode) {
+      selectedStage = getSelectedScene()?.stageData;
+    }
+
+    if (!selectedSceneLayer) return;
 
     const group = new Konva.Group({
-      x: (selectedStage.width() - 1920) / 2,
-      y: (selectedStage.height() - 1080) / 2,
-      draggable: true,
+      x: mode ? 0 : x,
+      y: mode ? 0 : y,
+      draggable: false,
       id: id,
       uniqId,
     });
 
     const webRect = new Konva.Rect({
-      width: 1920,
-      height: 1080,
+      width: width,
+      height: height,
       fill: "lightgray",
       strokeWidth: 2,
       stroke: "white",
@@ -1693,10 +1728,10 @@ function App() {
       fill: "black",
       align: "center",
       verticalAlign: "middle",
-      width: 1920,
-      height: 1080,
       padding: 10,
       wrap: "word",
+      width: width,
+      ellipsis: true,
     });
 
     const transformer = new Konva.Transformer({
@@ -1708,6 +1743,7 @@ function App() {
     transformer.flipEnabled(false);
 
     group.on("click", () => {
+      group.draggable(true);
       selectedSceneLayer.add(transformer);
       transformer.attachTo(group);
       selectedSceneLayer.draw();
@@ -1771,7 +1807,15 @@ function App() {
     group.add(webRect);
     group.add(webText);
     selectedSceneLayer.add(group);
-    selectedStage.add(selectedSceneLayer);
+
+    if (mode) {
+      setSources((prev) =>
+        mode ? [...prev, { ...webResource, uniqId, sceneId: getSelectedScene().id }] : prev
+      );
+    }
+    selectedSceneLayer.add(group);
+    if (mode) selectedStage.add(selectedSceneLayer);
+
     selectedSceneLayer.draw();
   };
 
@@ -1805,8 +1849,6 @@ function App() {
     });
   };
 
-  //---------------End-Web-Segment-----------------
-
   //---------------Start-Text-Segment-----------------
 
   const addText = (text) => {
@@ -1823,7 +1865,7 @@ function App() {
       fill: text.color || "black",
       x: 0,
       y: 0,
-      draggable: true,
+      draggable: false,
       id: text.id,
       uniqId,
     });
@@ -1841,6 +1883,7 @@ function App() {
     transformer.flipEnabled(false);
 
     textNode.on("click", () => {
+      textNode.draggable(true);
       selectedSceneLayer.add(transformer);
       transformer.attachTo(textNode);
       selectedSceneLayer.draw();
@@ -2071,8 +2114,6 @@ function App() {
     }
   };
 
-  //---------------End-Text-Segment-----------------
-
   //---------------Start-Video-Segment-----------------
 
   const addVideo = (videoItem, mode = true) => {
@@ -2117,12 +2158,14 @@ function App() {
         id: uniqId,
         uniqId,
         align: "center",
+        width: videoItem.videoElement.videoWidth,
+        ellipsis: true,
       });
 
       const group = new Konva.Group({
         x: mode ? 0 : videoItem.x,
         y: mode ? 0 : videoItem.y,
-        draggable: true,
+        draggable: false,
         id: uniqId,
         uniqId,
         rotation: videoItem.rotation || 0,
@@ -2163,6 +2206,8 @@ function App() {
       transformer.flipEnabled(false);
 
       group.on("click", () => {
+        group.draggable(true);
+
         selectedSceneLayer.add(transformer);
         transformer.attachTo(group);
         selectedSceneLayer.draw();
@@ -2239,12 +2284,14 @@ function App() {
           id: uniqId,
           uniqId,
           align: "center",
+          width: videoItem.width,
+          ellipsis: true,
         });
 
         const group = new Konva.Group({
           x: mode ? 0 : videoItem.x,
           y: mode ? 0 : videoItem.y,
-          draggable: true,
+          draggable: false,
           uniqId,
           id: uniqId,
           rotation: videoItem.rotation || 0,
@@ -2285,6 +2332,8 @@ function App() {
         transformer.flipEnabled(false);
 
         group.on("click", () => {
+          group.draggable(true);
+
           selectedSceneLayer.add(transformer);
           transformer.attachTo(group);
           selectedSceneLayer.draw();
@@ -2396,11 +2445,11 @@ function App() {
     });
   };
 
-  const uploadVideo = async (file, videoName) => {
+  const uploadMedia = async (file, videoName) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("videoName", videoName);
-
+    setMiniLoad(true);
     try {
       const response = await axios.post(`http://${host}:${port}/upload`, formData, videoName, {
         headers: {
@@ -2411,6 +2460,8 @@ function App() {
       return response.data.filePath;
     } catch (error) {
       // console.error("Error uploading file:", error);
+    } finally {
+      setMiniLoad(false);
     }
   };
 
@@ -2486,7 +2537,7 @@ function App() {
           <RiPagesFill size={17} />
         </Button>
       </Tooltip>
-      <Tooltip showArrow={true} placement="right-start" content="مجموعه‌ها">
+      <Tooltip showArrow={true} placement="right-start" content="برنامه پخش">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px]  p-1`}
           size="sm"
@@ -2871,6 +2922,12 @@ function App() {
         darkMode ? "bg-[#1E232A]" : "bg-[#e3e4e4]"
       }  h-screen w-full flex flex-col z-50  items-center `}
     >
+      {miniLoad && (
+        <div className=" z-[1000000] w-fit h-fit flex flex-col gap-3 justify-center items-center  fixed left-0 right-0 top-0 bottom-0  m-auto">
+          <CircularProgress label="در حال آپلود لطفا صبر کنید ..." />
+        </div>
+      )}
+
       {isLoading && (
         <div className="w-full z-[1000000] flex flex-col gap-3 justify-center items-center h-screen fixed left-0 right-0 top-0 bottom-0  m-auto backdrop-blur-[5px]">
           <Spinner size="lg" />
@@ -2923,9 +2980,6 @@ function App() {
       <div className="h-full w-full flex z-50">
         <div id="Video-Wall-Section" className="w-full h-full flex">
           <div
-            onClick={(e) => {
-              con.setIsActiveG("un");
-            }}
             id="Monitor"
             className={`block w-full overflow-hidden active:cursor-grabbing relative h-full `}
           >
@@ -3021,7 +3075,7 @@ function App() {
                 />
                 {/* Scenes Sidebar */}
                 <ScenesSidebar
-                  scenes={filteredScenes} // Use filteredScenes instead of all scenes
+                  scenes={scenes} // Use filteredScenes instead of all scenes
                   darkMode={darkMode}
                   selectedScene={selectedScene}
                   setSelectedScene={setSelectedScene}
@@ -3035,6 +3089,7 @@ function App() {
                 {/* CollectionsSidebar Sidebar */}
                 <CollectionsSidebar
                   scenes={scenes}
+                  setIsLoading={setIsLoading}
                   darkMode={darkMode}
                   collections={collections}
                   setCollections={setCollections}
@@ -3132,7 +3187,7 @@ function App() {
         <ModalContent>
           <ModalBody className="p-0">
             <ScenesSidebar
-              scenes={filteredScenes} // Use filteredScenes instead of all scenes
+              scenes={scenes} // Use filteredScenes instead of all scenes
               darkMode={darkMode}
               selectedScene={selectedScene}
               setSelectedScene={setSelectedScene}
@@ -3152,6 +3207,7 @@ function App() {
             <CollectionsSidebar
               scenes={scenes}
               darkMode={darkMode}
+              setIsLoading={setIsLoading}
               collections={collections}
               setCollections={setCollections}
               setSelectedCollection={setSelectedCollection} // Pass setter function

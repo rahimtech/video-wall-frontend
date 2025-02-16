@@ -2,6 +2,7 @@ import React from "react";
 import { Button, Tooltip } from "@nextui-org/react";
 import { FaTrashAlt } from "react-icons/fa";
 import { MdAddBox } from "react-icons/md";
+import { useMyContext } from "../../context/MyContext";
 
 const ScenesSidebar = ({
   scenes, // Now filtered scenes
@@ -14,6 +15,7 @@ const ScenesSidebar = ({
   handleEditSceneName,
   deleteScene,
 }) => {
+  const { filteredScenes } = useMyContext();
   return (
     <div
       dir="rtl"
@@ -37,7 +39,7 @@ const ScenesSidebar = ({
       </div>
 
       <ul className="flex flex-col gap-2">
-        {scenes.map((scene) => (
+        {scenes?.map((scene) => (
           <li key={scene.id} className="flex items-center justify-between">
             {editingSceneId === scene.id ? (
               <input
@@ -59,7 +61,10 @@ const ScenesSidebar = ({
                 onDoubleClick={() => setEditingSceneId(scene.id)}
                 onClick={() => setSelectedScene(scene.id)}
               >
-                <span className="flex-grow">{scene.name}</span>
+                <span className="flex-grow">
+                  {scene.name}
+                  {filteredScenes?.find((f) => f.id == scene.id) ? " (منتخب) " : ""}
+                </span>
                 <div className="flex gap-1">
                   <Tooltip content="حذف صحنه">
                     <Button

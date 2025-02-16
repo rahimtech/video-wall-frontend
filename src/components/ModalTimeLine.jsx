@@ -17,6 +17,8 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import { PiTimerBold } from "react-icons/pi";
 import { FaPlus, FaTrashAlt, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { useMyContext } from "../context/MyContext";
+import api from "../api/api";
 
 const ModalTimeLine = ({
   darkMode,
@@ -34,18 +36,20 @@ const ModalTimeLine = ({
   const [endDate, setEndDate] = useState(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [generalTime, setGeneralTime] = useState(null);
-
+  const [duration, setGeneralTime] = useState(null);
+  const { setIsLoading, scenes, url, setScenes, setFlagReset, flagReset } = useMyContext();
   // Load existing timeline for the selected collection
-  // useEffect(() => {
-  //   const currentCollection = collections.find((col) => col.id === selectedCollection);
-  //   setTimeLine(currentCollection?.timeLine || []);
-  // }, [selectedCollection, collections]);
+  useEffect(() => {
+    setTimeLine(
+      collections
+        .find((c) => c.id === selectedCollection)
+        .schedules?.map((s) => ({ id: s.id, sceneId: s.scene_id, duration: s.duration }))
+    );
+  }, [isOpen]);
 
-  // افزودن صحنه به تایم‌لاین
   const addSceneToTimeLine = () => {
     // if (!selectedScene || !startDate || !endDate || !startTime || !endTime || !generalTime) {
-    if (!selectedScene || !generalTime) {
+    if (!selectedScene || !duration) {
       alert("لطفاً تمام فیلدها را پر کنید.");
       return;
     }
@@ -56,19 +60,27 @@ const ModalTimeLine = ({
       // endDate: endDate.format("YYYY-MM-DD"),
       // startTime,
       // endTime,
-      generalTime,
+      duration,
     };
 
+    try {
+      setIsLoading(true);
+      api.addSceneToProgram(url, collectionSelected.id, selectedScene.currentKey, duration, false);
+      setFlagReset(!flagReset);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setIsLoading(false);
+    }
     setTimeLine((prev) => [...prev, newEntry]);
     resetFields();
   };
 
-  // حذف صحنه از تایم‌لاین
-  const removeSceneFromTimeLine = (index) => {
+  const removeSceneFromTimeLine = (entry, index) => {
     setTimeLine((prev) => prev.filter((_, i) => i !== index));
+    api.deleteProgramSchedule(url, entry.id);
   };
 
-  // جابجا کردن صحنه به بالا
   const moveSceneUp = (index) => {
     if (index === 0) return;
     setTimeLine((prev) => {
@@ -78,7 +90,6 @@ const ModalTimeLine = ({
     });
   };
 
-  // جابجا کردن صحنه به پایین
   const moveSceneDown = (index) => {
     if (index === timeLine.length - 1) return;
     setTimeLine((prev) => {
@@ -88,7 +99,6 @@ const ModalTimeLine = ({
     });
   };
 
-  // ذخیره تایم‌لاین در کالکشن
   const saveTimeLineToCollection = () => {
     setCollections((prev) =>
       prev.map((collection) =>
@@ -98,7 +108,6 @@ const ModalTimeLine = ({
     onOpenChange(false);
   };
 
-  // ریست کردن فیلدهای ورودی
   const resetFields = () => {
     setSelectedScene("");
     // setStartDate(null);
@@ -192,7 +201,7 @@ const ModalTimeLine = ({
                     onSelectionChange={setSelectedScene}
                     aria-label="انتخاب صحنه"
                   >
-                    {collectionScenes.map((scene) => (
+                    {scenes.map((scene) => (
                       <SelectItem key={scene.id} value={scene.id}>
                         {scene.name}
                       </SelectItem>
@@ -202,9 +211,9 @@ const ModalTimeLine = ({
                   <div className="flex gap-4">
                     <Input
                       className="w-full"
-                      label="ساعت شروع"
+                      label="مدت زمان به ثانیه"
                       type="number"
-                      value={generalTime}
+                      value={duration}
                       onChange={(e) => setGeneralTime(e.target.value)}
                     />
                   </div>
@@ -234,7 +243,7 @@ const ModalTimeLine = ({
                             <br />
                             <strong>ساعت:</strong> {entry.startTime} تا {entry.endTime} */}
                             <br />
-                            <strong>مدت زمان:</strong> {entry.generalTime}
+                            <strong>مدت زمان:</strong> {entry.duration}
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
@@ -259,7 +268,7 @@ const ModalTimeLine = ({
                               size="sm"
                               variant="flat"
                               color="danger"
-                              onPress={() => removeSceneFromTimeLine(index)}
+                              onPress={() => removeSceneFromTimeLine(entry, index)}
                               aria-label="حذف صحنه"
                             >
                               <FaTrashAlt />

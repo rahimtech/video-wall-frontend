@@ -143,7 +143,6 @@ const VideoWallController = () => {
     const updatedResources = resources.map((res) =>
       res.id === id ? { ...res, rotation: (res.rotation + angle) % 360 } : res
     );
-    console.log("updatedResources::: ", updatedResources);
     updateSceneResources(updatedResources);
   };
 
