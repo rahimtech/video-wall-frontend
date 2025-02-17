@@ -558,6 +558,31 @@ export const MyContextProvider = ({ children }) => {
   }, [connectionMode]);
 
   useEffect(() => {
+    const selectedScene = getSelectedScene();
+    if (!selectedScene || selectedScene.stageData) return;
+
+    const containerId = `containerKonva-${selectedScene.id}`;
+    const container = document.getElementById(containerId);
+
+    if (container) {
+      const { stage, layer } = createNewStage(selectedScene.layer);
+      if (scenes.length > 1 || scenes.length === 0) {
+        generateMonitorsForLayer(layer, videoWalls);
+      } else {
+        anim = new Konva.Animation(() => {}, scenes[0].newLayer);
+      }
+
+      setScenes((prevScenes) =>
+        prevScenes.map((scene) =>
+          scene.id === selectedScene.id
+            ? { ...scene, stageData: stage, layer: scene.layer ?? layer }
+            : scene
+        )
+      );
+    }
+  }, [scenes, selectedScene]);
+
+  useEffect(() => {
     if (!collections.length) {
       return;
     }

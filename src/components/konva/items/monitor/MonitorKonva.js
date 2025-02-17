@@ -154,6 +154,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
     return scene;
   });
   //
+  // console.log("updatedScenes::: ", updatedScenes);
   // setScenes(updatedScenes);
 };
 

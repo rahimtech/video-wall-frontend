@@ -61,7 +61,6 @@ const ScenesSidebar = () => {
       selectedLayer.draw();
     }
 
-    console.log("flag::: ", flag);
     if (newScene.sources && newScene.sources.length > 0 && selectedLayer && flag) {
       generateScene(newScene.sources, sceneTarget);
     }
