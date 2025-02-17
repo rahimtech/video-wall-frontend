@@ -55,6 +55,7 @@ const HeaderBar = ({ toggleLayout }) => {
     url,
     loopVideos,
     generateBlobImageURL,
+    trimPrefix,
   } = useMyContext();
 
   const handleExportProject = () => {

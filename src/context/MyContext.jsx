@@ -34,13 +34,13 @@ import {
   handleEditSceneName,
 } from "../components/sidebar/scenes/ScenesCrud";
 import { io } from "socket.io-client";
+import axios from "axios";
 
 const MyContext = createContext();
 
 export const MyContextProvider = ({ children }) => {
   let anim;
-  let motherLayer;
-  let motherStage;
+
   let host = localStorage.getItem("host") ?? config.host;
   let port = localStorage.getItem("port") ?? config.port;
 
@@ -71,7 +71,7 @@ export const MyContextProvider = ({ children }) => {
   const [inputs, setInputs] = useState([]);
   const videoWallsRef = useRef(videoWalls);
   const connectionModeRef = useRef(connectionMode);
-  const [selectedScene, setSelectedScene] = useState(1);
+  const [selectedScene, setSelectedScene] = useState(null);
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
 
@@ -87,10 +87,18 @@ export const MyContextProvider = ({ children }) => {
   const [resources, setResources] = useState([]);
   const [flagReset, setFlagReset] = useState(false);
 
+  const [filteredScenes, setFilteredScenes] = useState([]);
+
   let arrayCollisions = [];
   let counterImages = 0;
   let counterVideos = 0;
   let allDataMonitors = videoWalls;
+  let motherLayer;
+  let motherStage;
+
+  const getSelectedScene = () => {
+    return scenes.find((scene) => scene.id === selectedScene);
+  };
 
   function generateBlobURL(newBaseURL, videoName) {
     const newBlobURL = `${newBaseURL}/uploads/${videoName}.mp4`;
@@ -104,92 +112,112 @@ export const MyContextProvider = ({ children }) => {
     return newBlobURL;
   }
 
+  function trimPrefix(str, prefix) {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    }
+    return str;
+  }
+
+  function generateScene(data, sceneData) {
+    const sceneDataFuncConvertor = () => {
+      return sceneData;
+    };
+    data.forEach((item) => {
+      let type;
+      let content;
+      let endObj = {};
+      let fixedContent = item.source?.replace(/\\/g, "/");
+
+      if (item.source?.startsWith("input:")) {
+        type = "input";
+        content = trimPrefix(item.source, "input:");
+        endObj = { name: item.name ?? "input", deviceId: content };
+      } else if (item.source?.startsWith("image:")) {
+        type = "image";
+        content = trimPrefix(item.source, "image:");
+        const imageURL = content;
+        let img = new Image();
+        img.src = imageURL;
+        let imageName = "image" + counterImages++;
+        endObj = {
+          name: item.name ?? imageName,
+          imageElement: img,
+        };
+      } else if (item.source?.startsWith("video:")) {
+        type = "video";
+        content = trimPrefix(item.source, "video:");
+        const video = document.createElement("video");
+        video.src = content;
+        const videoName = "video" + counterVideos++;
+        video.setAttribute("name", videoName);
+        video.setAttribute("id", item.id);
+        endObj = {
+          videoElement: video,
+          name: item.name ?? videoName,
+        };
+      } else if (item.source.startsWith("iframe:")) {
+        type = "iframe";
+        content = trimPrefix(item.source, "iframe:");
+      }
+
+      endObj = {
+        ...endObj,
+        id: item.id,
+        sceneId: selectedScene,
+        type,
+        content: type === "input" ? content : fixedContent,
+        width: item.width,
+        height: item.height,
+        x: item.x,
+        y: item.y,
+        name: item.name ?? "",
+        rotation: parseInt(item.rotation),
+      };
+
+      if (type === "image") {
+        addImage({
+          img: endObj,
+          mode: false,
+          getSelectedScene: sceneDataFuncConvertor,
+          setSources,
+          sendOperation,
+          url,
+          generateBlobImageURL,
+        });
+      } else if (type === "input") {
+        addInput({
+          input: endObj,
+          mode: false,
+          getSelectedScene: sceneDataFuncConvertor,
+          setSources,
+          sendOperation,
+        });
+      } else if (type === "video") {
+        addVideo({
+          videoItem: endObj,
+          mode: false,
+          getSelectedScene: sceneDataFuncConvertor,
+          setSources,
+          sendOperation,
+          url,
+          loopVideos,
+        });
+      } else if (type == "iframe") {
+        addWeb({
+          webResource: endObj,
+          mode: false,
+          getSelectedScene: sceneDataFuncConvertor,
+          setSources,
+          sendOperation,
+        });
+      }
+    });
+  }
+
   // const filteredScenes = scenes.filter((scene) =>
   //   collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id)
   // );
-
-  const [filteredScenes, setFilteredScenes] = useState([]);
-
-  useEffect(() => {
-    if (!collections.length) {
-      return;
-    }
-    const selectedCollectionObj = collections.find((c) => c.id == selectedCollection);
-    if (!selectedCollectionObj)
-      return console.warn(
-        "No collection selected!",
-        selectedCollectionObj,
-        selectedCollection,
-        collections
-      );
-    const selectedCollectionScenes = selectedCollectionObj?.schedules?.map((s) => ({
-      ...s.scene,
-      resources: [],
-      stageData: null,
-      layer: new Konva.Layer(),
-    }));
-    setFilteredScenes(
-      selectedCollectionScenes
-      // scenes.filter((scene) =>
-      //   collections.find((item) => item.id == selectedCollection)?.scenes?.includes(scene.id)
-      // )
-    );
-  }, [collections, selectedCollection, flagReset]);
-
-  useEffect(() => {
-    if (!scenes.length) {
-      return;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!localStorage.getItem("host")) {
-      localStorage.setItem("host", config.host);
-      localStorage.setItem("port", config.port);
-    } else {
-      host = localStorage.getItem("host");
-      port = localStorage.getItem("port");
-    }
-    setUrl(`http://${host}:${port}`);
-  }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
-
-  const getSelectedScene = () => {
-    return scenes.find((scene) => scene.id === selectedScene);
-  };
-
-  useEffect(() => {
-    if (!url) {
-      return;
-    }
-    async function initData() {
-      try {
-        setIsLoading(true);
-        const dataCol = await api.getPrograms(url);
-        console.log("dataCol::: ", dataCol);
-        fetchDataColl = dataCol;
-        setCollections(dataCol ?? []);
-
-        const dataSen = await api.getScenes(url);
-        console.log("dataSen::: ", dataSen);
-        fetchDataScene =
-          dataSen ??
-          [].map((item) => ({
-            name: item.name,
-            id: item.id,
-            resources: [],
-            stageData: null,
-            layer: new Konva.Layer(),
-          }));
-        setScenes(fetchDataScene);
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    initData();
-  }, [url]);
 
   const createNewStage = (isLayer) => {
     const stage = new Konva.Stage({
@@ -229,35 +257,372 @@ export const MyContextProvider = ({ children }) => {
     return { stage, layer: isLayer ?? newLayer };
   };
 
-  useEffect(() => {
-    if (connectionMode) {
-      setSocket(io(`http://${host}:${port}`));
-      let tempSocket = io(`http://${host}:${port}`);
-      tempSocket.on("connect", () => {
-        console.log("Connected to WebSocket!");
-      });
-
-      tempSocket.on("disconnect", () => {
-        console.log("Disconnected from WebSocket");
-      });
-
-      return () => {
-        tempSocket.disconnect();
-      };
-    } else {
-      setSocket(null);
-    }
-  }, [connectionMode, host, port]);
-
   const sendOperation = (action, payload) => {
-    console.log("payload::: ", payload);
     if (connectionModeRef.current) {
-      console.log("socket::: ", socket);
       socket?.emit(action, payload);
+      api.createSource(url, payload.payload);
     } else {
       setPendingOperation((prev) => [...prev, { action, payload }]);
     }
   };
+
+  useEffect(() => {
+    if (!localStorage.getItem("host")) {
+      localStorage.setItem("host", config.host);
+      localStorage.setItem("port", config.port);
+    } else {
+      host = localStorage.getItem("host");
+      port = localStorage.getItem("port");
+    }
+    setUrl(`http://${host}:${port}`);
+  }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
+
+  useEffect(() => {
+    let tempSocket = null;
+    async function initializeSocket() {
+      try {
+        if (!connectionMode) {
+          return;
+        }
+        const response = await axios.get("/config.json");
+        const data = response.data;
+        if (data.host) host = localStorage.getItem("host") ?? data.host;
+        if (data.port) port = localStorage.getItem("port") ?? data.port;
+
+        setSocket(io(`http://${host}:${port}`));
+        tempSocket = io(`http://${host}:${port}`);
+
+        tempSocket.on("disconnect", () => {
+          setConnecting(false);
+        });
+
+        tempSocket.on("init", (data) => {
+          setIsLoading(false);
+
+          console.log("INIT DATA: ", data);
+          if (flagOperations) {
+            setFlagOperation(false);
+            return;
+          }
+
+          if (data.inputs) {
+            const inputs = data.inputs.map((item) => ({
+              id: item?.deviceId,
+              deviceId: item?.deviceId,
+              width: item?.width,
+              height: item?.height,
+              name: item?.label,
+              type: "input",
+            }));
+            setInputs(inputs);
+            // setResources([inputs, ...resources]);
+          }
+
+          if (data.displays) {
+            const displays = data.displays.map((monitor, index) => {
+              return {
+                ...monitor,
+                // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
+                id: monitor.id,
+                name: monitor.name,
+                x: monitor.x,
+                y: monitor.y,
+                width: monitor.width,
+                height: monitor.height,
+                connected: monitor.connected,
+                monitorUniqId: monitor.monitorUniqId,
+                monitorNumber: monitor.monitorNumber,
+              };
+            });
+
+            setVideoWalls(displays);
+            addMonitorsToScenes({ jsonData: displays, scenes, setScenes });
+          }
+
+          if (data.sources && false) {
+            const sources = data.sources.map((item) => {
+              let type;
+              let content;
+              let endObj = {};
+              let fixedContent = item.source?.replace(/\\/g, "/");
+
+              if (item.source?.startsWith("input:")) {
+                type = "input";
+                content = trimPrefix(item.source, "input:");
+                endObj = { name: item.name ?? "input", deviceId: content };
+              } else if (item.source?.startsWith("image:")) {
+                type = "image";
+                content = trimPrefix(item.source, "image:");
+                const imageURL = content;
+                let img = new Image();
+                img.src = imageURL;
+                let imageName = "image" + counterImages++;
+                endObj = {
+                  name: item.name ?? imageName,
+                  imageElement: img,
+                };
+              } else if (item.source?.startsWith("video:")) {
+                type = "video";
+                content = trimPrefix(item.source, "video:");
+                const video = document.createElement("video");
+                video.src = content;
+                const videoName = "video" + counterVideos++;
+                video.setAttribute("name", videoName);
+                video.setAttribute("id", item.id);
+                endObj = {
+                  videoElement: video,
+                  name: item.name ?? videoName,
+                };
+              } else if (item.source.startsWith("iframe:")) {
+                type = "iframe";
+                content = trimPrefix(item.source, "iframe:");
+              }
+
+              endObj = {
+                ...endObj,
+                id: item.id,
+                sceneId: selectedScene,
+                type,
+                content: type === "input" ? content : fixedContent,
+                width: item.width,
+                height: item.height,
+                x: item.x,
+                y: item.y,
+                name: item.name ?? "",
+                rotation: parseInt(item.rotation),
+              };
+
+              if (type === "image") {
+                addImage({
+                  img: endObj,
+                  mode: false,
+                  getSelectedScene,
+                  setSources,
+                  sendOperation,
+                  url,
+                  generateBlobImageURL,
+                });
+              } else if (type === "input") {
+                addInput({
+                  input: endObj,
+                  mode: false,
+                  getSelectedScene,
+                  setSources,
+                  sendOperation,
+                });
+              } else if (type === "video") {
+                addVideo({
+                  videoItem: endObj,
+                  mode: false,
+                  getSelectedScene,
+                  setSources,
+                  sendOperation,
+                  url,
+                  loopVideos,
+                });
+                // addRectangle();
+              } else if (type == "iframe") {
+                addWeb({ webResource: endObj, mode: false, getSelectedScene, setSources });
+              }
+              return endObj;
+            });
+            setSources(sources);
+          }
+          //resources
+          if (data.files) {
+            const newResource = data.files.map((item) => {
+              let type;
+              let url;
+              let endObj = {};
+              if (
+                item.endsWith(".jpeg") ||
+                item.endsWith(".jpg") ||
+                item.endsWith(".png") ||
+                item.endsWith(".webp")
+              ) {
+                url = `http://${host}:${port}/uploads/${item}`;
+                type = "image";
+                let img = new Image();
+                img.src = url;
+                let imageName = "imageBase" + counterImages++;
+                endObj = {
+                  name: item || imageName,
+                  imageElement: img,
+                };
+              } else if (item.endsWith(".mp4")) {
+                type = "video";
+                url = `http://${host}:${port}/uploads/${item}`;
+                const video = document.createElement("video");
+                video.src = url;
+                const videoName = "videoBase" + counterVideos++;
+                video.setAttribute("name", videoName);
+                endObj = {
+                  videoElement: video,
+                  name: item || videoName,
+                };
+              }
+
+              endObj = {
+                ...endObj,
+                id: "uploads/" + item,
+                fileName: item,
+                sceneId: 1,
+                type,
+                content: url,
+                width: 100,
+                height: 100,
+                x: 0,
+                y: 0,
+                rotation: 0,
+              };
+
+              return endObj;
+            });
+            setResources(newResource);
+            // updateSceneResources([...newResource, ...getSelectedScene().resources]);
+          }
+        });
+
+        tempSocket.on("update-cameras", (data) => {
+          setInputs(data);
+        });
+
+        tempSocket.on("connect", () => {
+          setConnecting(true);
+        });
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const stage = new Konva.Stage({
+          container: "containerKonva",
+          width,
+          height,
+          draggable: true,
+        });
+
+        const layer = new Konva.Layer();
+        stage.add(layer);
+
+        anim = new Konva.Animation(() => {}, layer);
+
+        layer.on("dragmove", function (e) {
+          var absPos = e.target.absolutePosition();
+          e.target.absolutePosition(absPos);
+
+          var target = e.target;
+          var targetRect = e.target.getClientRect();
+          layer.children.forEach(function (group) {
+            if (group === target) return;
+            if (haveIntersection(group.getClientRect(), targetRect)) {
+              if (group instanceof Konva.Group) {
+                const shape = group.findOne(".fillShape");
+                if (shape) {
+                  shape.stroke("red");
+                  let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                  if (!x) arrayCollisions.push(shape.getAttr("id"));
+                }
+              }
+            } else {
+              if (group instanceof Konva.Group) {
+                const shape = group.findOne(".fillShape");
+                if (shape) {
+                  let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
+                  if (x) {
+                    let y = arrayCollisions.indexOf(x);
+                    if (y !== -1) arrayCollisions.splice(y, 1);
+                  }
+                  shape.stroke("white");
+                }
+              }
+            }
+          });
+
+          // let searchIndexArray = e.target.children[0].getAttr("id");
+        });
+
+        layer.on("dragend", (e) => {
+          layer.find(".guid-line").forEach((l) => l.destroy());
+        });
+      } catch (err) {
+        console.warn("Failed to fetch config.json or initialize tempSocket", err);
+      }
+    }
+
+    initializeSocket();
+
+    return () => {
+      if (tempSocket) tempSocket.disconnect();
+      // if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
+      // if (motherLayer) motherLayer.destroy();
+    };
+  }, [connectionMode]);
+
+  useEffect(() => {
+    if (!collections.length) {
+      return;
+    }
+    const selectedCollectionObj = collections.find((c) => c.id == selectedCollection);
+    if (!selectedCollectionObj)
+      return console.warn(
+        "No collection selected!",
+        selectedCollectionObj,
+        selectedCollection,
+        collections
+      );
+    const selectedCollectionScenes = selectedCollectionObj?.schedules?.map((s) => ({
+      ...s.scene,
+      resources: [],
+      stageData: null,
+      layer: new Konva.Layer(),
+    }));
+    setFilteredScenes(
+      selectedCollectionScenes
+      // scenes.filter((scene) =>
+      //   collections.find((item) => item.id == selectedCollection)?.scenes?.includes(scene.id)
+      // )
+    );
+  }, [collections, selectedCollection, flagReset]);
+
+  useEffect(() => {
+    if (!url) {
+      return;
+    }
+    async function initData() {
+      try {
+        setIsLoading(true);
+        const dataCol = await api.getPrograms(url);
+        console.log("dataCol::: ", dataCol);
+        fetchDataColl = dataCol;
+        setCollections(dataCol ?? []);
+        setSelectedCollection(fetchDataColl[0].id);
+
+        const dataSen = await api.getScenes(url);
+        console.log("dataSen::: ", dataSen);
+        fetchDataScene =
+          dataSen?.map((item) => ({
+            name: item.name,
+            id: item.id,
+            resources: [],
+            stageData: null,
+            layer: new Konva.Layer(),
+          })) ?? [];
+        setScenes(fetchDataScene);
+
+        const selectedScene = fetchDataScene[0];
+        setSelectedScene(fetchDataScene[0].id);
+
+        const newScene = await api.getSceneById(url, fetchDataScene[0].id);
+        setSources(newScene.sources);
+        generateScene(newScene.sources, selectedScene);
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    initData();
+  }, [url]);
 
   return (
     <MyContext.Provider
@@ -354,6 +719,8 @@ export const MyContextProvider = ({ children }) => {
         sendOperation,
         socket,
         anim,
+        trimPrefix,
+        generateScene,
       }}
     >
       {children}

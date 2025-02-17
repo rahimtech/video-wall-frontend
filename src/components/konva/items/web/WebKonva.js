@@ -1,6 +1,13 @@
+import Swal from "sweetalert2";
 import { v4 as uuidv4 } from "uuid";
 
-export const addWeb = ({ webResource, mode = true, getSelectedScene, setSources }) => {
+export const addWeb = ({
+  webResource,
+  mode = true,
+  getSelectedScene,
+  setSources,
+  sendOperation,
+}) => {
   const { id, content, x, y, width, height } = webResource;
   let uniqId = mode ? uuidv4() : id;
 
@@ -9,6 +16,21 @@ export const addWeb = ({ webResource, mode = true, getSelectedScene, setSources 
   let selectedStage = null;
   if (mode) {
     selectedStage = getSelectedScene()?.stageData;
+    sendOperation("source", {
+      action: "add",
+      id: String(uniqId),
+      payload: {
+        source: "iframe:" + content,
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080,
+        name: content,
+        type: "iframe",
+        sceneId: getSelectedScene()?.id,
+        content: content,
+      },
+    });
   }
 
   if (!selectedSceneLayer) return;
@@ -17,7 +39,7 @@ export const addWeb = ({ webResource, mode = true, getSelectedScene, setSources 
     x: mode ? 0 : x,
     y: mode ? 0 : y,
     draggable: false,
-    id: id,
+    id: String(id),
     uniqId,
   });
 
@@ -47,7 +69,7 @@ export const addWeb = ({ webResource, mode = true, getSelectedScene, setSources 
     nodes: [group],
     enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
     rotateEnabled: true,
-    id: uniqId,
+    id: String(uniqId),
   });
   transformer.flipEnabled(false);
 

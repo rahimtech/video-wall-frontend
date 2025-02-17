@@ -13,13 +13,13 @@ export const addText = (text) => {
     x: 0,
     y: 0,
     draggable: false,
-    id: text.id,
+    id: String(text.id),
     uniqId,
   });
 
   const transformer = new Konva.Transformer({
     nodes: [textNode],
-    id: uniqId,
+    id: String(uniqId),
 
     enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
     boundBoxFunc: (oldBox, newBox) => {

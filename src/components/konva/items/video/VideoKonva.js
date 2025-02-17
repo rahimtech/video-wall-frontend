@@ -24,7 +24,7 @@ export const addVideo = ({
   if (mode) {
     sendOperation("source", {
       action: "add",
-      id: uniqId,
+      id: String(uniqId),
       payload: {
         source: modifiedVideoURL,
         x: 0,
@@ -45,7 +45,7 @@ export const addVideo = ({
       fill: "black",
       fontFamily: "Arial",
       padding: 5,
-      id: uniqId,
+      id: String(uniqId),
       uniqId,
       align: "center",
       width: videoItem.videoElement.videoWidth,
@@ -56,7 +56,7 @@ export const addVideo = ({
       x: mode ? 0 : videoItem.x,
       y: mode ? 0 : videoItem.y,
       draggable: false,
-      id: uniqId,
+      id: String(uniqId),
       uniqId,
       rotation: videoItem.rotation || 0,
     });
@@ -67,7 +67,7 @@ export const addVideo = ({
       height: videoItem.videoElement.videoHeight,
       name: "object",
       fill: "gray",
-      id: videoItem.id,
+      id: String(videoItem.id),
       uniqId,
       stroke: "white",
       strokeWidth: 2,
@@ -91,7 +91,7 @@ export const addVideo = ({
       nodes: [group],
       enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
       rotateEnabled: true,
-      id: uniqId,
+      id: String(uniqId),
     });
     transformer.flipEnabled(false);
 
@@ -171,7 +171,7 @@ export const addVideo = ({
         fill: "black",
         fontFamily: "Arial",
         padding: 5,
-        id: uniqId,
+        id: String(uniqId),
         uniqId,
         align: "center",
         width: videoItem.width,
@@ -183,7 +183,7 @@ export const addVideo = ({
         y: mode ? 0 : videoItem.y,
         draggable: false,
         uniqId,
-        id: uniqId,
+        id: String(uniqId),
         rotation: videoItem.rotation || 0,
       });
 
@@ -193,7 +193,7 @@ export const addVideo = ({
         height: videoItem.height,
         name: "object",
         fill: "gray",
-        id: uniqId,
+        id: String(uniqId),
         stroke: "white",
         strokeWidth: 2,
         uniqId,
@@ -217,7 +217,7 @@ export const addVideo = ({
         nodes: [group],
         enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
         rotateEnabled: true,
-        id: uniqId,
+        id: String(uniqId),
       });
       transformer.flipEnabled(false);
 

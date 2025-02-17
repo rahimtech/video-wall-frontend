@@ -43,7 +43,7 @@ const ModalTimeLine = ({
     setTimeLine(
       collections
         .find((c) => c.id === selectedCollection)
-        .schedules?.map((s) => ({ id: s.id, sceneId: s.scene_id, duration: s.duration }))
+        ?.schedules?.map((s) => ({ id: s.id, sceneId: s.scene_id, duration: s.duration }))
     );
   }, [isOpen]);
 

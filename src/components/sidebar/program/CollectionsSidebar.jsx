@@ -3,18 +3,15 @@ import {
   Button,
   Tooltip,
   Modal,
-  Checkbox,
   Input,
   ModalContent,
   ModalHeader,
-  ModalBody,
   ModalFooter,
   useDisclosure,
 } from "@nextui-org/react";
-import { FaEdit, FaTrashAlt } from "react-icons/fa";
+import { FaTrashAlt } from "react-icons/fa";
 import { MdAddBox, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
-import { PiTimerBold } from "react-icons/pi";
 import ModalTimeLine from "./ModalTimeLine";
 import api from "@/api/api";
 import { useMyContext } from "@/context/MyContext";
@@ -37,6 +34,7 @@ const CollectionsSidebar = () => {
     darkMode,
   } = useMyContext();
   let idSave = null;
+
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
     setSelectedScene(collections.find((item) => item.id == key).schedules[0]);
@@ -51,7 +49,6 @@ const CollectionsSidebar = () => {
     } else {
       setEditingCollection(null);
       setNewCollectionName("");
-      // setSelectedScenes([]);
     }
     onOpen();
   };
@@ -83,12 +80,10 @@ const CollectionsSidebar = () => {
         return collection;
       });
 
-      // به روز رسانی state collections با مجموعه‌های جدید
       setCollections(newCollections);
     } else {
       try {
         setIsLoading(true);
-        console.log("tesrt");
         const dataCol = await api.createProgram(url, {
           name: newCollectionName,
           metadata: {},
@@ -105,7 +100,7 @@ const CollectionsSidebar = () => {
       }
     }
 
-    onClose(); // بستن مدال
+    onClose();
   };
 
   const handleDeleteCollection = (id) => {
@@ -148,81 +143,87 @@ const CollectionsSidebar = () => {
   return (
     <div
       dir="rtl"
-      className="p-2 rounded-lg h-full  overflow-auto"
+      className="p-2 rounded-lg h-full overflow-auto"
       style={{
         backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",
       }}
     >
-      <div className="flex justify-between px-2 items-center mb-3">
-        <h2 className="text-md font-semibold">برنامه پخش</h2>
-
-        <Button
-          className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
-          size="lg"
-          variant="light"
-          color="default"
-          onPress={() => handleOpenModal(null)}
-        >
-          <MdAddBox />
-        </Button>
+      {/* Fixed Header */}
+      <div className="sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-md font-semibold">برنامه پخش</h2>
+          <Button
+            className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
+            size="lg"
+            variant="light"
+            color="default"
+            onPress={() => handleOpenModal(null)}
+          >
+            <MdAddBox />
+          </Button>
+        </div>
       </div>
 
-      <ul className="flex flex-col gap-2">
-        {collections ? (
-          collections.map((collection) => (
-            <li
-              key={collection.id}
-              onClick={() => handleCollectionClick(collection.id)}
-              className={`text-sm flex items-center justify-between w-full ${
-                selectedCollection && selectedCollection === collection.id
-                  ? "bg-blue-500 text-white"
-                  : darkMode
-                  ? "bg-gray-700"
-                  : "bg-gray-300"
-              } p-2 rounded-md shadow-sm cursor-pointer`}
-            >
-              <span className="truncate">{collection.name}</span>
-              <div className="flex gap-1">
-                <Button
-                  className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                  size="sm"
-                  variant="light"
-                  color="default"
-                  onPress={(e) => {
-                    handleOpenModal(collection);
-                  }}
-                >
-                  <MdEdit size={15} />
-                </Button>
-                <ModalTimeLine
-                  setCollections={setCollections}
-                  darkMode={darkMode}
-                  collectionScenes={filteredScenes}
-                  collections={collections}
-                  selectedCollection={selectedCollection}
-                  setSelectedCollection={setSelectedCollection}
-                  collectionSelected={collection}
-                />
-                <Button
-                  className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                  size="sm"
-                  variant="light"
-                  color="default"
-                  onPress={(e) => {
-                    handleDeleteCollection(collection.id);
-                  }}
-                >
-                  <FaTrashAlt size={15} />
-                </Button>
-              </div>
-            </li>
-          ))
-        ) : (
-          <div>load</div>
-        )}
-      </ul>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        <ul className="flex flex-col gap-2">
+          {collections ? (
+            collections.map((collection) => (
+              <li
+                key={collection.id}
+                onClick={() => handleCollectionClick(collection.id)}
+                className={`text-sm flex items-center justify-between w-full ${
+                  selectedCollection && selectedCollection === collection.id
+                    ? "bg-blue-500 text-white"
+                    : darkMode
+                    ? "bg-gray-700"
+                    : "bg-gray-300"
+                } p-2 rounded-md shadow-sm cursor-pointer`}
+              >
+                <span className="truncate">{collection.name}</span>
+                <div className="flex gap-1">
+                  <Button
+                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    onPress={(e) => {
+                      handleOpenModal(collection);
+                    }}
+                  >
+                    <MdEdit size={15} />
+                  </Button>
+                  <ModalTimeLine
+                    setCollections={setCollections}
+                    darkMode={darkMode}
+                    collectionScenes={filteredScenes}
+                    collections={collections}
+                    selectedCollection={selectedCollection}
+                    setSelectedCollection={setSelectedCollection}
+                    collectionSelected={collection}
+                  />
+                  <Button
+                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    onPress={(e) => {
+                      handleDeleteCollection(collection.id);
+                    }}
+                  >
+                    <FaTrashAlt size={15} />
+                  </Button>
+                </div>
+              </li>
+            ))
+          ) : (
+            <div>load</div>
+          )}
+        </ul>
+      </div>
 
+      {/* Modal */}
       <Modal scrollBehavior="outside" dir="rtl" isOpen={isOpen} onClose={onClose}>
         <ModalContent>
           <ModalHeader className="mt-5">
@@ -233,17 +234,6 @@ const CollectionsSidebar = () => {
               onChange={(e) => setNewCollectionName(e.target.value)}
             />
           </ModalHeader>
-          {/* <ModalBody>
-            {scenes.map((scene) => (
-              <Checkbox
-                key={scene.id}
-                isSelected={selectedScenes.includes(scene.id)}
-                onValueChange={(isSelected) => handleSceneSelection(scene.id, isSelected)}
-              >
-                {scene.name}
-              </Checkbox>
-            ))}
-          </ModalBody> */}
           <ModalFooter>
             <Button className="w-full" color="primary" onPress={() => handleSaveCollection()}>
               ذخیره

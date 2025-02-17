@@ -20,7 +20,7 @@ export const addImage = ({
   if (mode) {
     sendOperation("source", {
       action: "add",
-      id: uniqId,
+      id: String(uniqId),
       payload: {
         source: modifiedImageURL,
         x: 0,
@@ -40,7 +40,7 @@ export const addImage = ({
       width: mode ? img.imageElement.width : img.width,
       height: mode ? img.imageElement.height : img.height,
       name: "object",
-      id: img.id,
+      id: String(img.id),
       stroke: "white",
       strokeWidth: 2,
       uniqId,
@@ -56,7 +56,7 @@ export const addImage = ({
       fill: "black",
       fontFamily: "Arial",
       uniqId,
-      id: uniqId,
+      id: String(uniqId),
       padding: 5,
       align: "center",
       width: mode ? img.imageElement.width : img.width,
@@ -68,7 +68,7 @@ export const addImage = ({
       y: mode ? 0 : img.y,
       draggable: false,
       uniqId,
-      id: uniqId,
+      id: String(uniqId),
       rotation: img.rotation || 0,
     });
 
@@ -83,7 +83,7 @@ export const addImage = ({
         nodes: [group],
         enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
         rotateEnabled: true,
-        id: uniqId,
+        id: String(uniqId),
       });
       transformer.flipEnabled(false);
       selectedSceneLayer.add(transformer);

@@ -13,6 +13,7 @@ import { SketchPicker } from "react-color";
 import Swal from "sweetalert2";
 import { useMyContext } from "@/context/MyContext";
 import { v4 as uuidv4 } from "uuid";
+import axios from "axios";
 
 const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -36,6 +37,8 @@ const ResourcesSidebar = () => {
     generateBlobImageURL,
     setResources,
     setMiniLoad,
+    addWeb,
+    trimPrefix,
   } = useMyContext();
 
   const uploadMedia = async (file, videoName) => {
@@ -44,7 +47,7 @@ const ResourcesSidebar = () => {
     formData.append("videoName", videoName);
     setMiniLoad(true);
     try {
-      const response = await axios.post(`http://${host}:${port}/upload`, formData, videoName, {
+      const response = await axios.post(`${url}/upload`, formData, videoName, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -90,7 +93,7 @@ const ResourcesSidebar = () => {
             rotation: 0,
             created_at: new Date().toISOString(),
           };
-          setResources(newResource);
+          setResources((prev) => [newResource, ...prev]);
           // updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
       });
@@ -120,7 +123,7 @@ const ResourcesSidebar = () => {
             rotation: 0,
             created_at: new Date().toISOString(),
           };
-          setResources(newResource);
+          setResources((prev) => [newResource, ...prev]);
 
           // updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
@@ -142,7 +145,7 @@ const ResourcesSidebar = () => {
         setMiniLoad(true);
         try {
           await axios
-            .delete(`http://${host}:${port}/delete/${trimPrefix(fileName, "uploads/")}`)
+            .delete(`${url}/delete/${trimPrefix(fileName, "uploads/")}`)
             .then(console.log("deleted"));
         } finally {
           setMiniLoad(false);
@@ -278,7 +281,7 @@ const ResourcesSidebar = () => {
       )}
 
       {/* Fixed Header */}
-      <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
+      <div className="sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-md font-semibold">ورودی و فایل‌ها {`(${resources.length})`}</h2>
           <Dropdown dir="rtl" className="vazir">
@@ -459,6 +462,32 @@ const ResourcesSidebar = () => {
                                 sendOperation,
                                 url,
                                 loopVideos,
+                              })
+                            : Swal.fire({
+                                title: "!مانیتوری در صحنه وجود ندارد",
+                                icon: "warning",
+                                confirmButtonText: "باشه",
+                                confirmButtonColor: "gray",
+                              });
+                        }}
+                      >
+                        <MdAddBox />
+                      </Button>
+                    </>
+                  ) : resource.type == "web" ? (
+                    <>
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                        onPress={() => {
+                          videoWalls.length > 0
+                            ? addWeb({
+                                webResource: resource,
+                                getSelectedScene,
+                                setSources,
+                                sendOperation,
                               })
                             : Swal.fire({
                                 title: "!مانیتوری در صحنه وجود ندارد",

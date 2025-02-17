@@ -60,6 +60,7 @@ export const deleteScene = ({
   setSources,
   selectedScene,
   setSelectedScene,
+  url,
 }) => {
   Swal.fire({
     title: "آيا مطمئن هستید؟",
@@ -85,7 +86,7 @@ export const deleteScene = ({
 
       try {
         setIsLoading(true);
-        api.deleteScene(`http://${host}:${port}`, id);
+        api.deleteScene(`${url}`, id);
       } catch (err) {
         console.log(err);
       } finally {
@@ -102,7 +103,14 @@ export const deleteScene = ({
   });
 };
 
-export const handleEditSceneName = (id, newName) => {
+export const handleEditSceneName = ({
+  id,
+  newName,
+  setScenes,
+  setIsLoading,
+  url,
+  setEditingSceneId,
+}) => {
   setScenes((prevScenes) =>
     prevScenes.map((scene) => (scene.id === id ? { ...scene, name: newName } : scene))
   );

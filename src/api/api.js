@@ -1,4 +1,5 @@
 import { createScene, getScenes, getSceneById, updateScene, deleteScene } from "./scenes";
+import { createSource, getSources, getSourceById, updateSource, deleteSource } from "./source";
 import {
   createProgram,
   getPrograms,
@@ -37,6 +38,13 @@ const api = {
   updateProgramSchedule,
   deleteProgramSchedule,
   addSceneToProgram,
+
+  // Source
+  createSource,
+  getSources,
+  getSourceById,
+  updateSource,
+  deleteSource,
 };
 
 export default api;

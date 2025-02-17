@@ -162,7 +162,7 @@ const UsageSidebar = () => {
       )}
 
       {/* Fixed Header */}
-      <div className="sticky top-[0px] z-[50] px-3 py-[2px] bg-inherit">
+      <div className="sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-md font-semibold">
             ورودی و فایل‌های استفاده شده {`(${usageSources.length})`}
@@ -176,7 +176,7 @@ const UsageSidebar = () => {
           {usageSources?.map((resource) => {
             return (
               <li
-                key={resource.id}
+                key={`${resource.id}-${Math.random()}`}
                 className={`text-sm flex flex-wrap items-center justify-between ${
                   darkMode ? "bg-gray-700" : "bg-gray-300"
                 } p-2 rounded-md shadow-sm`}

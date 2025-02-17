@@ -10,7 +10,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
     x: input.x || 0,
     y: input.y || 0,
     draggable: false,
-    id: uniqId,
+    id: String(uniqId),
     type: "input",
     uniqId,
     rotation: input.rotation || 0,
@@ -22,7 +22,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
     width: input.width,
     height: input.height,
     fill: "lightblue",
-    id: uniqId,
+    id: String(uniqId),
     stroke: "white",
     strokeWidth: 2,
     uniqId,
@@ -35,7 +35,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
     fontSize: 40,
     fill: "black",
     uniqId,
-    id: uniqId,
+    id: String(uniqId),
   });
 
   group.add(rect);
@@ -53,6 +53,9 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
         width: input.width,
         height: input.height,
         name: input.name,
+        type: "input",
+        sceneId: getSelectedScene().id,
+        content: input.deviceId,
       },
     });
   }
@@ -64,7 +67,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
     nodes: [group],
     enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
     rotateEnabled: true,
-    id: uniqId,
+    id: String(uniqId),
   });
   transformer.flipEnabled(false);
 

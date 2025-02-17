@@ -90,6 +90,7 @@ function App() {
     anim,
     socket,
     connecting,
+    trimPrefix,
   } = useMyContext();
 
   useEffect(() => {
@@ -187,7 +188,6 @@ function App() {
         const { layer } = scene;
         if (!layer) return scene;
 
-        console.log("videoWalls::: ", videoWalls);
         videoWalls?.forEach((display) => {
           const group = layer.findOne(`#monitor-group-${display.id}`);
           console.log("group::: ", group);
@@ -221,7 +221,6 @@ function App() {
 
   useEffect(() => {
     if (socket && connecting) {
-      console.log("01");
       socket.on("displays-arranged", (e) => {
         setIsLoading(false);
       });
@@ -230,289 +229,6 @@ function App() {
       offDisplays();
     }
   }, [socket, connecting]);
-
-  function trimPrefix(str, prefix) {
-    // console.log(`Trimming prefix ${prefix} from ${str}...`);
-    if (str.startsWith(prefix)) {
-      return str.slice(prefix.length);
-    }
-    // console.log(`Returning trimmed str ${str}`);
-    return str;
-  }
-
-  useEffect(() => {
-    async function initializeSocket() {
-      try {
-        if (!connectionMode) {
-          return;
-        }
-        const response = await axios.get("/config.json");
-        const data = response.data;
-        if (data.host) host = localStorage.getItem("host") ?? data.host;
-        if (data.port) port = localStorage.getItem("port") ?? data.port;
-
-        socket = io(`${url}`);
-
-        socket.on("disconnect", () => {
-          setConnecting(false);
-        });
-
-        socket.on("init", (data) => {
-          setIsLoading(false);
-
-          console.log("INIT DATA: ", data);
-          if (flagOperations) {
-            setFlagOperation(false);
-            return;
-          }
-
-          if (data.inputs) {
-            const inputs = data.inputs.map((item) => ({
-              id: item?.deviceId,
-              deviceId: item?.deviceId,
-              width: item?.width,
-              height: item?.height,
-              name: item?.label,
-              type: "input",
-            }));
-            setInputs(inputs);
-            // setResources([inputs, ...resources]);
-          }
-
-          if (data.displays) {
-            const displays = data.displays.map((monitor, index) => {
-              return {
-                ...monitor,
-                // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
-                id: monitor.id,
-                name: monitor.name,
-                x: monitor.x,
-                y: monitor.y,
-                width: monitor.width,
-                height: monitor.height,
-                connected: monitor.connected,
-                monitorUniqId: monitor.monitorUniqId,
-                monitorNumber: monitor.monitorNumber,
-              };
-            });
-
-            setVideoWalls(displays);
-            addMonitorsToScenes({ jsonData: displays, scenes, setScenes });
-          }
-
-          if (data.sources) {
-            const sources = data.sources.map((item) => {
-              let type;
-              let content;
-              let endObj = {};
-              let fixedContent = item.source?.replace(/\\/g, "/");
-
-              if (item.source?.startsWith("input:")) {
-                type = "input";
-                content = trimPrefix(item.source, "input:");
-                endObj = { name: item.name ?? "input", deviceId: content };
-              } else if (item.source?.startsWith("image:")) {
-                type = "image";
-                content = trimPrefix(item.source, "image:");
-                const imageURL = content;
-                let img = new Image();
-                img.src = imageURL;
-                let imageName = "image" + counterImages++;
-                endObj = {
-                  name: item.name ?? imageName,
-                  imageElement: img,
-                };
-              } else if (item.source?.startsWith("video:")) {
-                type = "video";
-                content = trimPrefix(item.source, "video:");
-                const video = document.createElement("video");
-                video.src = content;
-                const videoName = "video" + counterVideos++;
-                video.setAttribute("name", videoName);
-                video.setAttribute("id", item.id);
-                endObj = {
-                  videoElement: video,
-                  name: item.name ?? videoName,
-                };
-              } else if (item.source.startsWith("iframe:")) {
-                type = "iframe";
-                content = trimPrefix(item.source, "iframe:");
-              }
-
-              endObj = {
-                ...endObj,
-                id: item.id,
-                sceneId: selectedScene,
-                type,
-                content: type === "input" ? content : fixedContent,
-                width: item.width,
-                height: item.height,
-                x: item.x,
-                y: item.y,
-                name: item.name ?? "",
-                rotation: parseInt(item.rotation),
-              };
-
-              if (type === "image") {
-                addImage({
-                  img: endObj,
-                  mode: false,
-                  getSelectedScene,
-                  setSources,
-                  sendOperation,
-                  url,
-                  generateBlobImageURL,
-                });
-              } else if (type === "input") {
-                addInput({
-                  input: endObj,
-                  mode: false,
-                  getSelectedScene,
-                  setSources,
-                  sendOperation,
-                });
-              } else if (type === "video") {
-                addVideo({
-                  videoItem: endObj,
-                  mode: false,
-                  getSelectedScene,
-                  setSources,
-                  sendOperation,
-                  url,
-                  loopVideos,
-                });
-                // addRectangle();
-              } else if (type == "iframe") {
-                addWeb(endObj, false);
-              }
-              return endObj;
-            });
-            setSources(sources);
-          }
-
-          //resources
-          if (data.files) {
-            const newResource = data.files.map((item) => {
-              let type;
-              let url;
-              let endObj = {};
-              if (item.endsWith(".jpeg") || item.endsWith(".jpg") || item.endsWith(".png")) {
-                url = `http://${host}:${port}/uploads/${item}`;
-                type = "image";
-                let img = new Image();
-                img.src = url;
-                let imageName = "imageBase" + counterImages++;
-                endObj = {
-                  name: item || imageName,
-                  imageElement: img,
-                };
-              } else if (item.endsWith(".mp4")) {
-                type = "video";
-                url = `http://${host}:${port}/uploads/${item}`;
-                const video = document.createElement("video");
-                video.src = url;
-                const videoName = "videoBase" + counterVideos++;
-                video.setAttribute("name", videoName);
-                endObj = {
-                  videoElement: video,
-                  name: item || videoName,
-                };
-              }
-
-              endObj = {
-                ...endObj,
-                id: "uploads/" + item,
-                fileName: item,
-                sceneId: 1,
-                type,
-                content: url,
-                width: 100,
-                height: 100,
-                x: 0,
-                y: 0,
-                rotation: 0,
-              };
-
-              return endObj;
-            });
-            setResources(newResource);
-            // updateSceneResources([...newResource, ...getSelectedScene().resources]);
-          }
-        });
-
-        socket.on("update-cameras", (data) => {
-          setInputs(data);
-        });
-
-        socket.on("connect", () => {
-          setConnecting(true);
-        });
-
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const stage = new Konva.Stage({
-          container: "containerKonva",
-          width,
-          height,
-          draggable: true,
-        });
-
-        const layer = new Konva.Layer();
-        stage.add(layer);
-
-        anim = new Konva.Animation(() => {}, layer);
-
-        layer.on("dragmove", function (e) {
-          var absPos = e.target.absolutePosition();
-          e.target.absolutePosition(absPos);
-
-          var target = e.target;
-          var targetRect = e.target.getClientRect();
-          layer.children.forEach(function (group) {
-            if (group === target) return;
-            if (haveIntersection(group.getClientRect(), targetRect)) {
-              if (group instanceof Konva.Group) {
-                const shape = group.findOne(".fillShape");
-                if (shape) {
-                  shape.stroke("red");
-                  let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-                  if (!x) arrayCollisions.push(shape.getAttr("id"));
-                }
-              }
-            } else {
-              if (group instanceof Konva.Group) {
-                const shape = group.findOne(".fillShape");
-                if (shape) {
-                  let x = arrayCollisions.find((item) => item == shape.getAttr("id"));
-                  if (x) {
-                    let y = arrayCollisions.indexOf(x);
-                    if (y !== -1) arrayCollisions.splice(y, 1);
-                  }
-                  shape.stroke("white");
-                }
-              }
-            }
-          });
-
-          // let searchIndexArray = e.target.children[0].getAttr("id");
-        });
-
-        layer.on("dragend", (e) => {
-          layer.find(".guid-line").forEach((l) => l.destroy());
-        });
-      } catch (err) {
-        console.warn("Failed to fetch config.json or initialize socket", err);
-      }
-    }
-
-    initializeSocket();
-
-    return () => {
-      if (socket) socket.disconnect();
-      // if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
-      // if (motherLayer) motherLayer.destroy();
-    };
-  }, [connectionMode]);
 
   useEffect(() => {
     if (pendingOperations.length > 0 && connectionMode && socket) {
@@ -524,7 +240,6 @@ function App() {
         if (pendingOperations.length > 0) {
           // const operation = pendingOperations.shift();
           pendingOperations.map((item) => {
-            console.log("sending:", item);
             socket.emit(item.action, item.payload);
           });
           setPendingOperation([]);
@@ -533,16 +248,16 @@ function App() {
     }
   }, [connectionMode, socket, pendingOperations]);
 
-  useEffect(() => {
-    getSelectedScene()?.resources.forEach((item) => {
-      if (item.type === "video") {
-        const videoElement = item.videoElement;
-        if (videoElement) {
-          videoElement.loop = loopVideos[item.id] || false;
-        }
-      }
-    });
-  }, [loopVideos, getSelectedScene()?.resources]);
+  // useEffect(() => {
+  //   getSelectedScene()?.resources?.forEach((item) => {
+  //     if (item.type === "video") {
+  //       const videoElement = item.videoElement;
+  //       if (videoElement) {
+  //         videoElement.loop = loopVideos[item.id] || false;
+  //       }
+  //     }
+  //   });
+  // }, [loopVideos, getSelectedScene()?.resources]);
 
   useEffect(() => {
     const selectedSceneLayer = getSelectedScene()?.layer;
