@@ -59,13 +59,15 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                       <CardHeader>
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-2">
-                            {item.Disconnected === "No" ? (
+                            {item.connected === true ? (
                               <div className="blob"></div>
                             ) : (
                               <div className="blobred"></div>
                             )}
 
-                            <h3 className="text-lg font-semibold">{item.name || "نام نامشخص"}</h3>
+                            <h3 className="text-lg font-semibold">
+                              نام مانیتور:{item.name || item.id || 0}
+                            </h3>
                           </div>
                           {/* <span className="text-sm text-gray-500 dark:text-gray-400">
                             {item["Device ID"]}
@@ -99,7 +101,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            <strong>شماره مانیتور:</strong>
+                            <strong>آی‌دی مانیتور:</strong>
                             <Chip size="sm" color="primary">{`${item.id}`}</Chip>
                           </div>
                           {/* <div>

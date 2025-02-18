@@ -740,7 +740,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </Button>
           </Tooltip>
 
-          <Tooltip
+          {/* <Tooltip
             content={
               isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
             }
@@ -802,7 +802,7 @@ const HeaderBar = ({ toggleLayout }) => {
                 <TbLayoutOff size={20} />
               </Button>
             )}
-          </Tooltip>
+          </Tooltip> */}
         </div>
       </div>
 
@@ -821,7 +821,7 @@ const HeaderBar = ({ toggleLayout }) => {
               <div className="blobred"></div>
             )}
             {(connecting || !connecting) && !connectionMode ? (
-              <div className="mr-2">حالت آفلاین</div>
+              <div className="mr-2">درایور آفلاین</div>
             ) : !connecting && connectionMode ? (
               <div className="mr-2">در حال اتصال به درایور</div>
             ) : connecting && connectionMode ? (
@@ -840,7 +840,7 @@ const HeaderBar = ({ toggleLayout }) => {
             )}
 
             {(monitorConnection || !monitorConnection) && !connectionMode ? (
-              <></>
+              <div className="mr-2">{"مانیتور‌ها آفلاین"}</div>
             ) : !monitorConnection && connectionMode ? (
               <div className="mr-2">{"منتظر اتصال مانیتور‌ها "}</div>
             ) : monitorConnection && connectionMode ? (

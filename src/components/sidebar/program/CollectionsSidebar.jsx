@@ -37,7 +37,6 @@ const CollectionsSidebar = () => {
 
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
-
     setSelectedScene(collections.find((item) => item.id == key)?.schedules[0]?.scene_id ?? null);
   };
 

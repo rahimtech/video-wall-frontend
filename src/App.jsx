@@ -165,7 +165,7 @@ function App() {
             }
           }
         });
-
+        setVideoWalls(updatedDisplays);
         layer.draw();
         return scene;
       })
