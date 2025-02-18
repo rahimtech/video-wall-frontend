@@ -77,6 +77,8 @@ function App() {
     socket,
     connecting,
     trimPrefix,
+    monitorConnection,
+    setMonitorConnection,
   } = useMyContext();
 
   useEffect(() => {
@@ -138,6 +140,7 @@ function App() {
             const text = group.findOne(".monitorText");
 
             if (!display.connected) {
+              setMonitorConnection(false);
               if (rect) rect.fill("red");
               if (text) text.text(`Monitor ${display.id} (Disconnected)`);
 
@@ -155,6 +158,7 @@ function App() {
             } else {
               if (rect) rect.fill("#161616");
               if (text) text.setAttr("text", `Monitor ${display.id}`);
+              setMonitorConnection(true);
 
               const disconnectIcon = group.findOne(".disconnectIcon");
               if (disconnectIcon) disconnectIcon.destroy();
@@ -169,6 +173,8 @@ function App() {
   }
 
   function offDisplays() {
+    setMonitorConnection(false);
+
     setScenes((prevScenes) =>
       prevScenes.map((scene) => {
         const { layer } = scene;
@@ -176,7 +182,6 @@ function App() {
 
         videoWalls?.forEach((display) => {
           const group = layer.findOne(`#monitor-group-${display.id}`);
-          console.log("group::: ", group);
 
           if (group) {
             const rect = group.findOne("Rect");

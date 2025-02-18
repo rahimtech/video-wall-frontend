@@ -288,7 +288,7 @@ export const arrangeMonitors = (rows, cols) => {
   setScenes(updatedScenes);
 };
 
-export const generateMonitorsForLayer = (layer, monitors) => {
+export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) => {
   if (!layer || !monitors) return;
   const step = 5;
 
@@ -309,6 +309,7 @@ export const generateMonitorsForLayer = (layer, monitors) => {
     });
 
     const isConnected = monitor.connected;
+    setMonitorConnection(isConnected);
     const rect = new Konva.Rect({
       x: 0,
       y: 0,

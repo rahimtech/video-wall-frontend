@@ -2,6 +2,7 @@ import React from "react";
 import { FaDownload, FaNetworkWired, FaPowerOff, FaUpload, FaWifi } from "react-icons/fa";
 import SwitchCustom from "../SwitchCustom";
 import {
+  Alert,
   Button,
   Dropdown,
   DropdownItem,
@@ -56,6 +57,8 @@ const HeaderBar = ({ toggleLayout }) => {
     loopVideos,
     generateBlobImageURL,
     trimPrefix,
+    socket,
+    monitorConnection,
   } = useMyContext();
 
   const handleExportProject = () => {
@@ -808,22 +811,45 @@ const HeaderBar = ({ toggleLayout }) => {
           darkMode ? "text-white" : "text-black"
         } flex items-center z-[100] absolute right-0 p-[10px]`}
       >
-        {(connecting || !connecting) && !connectionMode ? (
-          <div className="mr-2">حالت آفلاین</div>
-        ) : !connecting && connectionMode ? (
-          <div className="mr-2">در حال اتصال</div>
-        ) : connecting && connectionMode ? (
-          <div className="mr-2">متصل شد</div>
-        ) : (
-          <></>
-        )}
-        {connecting && connectionMode ? (
-          <div className="blob"></div>
-        ) : (connecting || !connecting) && !connectionMode ? (
-          <div className="bloborange"></div>
-        ) : (
-          <div className="blobred"></div>
-        )}
+        <div dir="rtl" className="flex flex-col justify-end">
+          <div className="flex items-center">
+            {connecting && connectionMode ? (
+              <div className="blob"></div>
+            ) : (connecting || !connecting) && !connectionMode ? (
+              <div className="bloborange"></div>
+            ) : (
+              <div className="blobred"></div>
+            )}
+            {(connecting || !connecting) && !connectionMode ? (
+              <div className="mr-2">حالت آفلاین</div>
+            ) : !connecting && connectionMode ? (
+              <div className="mr-2">در حال اتصال به درایور</div>
+            ) : connecting && connectionMode ? (
+              <div className="mr-2  ">اتصال به درایور</div>
+            ) : (
+              <></>
+            )}
+          </div>
+          <div className="flex items-center">
+            {monitorConnection && connectionMode ? (
+              <div className="blob"></div>
+            ) : (monitorConnection || !monitorConnection) && !connectionMode ? (
+              <div className="bloborange"></div>
+            ) : (
+              <div className="blobred"></div>
+            )}
+
+            {(monitorConnection || !monitorConnection) && !connectionMode ? (
+              <></>
+            ) : !monitorConnection && connectionMode ? (
+              <div className="mr-2">{"منتظر اتصال مانیتور‌ها "}</div>
+            ) : monitorConnection && connectionMode ? (
+              <div className="mr-2">{"مانیتور‌ها متصل است"}</div>
+            ) : (
+              <></>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

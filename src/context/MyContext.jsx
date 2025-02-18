@@ -52,11 +52,13 @@ export const MyContextProvider = ({ children }) => {
 
   // States
   const [videoWalls, setVideoWalls] = useState([]);
+  const [monitorConnection, setMonitorConnection] = useState([]);
   const [initSofware, setInitSoftwaew] = useState(false);
   const [socket, setSocket] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
   const closeModal = () => setActiveModal(null);
+
   const [isToggleLayout, setIsToggleLayout] = useState(
     localStorage.getItem("layout") === "true" ? true : false || false
   );
@@ -263,7 +265,7 @@ export const MyContextProvider = ({ children }) => {
   const sendOperation = (action, payload) => {
     if (connectionModeRef.current) {
       socket?.emit(action, payload);
-      api.createSource(url, payload.payload);
+      // api.createSource(url, payload.payload);
     } else {
       setPendingOperation((prev) => [...prev, { action, payload }]);
     }
@@ -608,7 +610,7 @@ export const MyContextProvider = ({ children }) => {
       const { stage, layer } = createNewStage(selectedScene.layer);
       console.log("initSofware::: ", initSofware);
       if ((scenes.length > 1 || scenes.length === 0) && initSofware) {
-        generateMonitorsForLayer(layer, videoWalls);
+        generateMonitorsForLayer(layer, videoWalls, setMonitorConnection);
       } else {
         setInitSoftwaew(true);
         anim = new Konva.Animation(() => {}, scenes[0].newLayer);
@@ -657,6 +659,8 @@ export const MyContextProvider = ({ children }) => {
         port,
         videoWalls,
         setVideoWalls,
+        monitorConnection,
+        setMonitorConnection,
         activeModal,
         setActiveModal,
         openModal,

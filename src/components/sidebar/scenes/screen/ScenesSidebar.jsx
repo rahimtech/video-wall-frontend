@@ -134,7 +134,7 @@ const ScenesSidebar = () => {
                       : "bg-gray-400 hover:bg-gray-500"
                   }`}
                   onDoubleClick={() => setEditingSceneId(scene.id)}
-                  onClick={() => setSelectedScene(scene.id)}
+                  onClick={() => handleSceneSelection(scene)}
                 >
                   <span className="flex-grow font-semibold">
                     {scene.name}
