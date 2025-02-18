@@ -43,7 +43,7 @@ const ModalTimeLine = ({
     setTimeLine(
       collections
         .find((c) => c.id === selectedCollection)
-        ?.schedules?.map((s) => ({ id: s.id, sceneId: s.scene_id, duration: s.duration }))
+        ?.schedules?.map((s) => ({ id: s.id, sceneId: s.scene_id, duration: s.duration })) ?? []
     );
   }, [isOpen]);
 
@@ -72,8 +72,8 @@ const ModalTimeLine = ({
     } finally {
       setIsLoading(false);
     }
-    setTimeLine((prev) => [...prev, newEntry]);
     resetFields();
+    setTimeLine((prev) => [...prev, newEntry]);
   };
 
   const removeSceneFromTimeLine = (entry, index) => {
@@ -100,21 +100,22 @@ const ModalTimeLine = ({
   };
 
   const saveTimeLineToCollection = () => {
-    setCollections((prev) =>
-      prev.map((collection) =>
-        collection.id === selectedCollection ? { ...collection, timeLine } : collection
-      )
-    );
+    هتغ۹خنفب۵۹۰نه;
+    // setCollections((prev) =>
+    //   prev.map((collection) =>
+    //     collection.id === selectedCollection ? { ...collection, timeLine } : collection
+    //   )
+    // );
     onOpenChange(false);
   };
 
   const resetFields = () => {
-    setSelectedScene("");
+    setSelectedScene(null);
     // setStartDate(null);
     // setEndDate(null);
     // setStartTime("");
     // setEndTime("");
-    setGeneralTime(null);
+    setGeneralTime(0);
   };
 
   const handleOpenModal = (collection = null) => {
@@ -197,7 +198,8 @@ const ModalTimeLine = ({
                   <Select
                     className="w-full"
                     placeholder="انتخاب صحنه"
-                    value={selectedScene}
+                    selectedKeys={selectedScene}
+                    defaultSelectedKeys={selectedScene}
                     onSelectionChange={setSelectedScene}
                     aria-label="انتخاب صحنه"
                   >

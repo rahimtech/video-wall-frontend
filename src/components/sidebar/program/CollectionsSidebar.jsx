@@ -37,7 +37,8 @@ const CollectionsSidebar = () => {
 
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
-    setSelectedScene(collections.find((item) => item.id == key).schedules[0]);
+
+    setSelectedScene(collections.find((item) => item.id == key)?.schedules[0]?.scene_id ?? null);
   };
 
   const handleOpenModal = (collection = null) => {
@@ -88,11 +89,11 @@ const CollectionsSidebar = () => {
           name: newCollectionName,
           metadata: {},
         });
-        let newCol = { id: dataCol.id, name: newCollectionName, scenes: selectedScenes };
+        let newCol = { id: dataCol.id, name: newCollectionName, schedules: [] };
         setCollections((prev) => [...prev, newCol]);
 
         setSelectedCollection(newCol.id);
-        setSelectedScene(newCol.scenes[0]);
+        setSelectedScene(null);
       } catch (err) {
         console.log(err);
       } finally {

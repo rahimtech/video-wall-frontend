@@ -25,15 +25,11 @@ const ScenesSidebar = () => {
     setSources,
     sources,
     collections,
-    addInput,
-    addImage,
-    addVideo,
-    addWeb,
-    sendOperation,
-    generateBlobImageURL,
-    getSelectedScene,
-    trimPrefix,
     generateScene,
+    videoWalls,
+    createNewStage,
+    generateMonitorsForLayer,
+    getSelectedScene,
   } = useMyContext();
 
   const selectedScenes = scenes.filter((scene) => filteredScenes?.some((f) => f.id === scene.id));
@@ -54,7 +50,6 @@ const ScenesSidebar = () => {
       selectedLayer.getChildren().forEach((child) => {
         if (typeof child.getAttr("catFix") == "undefined") {
           flag = false;
-          console.log("sds");
         }
       });
 
@@ -94,6 +89,11 @@ const ScenesSidebar = () => {
                 setCollections,
                 selectedCollection,
                 url,
+                videoWalls,
+                createNewStage,
+                // selectedScene,
+                // generateMonitorsForLayer,
+                // getSelectedScene,
               })
             }
           >

@@ -29,6 +29,26 @@ export const addScene = async ({
     setIsLoading(false);
   }
 
+  // try {
+  //   setIsLoading(true);
+  //   const dataNewScene = await api.createScene(url, { name: newScene.name, metadata: {} });
+  //   const { stage, layer } = createNewStage(newLayer);
+  //   console.log("layer::: ", layer);
+  //   generateMonitorsForLayer(layer, videoWalls);
+  //   setSelectedScene(dataNewScene.id);
+  //   setScenes((prevScenes) =>
+  //     prevScenes.map((scene) =>
+  //       scene.id === dataNewScene.id
+  //         ? { ...scene, name: newScene.name, stageData: stage, layer: layer }
+  //         : scene
+  //     )
+  //   );
+  // } catch (err) {
+  //   console.log("Faild Add Scene", err);
+  // } finally {
+  //   setIsLoading(false);
+  // }
+
   setCollections((prev) =>
     Array.isArray(prev)
       ? prev.map((item) => {

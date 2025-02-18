@@ -25,7 +25,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
         x: monitor.x,
         y: monitor.y,
         clip: { x: 0, y: 0, width: monitor.width, height: monitor.height },
-        draggable: true,
+        draggable: false,
         id: `monitor-group-${monitor.id}`,
         catFix: "monitor",
       });
@@ -147,10 +147,10 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
       // group.add(text2);
 
       layer.add(group);
+      group.zIndex(0);
     });
 
     layer.draw();
-    console.log("scene::: ", scene);
     return scene;
   });
   //
@@ -417,6 +417,7 @@ export const generateMonitorsForLayer = (layer, monitors) => {
     group.add(text);
 
     layer.add(group);
+    group.zIndex(0);
   });
 
   layer.draw();

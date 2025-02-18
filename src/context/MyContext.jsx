@@ -44,12 +44,15 @@ export const MyContextProvider = ({ children }) => {
   let host = localStorage.getItem("host") ?? config.host;
   let port = localStorage.getItem("port") ?? config.port;
 
+  // let initSofware = false;
+
   // INIT DATA Bad-Practice
   let fetchDataScene = [];
   let fetchDataColl = [];
 
   // States
   const [videoWalls, setVideoWalls] = useState([]);
+  const [initSofware, setInitSoftwaew] = useState(false);
   const [socket, setSocket] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
@@ -278,6 +281,9 @@ export const MyContextProvider = ({ children }) => {
   }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
 
   useEffect(() => {
+    if (!url) {
+      return;
+    }
     let tempSocket = null;
     async function initializeSocket() {
       try {
@@ -296,7 +302,7 @@ export const MyContextProvider = ({ children }) => {
           setConnecting(false);
         });
 
-        tempSocket.on("init", (data) => {
+        tempSocket.on("init", async (data) => {
           setIsLoading(false);
 
           console.log("INIT DATA: ", data);
@@ -335,8 +341,13 @@ export const MyContextProvider = ({ children }) => {
               };
             });
 
+            await initData();
             setVideoWalls(displays);
-            addMonitorsToScenes({ jsonData: displays, scenes, setScenes });
+
+            addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
+            const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
+            setSources(newScene.sources);
+            generateScene(newScene.sources, fetchDataScene[0]);
           }
 
           if (data.sources && false) {
@@ -548,6 +559,37 @@ export const MyContextProvider = ({ children }) => {
       }
     }
 
+    async function initData() {
+      try {
+        setIsLoading(true);
+        const dataCol = await api.getPrograms(url);
+        console.log("dataCol::: ", dataCol);
+        fetchDataColl = dataCol;
+        setCollections(dataCol ?? []);
+        setSelectedCollection(fetchDataColl[0].id);
+
+        const dataSen = await api.getScenes(url);
+        console.log("dataSen::: ", dataSen);
+        fetchDataScene =
+          dataSen?.map((item) => ({
+            name: item.name,
+            id: item.id,
+            resources: [],
+            stageData: null,
+            layer: new Konva.Layer(),
+          })) ?? [];
+        console.log("fetchDataScene::: ", fetchDataScene);
+        setScenes(fetchDataScene);
+
+        const selectedScene = fetchDataScene[0];
+        setSelectedScene(fetchDataScene[0].id);
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
     initializeSocket();
 
     return () => {
@@ -555,20 +597,20 @@ export const MyContextProvider = ({ children }) => {
       // if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
       // if (motherLayer) motherLayer.destroy();
     };
-  }, [connectionMode]);
+  }, [connectionMode, url]);
 
   useEffect(() => {
     const selectedScene = getSelectedScene();
     if (!selectedScene || selectedScene.stageData) return;
-
     const containerId = `containerKonva-${selectedScene.id}`;
     const container = document.getElementById(containerId);
-
     if (container) {
       const { stage, layer } = createNewStage(selectedScene.layer);
-      if (scenes.length > 1 || scenes.length === 0) {
+      console.log("initSofware::: ", initSofware);
+      if ((scenes.length > 1 || scenes.length === 0) && initSofware) {
         generateMonitorsForLayer(layer, videoWalls);
       } else {
+        setInitSoftwaew(true);
         anim = new Konva.Animation(() => {}, scenes[0].newLayer);
       }
 
@@ -580,7 +622,7 @@ export const MyContextProvider = ({ children }) => {
         )
       );
     }
-  }, [scenes, selectedScene]);
+  }, [selectedScene, initSofware]);
 
   useEffect(() => {
     if (!collections.length) {
@@ -607,47 +649,6 @@ export const MyContextProvider = ({ children }) => {
       // )
     );
   }, [collections, selectedCollection, flagReset]);
-
-  useEffect(() => {
-    if (!url) {
-      return;
-    }
-    async function initData() {
-      try {
-        setIsLoading(true);
-        const dataCol = await api.getPrograms(url);
-        console.log("dataCol::: ", dataCol);
-        fetchDataColl = dataCol;
-        setCollections(dataCol ?? []);
-        setSelectedCollection(fetchDataColl[0].id);
-
-        const dataSen = await api.getScenes(url);
-        console.log("dataSen::: ", dataSen);
-        fetchDataScene =
-          dataSen?.map((item) => ({
-            name: item.name,
-            id: item.id,
-            resources: [],
-            stageData: null,
-            layer: new Konva.Layer(),
-          })) ?? [];
-        setScenes(fetchDataScene);
-
-        const selectedScene = fetchDataScene[0];
-        setSelectedScene(fetchDataScene[0].id);
-
-        const newScene = await api.getSceneById(url, fetchDataScene[0].id);
-        setSources(newScene.sources);
-        generateScene(newScene.sources, selectedScene);
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    initData();
-  }, [url]);
 
   return (
     <MyContext.Provider
