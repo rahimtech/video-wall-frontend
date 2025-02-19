@@ -1,3 +1,8 @@
+const removeTransformers = (layer) => {
+  console.log("layer::: ", layer);
+  layer.find("Transformer").forEach((tr) => tr.detach());
+};
+
 export const fitToMonitors = ({
   uniqId,
   selectedMonitors,
@@ -12,6 +17,11 @@ export const fitToMonitors = ({
   if (!videoGroup) {
     console.error("videoGroup not found");
     return;
+  }
+
+  const layer = getSelectedScene()?.layer;
+  if (layer) {
+    removeTransformers(layer);
   }
 
   if (selectedMonitors.length === 0) {

@@ -32,6 +32,10 @@ export const addVideo = ({
         width: videoItem.videoElement.videoWidth,
         height: videoItem.videoElement.videoHeight,
         name: videoItem.name,
+        // z: 1, // TODO: fill
+        // rotation: 0, // TODO: fill
+        // mediaId: selectedMedia, // TODO: fill
+        // sceneId: activeScene, // TODO: fill
       },
     });
   }
