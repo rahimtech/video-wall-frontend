@@ -263,7 +263,7 @@ const UsageSidebar = () => {
                       color="default"
                       onPress={() =>
                         deleteSourceFromScene({
-                          id: resource.uniqId ?? resource.id,
+                          id: resource.externalId,
                           getSelectedScene,
                           setSources,
                           sendOperation,

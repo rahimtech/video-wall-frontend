@@ -18,7 +18,7 @@ export const deleteSourceFromScene = ({ id, getSelectedScene, setSources, sendOp
       });
 
       // updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
-      setSources((prev) => prev.filter((item) => (item.uniqId ?? item.id) !== id));
+      setSources((prev) => prev.filter((item) => (item.externalId ?? item.id) !== id));
 
       let groupToRemove = getSelectedScene()?.layer.find(`#${id}`);
 
