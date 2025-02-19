@@ -390,12 +390,10 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
         }, 500);
         e.target.position(previousPosition); // بازگشت به موقعیت قبلی
       } else {
-        // ذخیره موقعیت جدید
         const newX = e.target.x();
         const newY = e.target.y();
         previousPosition = { x: newX, y: newY };
 
-        // به‌روزرسانی در آرایه videoWalls
         updatedVideoWalls = videoWallsRef.current;
 
         const monitorIndex = updatedVideoWalls.findIndex((m) => m.id === monitor.id);

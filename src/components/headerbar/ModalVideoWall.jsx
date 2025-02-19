@@ -49,7 +49,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                 <div dir="rtl" className="w-full h-full flex flex-col gap-4 overflow-auto">
                   {videoWall.map((item) => (
                     <Card
-                      key={item["Device ID"]}
+                      key={`${item.id}${Math.random()}`}
                       className="dark:bg-gray-800 dark:text-gray-200 bg-gray-50 text-gray-800 shadow-md"
                       isHoverable
                       isPressable

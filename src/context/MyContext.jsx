@@ -58,6 +58,7 @@ export const MyContextProvider = ({ children }) => {
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
   const closeModal = () => setActiveModal(null);
+  let tempSocket = null;
 
   const [isToggleLayout, setIsToggleLayout] = useState(
     localStorage.getItem("layout") === "true" ? true : false || false
@@ -125,6 +126,7 @@ export const MyContextProvider = ({ children }) => {
   }
 
   function generateScene(data, sceneData) {
+    console.log("data::: ", data);
     const sceneDataFuncConvertor = () => {
       return sceneData;
     };
@@ -132,46 +134,50 @@ export const MyContextProvider = ({ children }) => {
       let type;
       let content;
       let endObj = {};
-      let fixedContent = item.source?.replace(/\\/g, "/");
 
-      if (item.source?.startsWith("input:")) {
-        type = "input";
-        content = trimPrefix(item.source, "input:");
-        endObj = { name: item.name ?? "input", deviceId: content };
-      } else if (item.source?.startsWith("image:")) {
-        type = "image";
-        content = trimPrefix(item.source, "image:");
-        const imageURL = content;
+      if (item.media?.type == "INPUT") {
+        type = "INPUT";
+        content = item.media.content;
+        endObj = { name: item.name ?? "INPUT", externalId: item.externalId };
+      } else if (item.media?.type == "IMAGE") {
+        type = "IMAGE";
+        content = item.media.content;
+        const imageURL = `${url}/uploads/${content}`;
         let img = new Image();
         img.src = imageURL;
         let imageName = "image" + counterImages++;
         endObj = {
           name: item.name ?? imageName,
           imageElement: img,
+          externalId: item.externalId,
         };
-      } else if (item.source?.startsWith("video:")) {
-        type = "video";
-        content = trimPrefix(item.source, "video:");
+      } else if (item.media?.type == "VIDEO" || item.media?.type == "IMAGE") {
+        type = "VIDEO";
+        content = item.media.content;
         const video = document.createElement("video");
-        video.src = content;
+        video.src = `${url}/uploads/${item.media.content}`;
         const videoName = "video" + counterVideos++;
         video.setAttribute("name", videoName);
         video.setAttribute("id", item.id);
         endObj = {
           videoElement: video,
           name: item.name ?? videoName,
+          externalId: item.externalId,
         };
-      } else if (item.source.startsWith("iframe:")) {
-        type = "iframe";
-        content = trimPrefix(item.source, "iframe:");
+      } else if (item.media?.type == "IFRAME") {
+        type = "IFRAME";
+        content = item.media.content;
+        endObj = {
+          externalId: item.externalId,
+        };
       }
 
       endObj = {
         ...endObj,
         id: item.id,
-        sceneId: selectedScene,
+        sceneId: item.sceneId,
         type,
-        content: type === "input" ? content : fixedContent,
+        content: item.media.content,
         width: item.width,
         height: item.height,
         x: item.x,
@@ -180,7 +186,7 @@ export const MyContextProvider = ({ children }) => {
         rotation: parseInt(item.rotation),
       };
 
-      if (type === "image") {
+      if (type === "IMAGE") {
         addImage({
           img: endObj,
           mode: false,
@@ -190,7 +196,7 @@ export const MyContextProvider = ({ children }) => {
           url,
           generateBlobImageURL,
         });
-      } else if (type === "input") {
+      } else if (type === "INPUT") {
         addInput({
           input: endObj,
           mode: false,
@@ -198,7 +204,7 @@ export const MyContextProvider = ({ children }) => {
           setSources,
           sendOperation,
         });
-      } else if (type === "video") {
+      } else if (type === "VIDEO") {
         addVideo({
           videoItem: endObj,
           mode: false,
@@ -208,7 +214,7 @@ export const MyContextProvider = ({ children }) => {
           url,
           loopVideos,
         });
-      } else if (type == "iframe") {
+      } else if (type == "IFRAME") {
         addWeb({
           webResource: endObj,
           mode: false,
@@ -263,8 +269,15 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const sendOperation = (action, payload) => {
+    console.log("action::: ", action);
+    console.log("payload::: ", payload);
     if (connectionModeRef.current) {
-      socket?.emit(action, payload);
+      if (tempSocket) {
+        console.log("tempSocket::: ", tempSocket);
+        tempSocket?.emit(action, payload);
+      } else {
+        socket?.emit(action, payload);
+      }
       // api.createSource(url, payload.payload);
     } else {
       setPendingOperation((prev) => [...prev, { action, payload }]);
@@ -286,7 +299,6 @@ export const MyContextProvider = ({ children }) => {
     if (!url) {
       return;
     }
-    let tempSocket = null;
     async function initializeSocket() {
       try {
         if (!connectionMode) {
@@ -315,19 +327,20 @@ export const MyContextProvider = ({ children }) => {
 
           if (data.inputs) {
             const inputs = data.inputs.map((item) => ({
-              id: item?.deviceId,
-              deviceId: item?.deviceId,
+              ...item,
+              id: item?.id,
+              deviceId: item?.content,
               width: item?.width,
               height: item?.height,
-              name: item?.label,
-              type: "input",
+              name: item?.name,
+              type: item?.type,
             }));
             setInputs(inputs);
             // setResources([inputs, ...resources]);
           }
 
-          if (data.displays) {
-            const displays = data.displays.map((monitor, index) => {
+          if (data.mosaicDisplays) {
+            const displays = data.mosaicDisplays.map((monitor, index) => {
               return {
                 ...monitor,
                 // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
@@ -348,6 +361,7 @@ export const MyContextProvider = ({ children }) => {
 
             addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
             const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
+            console.log("newScene.sources::: ", newScene.sources);
             setSources(newScene.sources);
             generateScene(newScene.sources, fetchDataScene[0]);
           }
@@ -441,56 +455,56 @@ export const MyContextProvider = ({ children }) => {
             });
             setSources(sources);
           }
+
           //resources
-          if (data.files) {
-            const newResource = data.files.map((item) => {
-              let type;
-              let url;
-              let endObj = {};
-              if (
-                item.endsWith(".jpeg") ||
-                item.endsWith(".jpg") ||
-                item.endsWith(".png") ||
-                item.endsWith(".webp")
-              ) {
-                url = `http://${host}:${port}/uploads/${item}`;
-                type = "image";
-                let img = new Image();
-                img.src = url;
-                let imageName = "imageBase" + counterImages++;
-                endObj = {
-                  name: item || imageName,
-                  imageElement: img,
-                };
-              } else if (item.endsWith(".mp4")) {
-                type = "video";
-                url = `http://${host}:${port}/uploads/${item}`;
-                const video = document.createElement("video");
-                video.src = url;
-                const videoName = "videoBase" + counterVideos++;
-                video.setAttribute("name", videoName);
-                endObj = {
-                  videoElement: video,
-                  name: item || videoName,
-                };
-              }
+          if (data.media) {
+            const newResource = data.media
+              .map((item) => {
+                let type;
+                let url;
+                let endObj = {};
+                if (item.type === "INPUT") {
+                  return null;
+                }
+                if (
+                  item.content.endsWith(".jpeg") ||
+                  item.content.endsWith(".jpg") ||
+                  item.content.endsWith(".png") ||
+                  item.content.endsWith(".webp")
+                ) {
+                  url = `http://${host}:${port}/uploads/${item.content}`;
+                  type = "IMAGE";
+                  let img = new Image();
+                  img.src = url;
+                  let imageName = "imageBase" + counterImages++;
+                  endObj = {
+                    imageElement: img,
+                  };
+                } else if (item.content.endsWith(".mp4")) {
+                  type = "VIDEO";
+                  url = `http://${host}:${port}/uploads/${item.content}`;
+                  const video = document.createElement("video");
+                  video.src = url;
+                  const videoName = "videoBase" + counterVideos++;
+                  video.setAttribute("name", videoName);
+                  endObj = {
+                    videoElement: video,
+                  };
+                } else {
+                  type = "IFRAME";
+                }
 
-              endObj = {
-                ...endObj,
-                id: "uploads/" + item,
-                fileName: item,
-                sceneId: 1,
-                type,
-                content: url,
-                width: 100,
-                height: 100,
-                x: 0,
-                y: 0,
-                rotation: 0,
-              };
+                let dataOBJ = {
+                  ...item,
+                  name: item.name || "نامشخص",
+                  type: type,
+                  ...endObj,
+                };
 
-              return endObj;
-            });
+                return dataOBJ;
+              })
+              .filter((item) => item !== null);
+
             setResources(newResource);
             // updateSceneResources([...newResource, ...getSelectedScene().resources]);
           }
@@ -580,7 +594,6 @@ export const MyContextProvider = ({ children }) => {
             stageData: null,
             layer: new Konva.Layer(),
           })) ?? [];
-        console.log("fetchDataScene::: ", fetchDataScene);
         setScenes(fetchDataScene);
 
         const selectedScene = fetchDataScene[0];
@@ -608,7 +621,6 @@ export const MyContextProvider = ({ children }) => {
     const container = document.getElementById(containerId);
     if (container) {
       const { stage, layer } = createNewStage(selectedScene.layer);
-      console.log("initSofware::: ", initSofware);
       if ((scenes.length > 1 || scenes.length === 0) && initSofware) {
         generateMonitorsForLayer(layer, videoWalls, setMonitorConnection);
       } else {

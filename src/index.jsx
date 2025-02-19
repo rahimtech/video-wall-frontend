@@ -13,14 +13,12 @@ const Login = ({ setCheckLogin }) => {
     const username = event.target.username.value;
     const password = event.target.password.value;
 
-    // یوزرنیم و پسورد معتبر
     const validUsername = config.username;
     const validPassword = config.password;
 
     if (username === validUsername && password === validPassword) {
-      // ذخیره ورود در localStorage
       localStorage.setItem("isLoggedIn", "true");
-      setCheckLogin(true); // تغییر وضعیت ورود
+      setCheckLogin(true);
     } else {
       alert("یوزرنیم یا پسوورد اشتباه است!");
     }

@@ -15,6 +15,7 @@ import Swal from "sweetalert2";
 import ModalTimeLine from "./ModalTimeLine";
 import api from "@/api/api";
 import { useMyContext } from "@/context/MyContext";
+import { GoBroadcast } from "react-icons/go";
 
 const CollectionsSidebar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -33,6 +34,7 @@ const CollectionsSidebar = () => {
     url,
     darkMode,
   } = useMyContext();
+
   let idSave = null;
 
   const handleCollectionClick = (key) => {
@@ -134,6 +136,25 @@ const CollectionsSidebar = () => {
     }
   };
 
+  const handleBroadcast = (id) => {
+    if (collections.length <= 1) {
+    } else {
+      Swal.fire({
+        title: "پخش این برنامه بر روی ویدئووال",
+        icon: "warning",
+        showCancelButton: true,
+        cancelButtonText: "خیر",
+        confirmButtonColor: "limegreen",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "بله",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          console.log("PLAY--");
+        }
+      });
+    }
+  };
+
   const handleSceneSelection = (sceneId, isSelected) => {
     setSelectedScenes((prev) =>
       isSelected ? [...prev, sceneId] : prev.filter((id) => id !== sceneId)
@@ -181,7 +202,21 @@ const CollectionsSidebar = () => {
                     : "bg-gray-300"
                 } p-2 rounded-md shadow-sm cursor-pointer`}
               >
-                <span className="truncate">{collection.name}</span>
+                <div className="flex ">
+                  <video
+                    className="ml-2"
+                    width="50"
+                    height="20"
+                    controls={false}
+                    muted={true}
+                    loop
+                    autoPlay
+                  >
+                    <source src="/pulseAnim.webm" type="video/webm" />
+                    Your browser does not support the video tag.
+                  </video>
+                  <span className="truncate">{collection.name}</span>
+                </div>
                 <div className="flex gap-1">
                   <Button
                     className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -213,6 +248,17 @@ const CollectionsSidebar = () => {
                     }}
                   >
                     <FaTrashAlt size={15} />
+                  </Button>
+                  <Button
+                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    onPress={(e) => {
+                      handleBroadcast(collection.id);
+                    }}
+                  >
+                    <GoBroadcast size={15} />
                   </Button>
                 </div>
               </li>

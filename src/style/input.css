@@ -9,7 +9,13 @@
 body::-webkit-scrollbar {
   display: none;
 }
-
+.live-text {
+  font-size: 30px;
+  color: red;
+  margin-top: 15px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
 .blob {
   background: green;
   border-radius: 50%;

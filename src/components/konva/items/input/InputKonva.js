@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 
 export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
-  let uniqId = mode ? uuidv4() : input.id;
+  console.log("input::: ", input);
+  let uniqId = mode ? uuidv4() : input.externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;
@@ -11,7 +12,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
     y: input.y || 0,
     draggable: false,
     id: String(uniqId),
-    type: "input",
+    type: "INPUT",
     uniqId,
     rotation: input.rotation || 0,
   });
@@ -47,15 +48,17 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
       action: "add",
       id: uniqId,
       payload: {
-        source: "input:" + input.deviceId,
+        source: "input:" + input.content,
         x: 0,
         y: 0,
         width: input.width,
         height: input.height,
         name: input.name,
-        type: "input",
+        type: "INPUT",
         sceneId: getSelectedScene().id,
-        content: input.deviceId,
+        content: input.content,
+        mediaId: input.id,
+        metadata: { source: "input:" + input.content },
       },
     });
   }

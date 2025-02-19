@@ -9,13 +9,13 @@ export const addImage = ({
   url,
   generateBlobImageURL,
 }) => {
-  let uniqId = mode ? uuidv4() : img.id;
+  let uniqId = mode ? uuidv4() : img.externalId;
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;
 
   const modifiedImageURL = mode
-    ? generateBlobImageURL(`image:${url}`, img.id).slice(0, -".mp4".length)
-    : img.content;
+    ? generateBlobImageURL(`image:${url}`, `uploads/${img.content}`).slice(0, -".mp4".length)
+    : img.imageElement.src;
 
   if (mode) {
     sendOperation("source", {
@@ -28,12 +28,18 @@ export const addImage = ({
         width: img.imageElement.width,
         height: img.imageElement.height,
         name: img.name,
+        type: "IMAGE",
+        sceneId: getSelectedScene().id,
+        content: img.content,
+        mediaId: img.id,
+        metadata: { source: modifiedImageURL },
       },
     });
   }
 
   const image = new Image();
-  image.src = img.imageElement.src || img.imageElement;
+  image.src = img.imageElement.src;
+
   image.onload = () => {
     const konvaImage = new Konva.Image({
       image: image,

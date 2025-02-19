@@ -9,7 +9,7 @@ export const addVideo = ({
   url,
   loopVideos,
 }) => {
-  let uniqId = mode ? uuidv4() : videoItem.id;
+  let uniqId = mode ? uuidv4() : videoItem.externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
   let selectedStage = null;
@@ -19,23 +19,26 @@ export const addVideo = ({
 
   if (!selectedSceneLayer) return;
 
-  const modifiedVideoURL = mode ? `video:${url}/${videoItem.id}` : videoItem.content;
+  const modifiedImageURL = mode
+    ? `video:${url}/uploads/${videoItem.content}`
+    : videoItem.videoElement.src;
 
   if (mode) {
     sendOperation("source", {
       action: "add",
       id: String(uniqId),
       payload: {
-        source: modifiedVideoURL,
+        source: modifiedImageURL,
         x: 0,
         y: 0,
         width: videoItem.videoElement.videoWidth,
         height: videoItem.videoElement.videoHeight,
         name: videoItem.name,
-        // z: 1, // TODO: fill
-        // rotation: 0, // TODO: fill
-        // mediaId: selectedMedia, // TODO: fill
-        // sceneId: activeScene, // TODO: fill
+        type: "VIDEO",
+        sceneId: getSelectedScene().id,
+        content: videoItem.content,
+        mediaId: videoItem.id,
+        metadata: { source: modifiedImageURL },
       },
     });
   }
@@ -119,7 +122,7 @@ export const addVideo = ({
         action: "resize",
         id: e.target.attrs.uniqId,
         payload: {
-          source: modifiedVideoURL,
+          // source: modifiedVideoURL,
           x,
           y,
           width: newWidth,
@@ -234,18 +237,20 @@ export const addVideo = ({
       });
 
       transformer.on("transformend", (e) => {
+        console.log("1");
         const newWidth = image.width() * group.scaleX();
         const newHeight = image.height() * group.scaleY();
+        console.log("12");
 
         const rotation = Math.round(group.getAttr("rotation"));
         const x = group.x();
         const y = group.y();
+        console.log("13");
 
         sendOperation("source", {
           action: "resize",
           id: e.target.attrs.uniqId,
           payload: {
-            source: modifiedVideoURL,
             x,
             y,
             width: newWidth,

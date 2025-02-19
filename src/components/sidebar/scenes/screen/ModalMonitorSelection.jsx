@@ -15,7 +15,7 @@ import { MdWindow } from "react-icons/md";
 import Toolbar from "react-multi-date-picker/plugins/toolbar";
 import { useMyContext } from "../../../../context/MyContext";
 
-const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, item }) => {
+const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, item, uniqId }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedMonitors, setSelectedMonitors] = useState([]);
   const { getSelectedScene, allDataMonitors, sendOperation } = useMyContext();
@@ -34,8 +34,9 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, i
       getSelectedScene,
       allDataMonitors,
       sendOperation,
+      id: uniqId,
     });
-    onOpenChange(false); // Close the modal after applying
+    // onOpenChange(false); // Close the modal after applying
   };
 
   return (

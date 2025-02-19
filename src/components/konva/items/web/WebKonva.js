@@ -8,8 +8,8 @@ export const addWeb = ({
   setSources,
   sendOperation,
 }) => {
-  const { id, content, x, y, width, height } = webResource;
-  let uniqId = mode ? uuidv4() : id;
+  const { id, content, x, y, width, height, externalId } = webResource;
+  let uniqId = mode ? uuidv4() : externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
 
@@ -29,6 +29,7 @@ export const addWeb = ({
         type: "iframe",
         sceneId: getSelectedScene()?.id,
         content: content,
+        metadata: { source: "iframe:" + content },
       },
     });
   }

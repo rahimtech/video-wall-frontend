@@ -9,6 +9,7 @@ export const fitToMonitors = ({
   getSelectedScene,
   allDataMonitors,
   sendOperation,
+  id,
 }) => {
   const videoGroup = getSelectedScene()
     ?.layer.getChildren()
@@ -49,13 +50,13 @@ export const fitToMonitors = ({
 
     sendOperation("source", {
       action: "resize",
-      id: uniqId,
+      id: String(uniqId),
       payload: {
         x: x,
         y: y,
         width: width,
         height: height,
-        rotation: "0",
+        rotation: 0,
       },
     });
   } else if (videoGroup instanceof Konva.Group) {
@@ -74,13 +75,13 @@ export const fitToMonitors = ({
 
     sendOperation("source", {
       action: "resize",
-      id: uniqId,
+      id: String(uniqId),
       payload: {
         x: x,
         y: y,
         width: width,
         height: height,
-        rotation: "0",
+        rotation: 0,
       },
     });
   } else {

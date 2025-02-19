@@ -125,6 +125,7 @@ function App() {
   }, [isToggleVideoWall, scenes]);
 
   function handleDisplayError(updatedDisplays) {
+    // if (!connectionMode) return;
     // console.log("🟠 Updated displays received from server:", updatedDisplays);
 
     setScenes((prevScenes) =>
@@ -211,7 +212,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (socket && connecting) {
+    if (socket && connecting && connectionMode) {
       socket.on("displays-arranged", (e) => {
         setIsLoading(false);
       });
@@ -219,7 +220,7 @@ function App() {
     } else {
       offDisplays();
     }
-  }, [socket, connecting]);
+  }, [socket, connecting, connectionMode]);
 
   useEffect(() => {
     if (pendingOperations.length > 0 && connectionMode && socket) {

@@ -100,12 +100,12 @@ const ModalTimeLine = ({
   };
 
   const saveTimeLineToCollection = () => {
-    هتغ۹خنفب۵۹۰نه;
-    // setCollections((prev) =>
-    //   prev.map((collection) =>
-    //     collection.id === selectedCollection ? { ...collection, timeLine } : collection
-    //   )
-    // );
+    console.log("collection::: ", collections);
+    console.log(
+      " prev.find((collection) => collection.id === selectedCollection).schedules::: ",
+      prev.find((collection) => collection.id === selectedCollection).schedules
+    );
+    // setCollections((prev) => prev.find((collection) => collection.id === selectedCollection).schedules);
     onOpenChange(false);
   };
 

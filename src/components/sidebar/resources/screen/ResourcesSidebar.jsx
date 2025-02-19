@@ -40,7 +40,6 @@ const ResourcesSidebar = () => {
     addWeb,
     trimPrefix,
   } = useMyContext();
-
   const uploadMedia = async (file, videoName) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -62,13 +61,13 @@ const ResourcesSidebar = () => {
   };
 
   const addResource = (type) => {
-    if (type === "video" || type === "image") {
+    if (type === "VIDEO" || type === "IMAGE") {
       const input = document.createElement("input");
       input.type = "file";
-      input.accept = type === "video" ? "video/*" : "image/*";
+      input.accept = type === "VIDEO" ? "video/*" : "image/*";
       input.onchange = (e) => handleFileInput(e, type);
       input.click();
-    } else if (type === "text") {
+    } else if (type === "TEXT") {
       Swal.fire({
         title: "متن خود را وارد کنید:",
         input: "text",
@@ -97,7 +96,7 @@ const ResourcesSidebar = () => {
           // updateSceneResources([newResource, ...getSelectedScene().resources]);
         }
       });
-    } else if (type === "web") {
+    } else if (type === "IFRAME") {
       Swal.fire({
         title: "Enter the URL:",
         input: "url",
@@ -111,7 +110,7 @@ const ResourcesSidebar = () => {
           const webURL = result.value;
 
           let newResource = {
-            type: "web",
+            type: "IFRAME",
             id,
             name: webURL,
             content: webURL,
@@ -283,7 +282,9 @@ const ResourcesSidebar = () => {
       {/* Fixed Header */}
       <div className="sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">ورودی و فایل‌ها {`(${resources.length})`}</h2>
+          <h2 className="text-md font-semibold">
+            ورودی و فایل‌ها {`(${eval(resources.length + inputs.length)})`}
+          </h2>
           <Dropdown dir="rtl" className="vazir">
             <DropdownTrigger>
               <Button
@@ -297,16 +298,16 @@ const ResourcesSidebar = () => {
             </DropdownTrigger>
 
             <DropdownMenu aria-label="Static Actions">
-              <DropdownItem onPress={() => addResource("video")} key="video">
+              <DropdownItem onPress={() => addResource("VIDEO")} key="video">
                 افزودن ویدیو
               </DropdownItem>
-              <DropdownItem onPress={() => addResource("image")} key="image">
+              <DropdownItem onPress={() => addResource("IMAGE")} key="image">
                 افزودن تصویر
               </DropdownItem>
-              <DropdownItem onPress={() => addResource("text")} key="text">
+              <DropdownItem onPress={() => addResource("TEXT")} key="text">
                 افزودن متن
               </DropdownItem>
-              <DropdownItem onPress={() => addResource("web")} key="web">
+              <DropdownItem onPress={() => addResource("IFRAME")} key="web">
                 افزودن صفحه وب
               </DropdownItem>
             </DropdownMenu>
@@ -418,7 +419,7 @@ const ResourcesSidebar = () => {
                   <FaTrashAlt />
                 </Button>
                 <Tooltip content="افزودن به صحنه">
-                  {resource.type == "image" ? (
+                  {resource.type == "IMAGE" ? (
                     <>
                       <Button
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -446,7 +447,7 @@ const ResourcesSidebar = () => {
                         <MdAddBox />
                       </Button>
                     </>
-                  ) : resource.type == "video" ? (
+                  ) : resource.type == "VIDEO" ? (
                     <>
                       <Button
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -474,7 +475,7 @@ const ResourcesSidebar = () => {
                         <MdAddBox />
                       </Button>
                     </>
-                  ) : resource.type == "web" ? (
+                  ) : resource.type == "IFRAME" ? (
                     <>
                       <Button
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
