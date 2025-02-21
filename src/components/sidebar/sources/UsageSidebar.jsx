@@ -39,9 +39,7 @@ const UsageSidebar = () => {
 
   const updateSourceName = (resourceId, newName, isSource = true) => {
     setSources((prev) =>
-      prev.map((item) =>
-        (item.id ?? item.uniqId) === resourceId ? { ...item, name: newName } : item
-      )
+      prev.map((item) => (item.externalId === resourceId ? { ...item, name: newName } : item))
     );
     if (isSource) {
       sendOperation("source", {
@@ -57,7 +55,7 @@ const UsageSidebar = () => {
         prevScenes.map((scene) => {
           if (scene.id === selectedScene) {
             const updatedResources = scene.usageSources.map((resource) => {
-              return resource.id === resourceId
+              return resource.externalId === resourceId
                 ? { ...resource, name: newName, content: newName }
                 : resource;
             });
@@ -76,7 +74,7 @@ const UsageSidebar = () => {
           ? {
               ...scene,
               usageSources: scene.usageSources.map((resource) =>
-                resource.id === resourceId ? { ...resource, color } : resource
+                resource.externalId === resourceId ? { ...resource, color } : resource
               ),
             }
           : scene
@@ -91,7 +89,7 @@ const UsageSidebar = () => {
   };
 
   const handleDoubleClick = (resource) => {
-    setEditingResourceId(resource.id);
+    setEditingResourceId(resource.externalId);
     setNewName(resource.name);
   };
 
@@ -114,7 +112,7 @@ const UsageSidebar = () => {
 
   const moveSource = (id, direction) => {
     const resources = [...sources];
-    const index = resources.findIndex((res) => res.id === id);
+    const index = resources.findIndex((res) => res.externalId === id);
     if (index === -1) return;
 
     const newIndex = index + direction;
@@ -176,18 +174,18 @@ const UsageSidebar = () => {
           {usageSources?.map((resource) => {
             return (
               <li
-                key={`${resource.id}-${Math.random()}`}
+                key={`${resource.externalId}-${Math.random()}`}
                 className={`text-sm flex flex-wrap items-center justify-between ${
                   darkMode ? "bg-gray-700" : "bg-gray-300"
                 } p-2 rounded-md shadow-sm`}
               >
                 <div className="flex items-center w-[50%]">
-                  {editingResourceId === resource.id ? (
+                  {editingResourceId === resource.externalId ? (
                     <input
                       type="text"
                       value={newName}
                       onChange={handleNameChange}
-                      onBlur={() => handleNameSave(resource.id)}
+                      onBlur={() => handleNameSave(resource.externalId)}
                       className={` ${darkMode ? "text-black" : "text-white"} p-1 rounded-sm`}
                       autoFocus
                     />
@@ -230,7 +228,7 @@ const UsageSidebar = () => {
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() => moveSource(resource.id, -1)}
+                      onPress={() => moveSource(resource.externalId, -1)}
                     >
                       <FaArrowUp size={15} />
                     </Button>
@@ -241,7 +239,7 @@ const UsageSidebar = () => {
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() => moveSource(resource.id, 1)}
+                      onPress={() => moveSource(resource.externalId, 1)}
                     >
                       <FaArrowDown size={15} />
                     </Button>
@@ -251,7 +249,7 @@ const UsageSidebar = () => {
                     item={resource}
                     darkMode={darkMode}
                     videoName={resource.externalId}
-                    uniqId={resource.id}
+                    uniqId={resource.externalId}
                     monitors={allDataMonitors}
                     fitToMonitors={fitToMonitors}
                   />

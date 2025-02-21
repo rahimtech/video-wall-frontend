@@ -9,7 +9,8 @@ export const addVideo = ({
   url,
   loopVideos,
 }) => {
-  let uniqId = mode ? uuidv4() : videoItem.externalId;
+  // let uniqId = mode ? uuidv4() : videoItem.externalId;
+  let uniqId = videoItem.externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
   let selectedStage = null;
@@ -19,16 +20,17 @@ export const addVideo = ({
 
   if (!selectedSceneLayer) return;
 
-  const modifiedImageURL = mode
+  const modifiedVideoURL = mode
     ? `video:${url}/uploads/${videoItem.content}`
     : videoItem.videoElement.src;
+  console.log("videoItem::: ", videoItem);
 
   if (mode) {
     sendOperation("source", {
       action: "add",
       id: String(uniqId),
       payload: {
-        source: modifiedImageURL,
+        source: modifiedVideoURL,
         x: 0,
         y: 0,
         width: videoItem.videoElement.videoWidth,
@@ -38,7 +40,8 @@ export const addVideo = ({
         sceneId: getSelectedScene().id,
         content: videoItem.content,
         mediaId: videoItem.id,
-        metadata: { source: modifiedImageURL },
+        externalId: uniqId,
+        metadata: { source: modifiedVideoURL },
       },
     });
   }

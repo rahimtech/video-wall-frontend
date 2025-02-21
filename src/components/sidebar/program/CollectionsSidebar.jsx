@@ -137,22 +137,20 @@ const CollectionsSidebar = () => {
   };
 
   const handleBroadcast = (id) => {
-    if (collections.length <= 1) {
-    } else {
-      Swal.fire({
-        title: "پخش این برنامه بر روی ویدئووال",
-        icon: "warning",
-        showCancelButton: true,
-        cancelButtonText: "خیر",
-        confirmButtonColor: "limegreen",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "بله",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          console.log("PLAY--");
-        }
-      });
-    }
+    Swal.argsToParams([{ title: "title", text: "text" }]); //=> { title: 'title', text: 'text' }
+    Swal.fire({
+      title: "پخش این برنامه بر روی ویدئووال",
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "خیر",
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "بله",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        console.log("PLAY--");
+      }
+    });
   };
 
   const handleSceneSelection = (sceneId, isSelected) => {
@@ -200,7 +198,7 @@ const CollectionsSidebar = () => {
                     : darkMode
                     ? "bg-gray-700"
                     : "bg-gray-300"
-                } p-2 rounded-md shadow-sm cursor-pointer`}
+                } p-2 rounded-md shadow-sm cursor-pointer flex-wrap`}
               >
                 <div className="flex ">
                   <video

@@ -9,7 +9,7 @@ export const addImage = ({
   url,
   generateBlobImageURL,
 }) => {
-  let uniqId = mode ? uuidv4() : img.externalId;
+  let uniqId = img.externalId;
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;
 
@@ -20,7 +20,7 @@ export const addImage = ({
   if (mode) {
     sendOperation("source", {
       action: "add",
-      id: String(uniqId),
+      id: String(img.externalId),
       payload: {
         source: modifiedImageURL,
         x: 0,
@@ -32,6 +32,7 @@ export const addImage = ({
         sceneId: getSelectedScene().id,
         content: img.content,
         mediaId: img.id,
+        externalId: img.externalId,
         metadata: { source: modifiedImageURL },
       },
     });

@@ -1,15 +1,18 @@
 import Swal from "sweetalert2";
 import { v4 as uuidv4 } from "uuid";
+import api from "../../../../api/api";
 
-export const addWeb = ({
+export const addWeb = async ({
   webResource,
   mode = true,
   getSelectedScene,
   setSources,
   sendOperation,
+  url,
 }) => {
-  const { id, content, x, y, width, height, externalId } = webResource;
-  let uniqId = mode ? uuidv4() : externalId;
+  const { id, content, x, y, width, height, externalId, mediaId } = webResource;
+  console.log("webResource::: ", webResource);
+  let uniqId = externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
 
@@ -26,8 +29,10 @@ export const addWeb = ({
         width: 1920,
         height: 1080,
         name: content,
-        type: "iframe",
+        type: "IFRAME",
         sceneId: getSelectedScene()?.id,
+        externalId: uniqId,
+        mediaId: mediaId,
         content: content,
         metadata: { source: "iframe:" + content },
       },
@@ -40,7 +45,7 @@ export const addWeb = ({
     x: mode ? 0 : x,
     y: mode ? 0 : y,
     draggable: false,
-    id: String(id),
+    id: String(uniqId),
     uniqId,
   });
 
@@ -80,8 +85,6 @@ export const addWeb = ({
     transformer.attachTo(group);
     selectedSceneLayer.draw();
   });
-
-  setSources((prev) => [...prev, { ...webResource, uniqId, sceneId: getSelectedScene().id }]);
 
   group.on("dragend", (e) => {
     const { x, y } = e.target.position();

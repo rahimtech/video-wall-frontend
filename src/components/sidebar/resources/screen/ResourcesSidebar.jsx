@@ -14,6 +14,7 @@ import Swal from "sweetalert2";
 import { useMyContext } from "@/context/MyContext";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
+import api from "@/api/api";
 
 const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -52,7 +53,7 @@ const ResourcesSidebar = () => {
         },
       });
       // console.log("File uploaded successfully:", response.data.filePath);
-      return response.data.filePath;
+      return response.data;
     } catch (error) {
       // console.error("Error uploading file:", error);
     } finally {
@@ -104,14 +105,25 @@ const ResourcesSidebar = () => {
         showCancelButton: true,
         confirmButtonColor: "green",
         cancelButtonColor: "gray",
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed && result.value) {
           const id = uuidv4();
           const webURL = result.value;
+          const media = await api.createMedia(url, {
+            type: "IFRAME",
+            content: webURL,
+            width: 1920,
+            height: 1080,
+            name: webURL,
+            externalId: id,
+          });
 
+          console.log("media::: ", media);
           let newResource = {
             type: "IFRAME",
             id,
+            mediaId: media.id,
+            externalId: media.externalId,
             name: webURL,
             content: webURL,
             width: 1920,
@@ -120,7 +132,6 @@ const ResourcesSidebar = () => {
             y: 0,
             z: 0,
             rotation: 0,
-            created_at: new Date().toISOString(),
           };
           setResources((prev) => [newResource, ...prev]);
 
@@ -130,7 +141,8 @@ const ResourcesSidebar = () => {
     }
   };
 
-  const deleteResource = (fileName) => {
+  const deleteResource = (id) => {
+    // let newfileName = trimPrefix(fileName, "uploads\\");
     Swal.fire({
       title: "آیا مطمئن هستید؟",
       icon: "warning",
@@ -143,16 +155,15 @@ const ResourcesSidebar = () => {
       if (result.isConfirmed) {
         setMiniLoad(true);
         try {
-          await axios
-            .delete(`${url}/delete/${trimPrefix(fileName, "uploads/")}`)
-            .then(console.log("deleted"));
+          // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
+          await api.deleteMedia(url, id);
         } finally {
           setMiniLoad(false);
         }
 
-        setResources(resources.filter((res) => res.id !== fileName));
+        setResources(resources.filter((res) => res.id !== id));
 
-        const groupToRemove = getSelectedScene()?.layer.findOne(`#${fileName}`);
+        const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
         if (groupToRemove) {
           groupToRemove.destroy();
           getSelectedScene()?.layer.draw();
@@ -160,7 +171,7 @@ const ResourcesSidebar = () => {
           // console.error(`Group with id ${id} not found`);
         }
 
-        const videoElement = resources.find((item) => item.id === fileName)?.videoElement;
+        const videoElement = resources.find((item) => item.id === id)?.videoElement;
         if (videoElement) {
           videoElement.pause();
           videoElement.src = "";
@@ -176,54 +187,56 @@ const ResourcesSidebar = () => {
 
     if (file) {
       const fileType = file.type.split("/")[0];
-      if (fileType === "image" && type === "image") {
+      if (fileType === "image" && type === "IMAGE") {
         const imageURL = URL.createObjectURL(file);
         let img = new Image();
         img.src = imageURL;
         const id = uuidv4();
         const imageName = file.name.split(".").slice(0, -1).join(".");
         img.addEventListener("load", async () => {
-          const sourceName = await uploadMedia(file, id);
+          // const sourceName = await uploadMedia(file, id);
+          const media = await uploadMedia(file, id);
+
           let newResource = {
-            type: "image",
-            id: sourceName,
+            type: "IMAGE",
+            id: media.id,
+            externalId: media.externalId,
             name: imageName,
             imageElement: img,
-            content: img.src,
+            content: file.name,
             width: img.width,
             height: img.height,
             x: 0,
             y: 0,
             rotation: 0,
-            created_at: new Date().toISOString(),
           };
           setResources((prev) => [newResource, ...prev]);
           // updateSceneResources([newResource, ...getSelectedScene().resources]);
         });
-      } else if (fileType === "video" && type === "video") {
+      } else if (fileType === "video" && type === "VIDEO") {
         const video = document.createElement("video");
         video.src = URL.createObjectURL(file);
         const id = uuidv4();
         const videoName = file.name.split(".").slice(0, -1).join(".");
         video.setAttribute("name", videoName);
-        const sourceName = await uploadMedia(file, id);
-        video.setAttribute("id", sourceName);
+        const media = await uploadMedia(file, id);
+        video.setAttribute("id", media.id);
 
         const width = video.videoWidth;
         const height = video.videoHeight;
 
         let newResource = {
-          type: "video",
-          id: sourceName,
+          type: "VIDEO",
+          id: media.id,
+          externalId: media.externalId,
           name: videoName,
           videoElement: video,
-          content: video.src,
+          content: file.name,
           width,
           height,
           x: 0,
           y: 0,
           rotation: 0,
-          created_at: new Date().toISOString(),
         };
         setResources((prev) => [newResource, ...prev]);
         // updateSceneResources([newResource, ...getSelectedScene().resources]);
@@ -242,7 +255,15 @@ const ResourcesSidebar = () => {
     setNewName(e.target.value);
   };
 
+  const updateResourceName = async (resourceId, newName) => {
+    await api.updateMedia(url, resourceId, { name: newName });
+    setResources((prev) =>
+      prev.map((item) => (item.id === resourceId ? { ...item, name: newName } : item))
+    );
+  };
+
   const handleNameSave = (resourceId) => {
+    updateResourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
   };
@@ -323,7 +344,7 @@ const ResourcesSidebar = () => {
               key={input.id}
               className={`text-sm flex flex-wrap items-center justify-between ${
                 darkMode ? "bg-orange-600" : "bg-orange-600 "
-              } p-2 rounded-md shadow-sm`}
+              } p-2 rounded-md shadow-sm flex-wrap`}
             >
               <div className="flex items-center w-[50%]">
                 {editingResourceId === input.id ? (
@@ -387,7 +408,7 @@ const ResourcesSidebar = () => {
               key={resource.id}
               className={`text-sm flex flex-wrap items-center justify-between ${
                 darkMode ? "bg-gray-700" : "bg-gray-300"
-              } p-2 rounded-md shadow-sm`}
+              } p-2 rounded-md shadow-sm flex-wrap`}
             >
               <div className="flex items-center w-[50%]">
                 {editingResourceId === resource.id ? (
@@ -489,6 +510,7 @@ const ResourcesSidebar = () => {
                                 getSelectedScene,
                                 setSources,
                                 sendOperation,
+                                url,
                               })
                             : Swal.fire({
                                 title: "!مانیتوری در صحنه وجود ندارد",

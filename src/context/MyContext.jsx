@@ -126,7 +126,6 @@ export const MyContextProvider = ({ children }) => {
   }
 
   function generateScene(data, sceneData) {
-    console.log("data::: ", data);
     const sceneDataFuncConvertor = () => {
       return sceneData;
     };
@@ -142,7 +141,7 @@ export const MyContextProvider = ({ children }) => {
       } else if (item.media?.type == "IMAGE") {
         type = "IMAGE";
         content = item.media.content;
-        const imageURL = `${url}/uploads/${content}`;
+        const imageURL = `${url}/${content}`;
         let img = new Image();
         img.src = imageURL;
         let imageName = "image" + counterImages++;
@@ -151,11 +150,12 @@ export const MyContextProvider = ({ children }) => {
           imageElement: img,
           externalId: item.externalId,
         };
-      } else if (item.media?.type == "VIDEO" || item.media?.type == "IMAGE") {
+      } else if (item.media?.type == "VIDEO") {
         type = "VIDEO";
         content = item.media.content;
         const video = document.createElement("video");
-        video.src = `${url}/uploads/${item.media.content}`;
+        console.log("item.media.content::: ", item.media.content);
+        video.src = `${url}/${item.media.content}`;
         const videoName = "video" + counterVideos++;
         video.setAttribute("name", videoName);
         video.setAttribute("id", item.id);
@@ -366,95 +366,95 @@ export const MyContextProvider = ({ children }) => {
             generateScene(newScene.sources, fetchDataScene[0]);
           }
 
-          if (data.sources && false) {
-            const sources = data.sources.map((item) => {
-              let type;
-              let content;
-              let endObj = {};
-              let fixedContent = item.source?.replace(/\\/g, "/");
+          // if (data.sources && false) {
+          //   const sources = data.sources.map((item) => {
+          //     let type;
+          //     let content;
+          //     let endObj = {};
+          //     let fixedContent = item.source?.replace(/\\/g, "/");
 
-              if (item.source?.startsWith("input:")) {
-                type = "input";
-                content = trimPrefix(item.source, "input:");
-                endObj = { name: item.name ?? "input", deviceId: content };
-              } else if (item.source?.startsWith("image:")) {
-                type = "image";
-                content = trimPrefix(item.source, "image:");
-                const imageURL = content;
-                let img = new Image();
-                img.src = imageURL;
-                let imageName = "image" + counterImages++;
-                endObj = {
-                  name: item.name ?? imageName,
-                  imageElement: img,
-                };
-              } else if (item.source?.startsWith("video:")) {
-                type = "video";
-                content = trimPrefix(item.source, "video:");
-                const video = document.createElement("video");
-                video.src = content;
-                const videoName = "video" + counterVideos++;
-                video.setAttribute("name", videoName);
-                video.setAttribute("id", item.id);
-                endObj = {
-                  videoElement: video,
-                  name: item.name ?? videoName,
-                };
-              } else if (item.source.startsWith("iframe:")) {
-                type = "iframe";
-                content = trimPrefix(item.source, "iframe:");
-              }
+          //     if (item.source?.startsWith("input:")) {
+          //       type = "input";
+          //       content = trimPrefix(item.source, "input:");
+          //       endObj = { name: item.name ?? "input", deviceId: content };
+          //     } else if (item.source?.startsWith("image:")) {
+          //       type = "image";
+          //       content = trimPrefix(item.source, "image:");
+          //       const imageURL = content;
+          //       let img = new Image();
+          //       img.src = imageURL;
+          //       let imageName = "image" + counterImages++;
+          //       endObj = {
+          //         name: item.name ?? imageName,
+          //         imageElement: img,
+          //       };
+          //     } else if (item.source?.startsWith("video:")) {
+          //       type = "video";
+          //       content = trimPrefix(item.source, "video:");
+          //       const video = document.createElement("video");
+          //       video.src = content;
+          //       const videoName = "video" + counterVideos++;
+          //       video.setAttribute("name", videoName);
+          //       video.setAttribute("id", item.id);
+          //       endObj = {
+          //         videoElement: video,
+          //         name: item.name ?? videoName,
+          //       };
+          //     } else if (item.source.startsWith("iframe:")) {
+          //       type = "iframe";
+          //       content = trimPrefix(item.source, "iframe:");
+          //     }
 
-              endObj = {
-                ...endObj,
-                id: item.id,
-                sceneId: selectedScene,
-                type,
-                content: type === "input" ? content : fixedContent,
-                width: item.width,
-                height: item.height,
-                x: item.x,
-                y: item.y,
-                name: item.name ?? "",
-                rotation: parseInt(item.rotation),
-              };
+          //     endObj = {
+          //       ...endObj,
+          //       id: item.id,
+          //       sceneId: selectedScene,
+          //       type,
+          //       content: type === "input" ? content : fixedContent,
+          //       width: item.width,
+          //       height: item.height,
+          //       x: item.x,
+          //       y: item.y,
+          //       name: item.name ?? "",
+          //       rotation: parseInt(item.rotation),
+          //     };
 
-              if (type === "image") {
-                addImage({
-                  img: endObj,
-                  mode: false,
-                  getSelectedScene,
-                  setSources,
-                  sendOperation,
-                  url,
-                  generateBlobImageURL,
-                });
-              } else if (type === "input") {
-                addInput({
-                  input: endObj,
-                  mode: false,
-                  getSelectedScene,
-                  setSources,
-                  sendOperation,
-                });
-              } else if (type === "video") {
-                addVideo({
-                  videoItem: endObj,
-                  mode: false,
-                  getSelectedScene,
-                  setSources,
-                  sendOperation,
-                  url,
-                  loopVideos,
-                });
-                // addRectangle();
-              } else if (type == "iframe") {
-                addWeb({ webResource: endObj, mode: false, getSelectedScene, setSources });
-              }
-              return endObj;
-            });
-            setSources(sources);
-          }
+          //     if (type === "image") {
+          //       addImage({
+          //         img: endObj,
+          //         mode: false,
+          //         getSelectedScene,
+          //         setSources,
+          //         sendOperation,
+          //         url,
+          //         generateBlobImageURL,
+          //       });
+          //     } else if (type === "input") {
+          //       addInput({
+          //         input: endObj,
+          //         mode: false,
+          //         getSelectedScene,
+          //         setSources,
+          //         sendOperation,
+          //       });
+          //     } else if (type === "video") {
+          //       addVideo({
+          //         videoItem: endObj,
+          //         mode: false,
+          //         getSelectedScene,
+          //         setSources,
+          //         sendOperation,
+          //         url,
+          //         loopVideos,
+          //       });
+          //       // addRectangle();
+          //     } else if (type == "iframe") {
+          //       addWeb({ webResource: endObj, mode: false, getSelectedScene, setSources });
+          //     }
+          //     return endObj;
+          //   });
+          //   setSources(sources);
+          // }
 
           //resources
           if (data.media) {

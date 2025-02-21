@@ -18,7 +18,7 @@ export const deleteSourceFromScene = ({ id, getSelectedScene, setSources, sendOp
       });
 
       // updateSceneResources(getSelectedScene()?.resources.filter((res) => res.id !== id));
-      setSources((prev) => prev.filter((item) => (item.externalId ?? item.id) !== id));
+      setSources((prev) => prev.filter((item) => item.externalId !== id));
 
       let groupToRemove = getSelectedScene()?.layer.find(`#${id}`);
 
@@ -31,13 +31,13 @@ export const deleteSourceFromScene = ({ id, getSelectedScene, setSources, sendOp
         // console.error(`Group with id ${id} not found`);
       }
 
-      const videoElement = getSelectedScene()?.resources.find(
-        (item) => item.id === id
-      )?.videoElement;
-      if (videoElement) {
-        videoElement.pause();
-        videoElement.src = "";
-      }
+      // const videoElement = getSelectedScene()?.resources.find(
+      //   (item) => item.externalId === id
+      // )?.videoElement;
+      // if (videoElement) {
+      //   videoElement.pause();
+      //   videoElement.src = "";
+      // }
     } else {
       return;
     }
