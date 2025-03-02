@@ -118,10 +118,9 @@ const ResourcesSidebar = () => {
             externalId: id,
           });
 
-          console.log("media::: ", media);
           let newResource = {
             type: "IFRAME",
-            id,
+            id: media.id,
             mediaId: media.id,
             externalId: media.externalId,
             name: webURL,
@@ -203,7 +202,7 @@ const ResourcesSidebar = () => {
             externalId: media.externalId,
             name: imageName,
             imageElement: img,
-            content: file.name,
+            content: media.content,
             width: img.width,
             height: img.height,
             x: 0,
@@ -231,7 +230,7 @@ const ResourcesSidebar = () => {
           externalId: media.externalId,
           name: videoName,
           videoElement: video,
-          content: file.name,
+          content: media.content,
           width,
           height,
           x: 0,

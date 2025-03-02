@@ -33,7 +33,11 @@ const CollectionsSidebar = () => {
     filteredScenes,
     url,
     darkMode,
+    socket,
+    setActiveProgram,
+    activeProgram,
   } = useMyContext();
+  console.log("activeProgram::: ", activeProgram);
 
   let idSave = null;
 
@@ -137,7 +141,6 @@ const CollectionsSidebar = () => {
   };
 
   const handleBroadcast = (id) => {
-    Swal.argsToParams([{ title: "title", text: "text" }]); //=> { title: 'title', text: 'text' }
     Swal.fire({
       title: "پخش این برنامه بر روی ویدئووال",
       icon: "warning",
@@ -148,7 +151,8 @@ const CollectionsSidebar = () => {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        console.log("PLAY--");
+        socket.emit("activate-program", id);
+        setActiveProgram(id);
       }
     });
   };
@@ -201,18 +205,20 @@ const CollectionsSidebar = () => {
                 } p-2 rounded-md shadow-sm cursor-pointer flex-wrap`}
               >
                 <div className="flex ">
-                  <video
-                    className="ml-2"
-                    width="50"
-                    height="20"
-                    controls={false}
-                    muted={true}
-                    loop
-                    autoPlay
-                  >
-                    <source src="/pulseAnim.webm" type="video/webm" />
-                    Your browser does not support the video tag.
-                  </video>
+                  {collection.id == activeProgram && (
+                    <video
+                      className="ml-2"
+                      width="50"
+                      height="20"
+                      controls={false}
+                      muted={true}
+                      loop
+                      autoPlay
+                    >
+                      <source src="/pulseAnim.webm" type="video/webm" />
+                      Your browser does not support the video tag.
+                    </video>
+                  )}
                   <span className="truncate">{collection.name}</span>
                 </div>
                 <div className="flex gap-1">

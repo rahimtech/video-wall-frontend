@@ -36,6 +36,7 @@ const UsageSidebar = () => {
 
   let usageSources = null;
   usageSources = sources.filter((item) => item.sceneId === getSelectedScene()?.id) ?? [];
+  console.log("usageSources::: ", usageSources);
 
   const updateSourceName = (resourceId, newName, isSource = true) => {
     setSources((prev) =>

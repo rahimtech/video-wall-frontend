@@ -7,6 +7,7 @@ import {
   getProgramById,
   updateProgram,
   deleteProgram,
+  updateProgramScheduleOrders,
 } from "./programs";
 import {
   createProgramSchedule,
@@ -31,6 +32,7 @@ const api = {
   getProgramById,
   updateProgram,
   deleteProgram,
+  updateProgramScheduleOrders,
 
   // ProgramSchedules
   createProgramSchedule,

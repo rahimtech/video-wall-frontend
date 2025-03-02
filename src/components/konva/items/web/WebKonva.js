@@ -10,9 +10,12 @@ export const addWeb = async ({
   sendOperation,
   url,
 }) => {
-  const { id, content, x, y, width, height, externalId, mediaId } = webResource;
+  const { id, content, x, y, width, height, externalId, mediaId, rotation } = webResource;
   console.log("webResource::: ", webResource);
-  let uniqId = externalId;
+  console.log("y::: ", y);
+  console.log("x::: ", x);
+  // let uniqId = externalId;
+  let uniqId = mode ? uuidv4() : externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
 
@@ -32,7 +35,7 @@ export const addWeb = async ({
         type: "IFRAME",
         sceneId: getSelectedScene()?.id,
         externalId: uniqId,
-        mediaId: mediaId,
+        mediaId: id,
         content: content,
         metadata: { source: "iframe:" + content },
       },
@@ -47,6 +50,7 @@ export const addWeb = async ({
     draggable: false,
     id: String(uniqId),
     uniqId,
+    rotation: rotation || 0,
   });
 
   const webRect = new Konva.Rect({
@@ -145,7 +149,9 @@ export const addWeb = async ({
 
   if (mode) {
     setSources((prev) =>
-      mode ? [...prev, { ...webResource, uniqId, sceneId: getSelectedScene().id }] : prev
+      mode
+        ? [...prev, { ...webResource, externalId: uniqId, sceneId: getSelectedScene().id }]
+        : prev
     );
   }
   selectedSceneLayer.add(group);

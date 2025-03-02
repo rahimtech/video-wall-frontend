@@ -81,6 +81,11 @@ export const MyContextProvider = ({ children }) => {
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
 
+  //Scheduling Checks ...
+  const [activeSceneId, setActiveSceneId] = useState(null);
+  const [activeSchedule, setActiveSchedule] = useState(null);
+  const [activeProgram, setActiveProgram] = useState(null);
+
   const [collections, setCollections] = useState([]);
   const [scenes, setScenes] = useState([]);
   const scenesRef = useRef(scenes);
@@ -154,7 +159,6 @@ export const MyContextProvider = ({ children }) => {
         type = "VIDEO";
         content = item.media.content;
         const video = document.createElement("video");
-        console.log("item.media.content::: ", item.media.content);
         video.src = `${url}/${item.media.content}`;
         const videoName = "video" + counterVideos++;
         video.setAttribute("name", videoName);
@@ -320,6 +324,11 @@ export const MyContextProvider = ({ children }) => {
           setIsLoading(false);
 
           console.log("INIT DATA: ", data);
+
+          if (data.activeProgram >= 0) {
+            setActiveProgram(data.activeProgram);
+          }
+
           if (flagOperations) {
             setFlagOperation(false);
             return;
@@ -472,7 +481,7 @@ export const MyContextProvider = ({ children }) => {
                   item.content.endsWith(".png") ||
                   item.content.endsWith(".webp")
                 ) {
-                  url = `http://${host}:${port}/uploads/${item.content}`;
+                  url = `http://${host}:${port}/${item.content}`;
                   type = "IMAGE";
                   let img = new Image();
                   img.src = url;
@@ -482,7 +491,7 @@ export const MyContextProvider = ({ children }) => {
                   };
                 } else if (item.content.endsWith(".mp4")) {
                   type = "VIDEO";
-                  url = `http://${host}:${port}/uploads/${item.content}`;
+                  url = `http://${host}:${port}/${item.content}`;
                   const video = document.createElement("video");
                   video.src = url;
                   const videoName = "videoBase" + counterVideos++;
@@ -582,7 +591,7 @@ export const MyContextProvider = ({ children }) => {
         console.log("dataCol::: ", dataCol);
         fetchDataColl = dataCol;
         setCollections(dataCol ?? []);
-        setSelectedCollection(fetchDataColl[0].id);
+        setSelectedCollection(fetchDataColl[0]?.id);
 
         const dataSen = await api.getScenes(url);
         console.log("dataSen::: ", dataSen);
@@ -763,6 +772,13 @@ export const MyContextProvider = ({ children }) => {
         anim,
         trimPrefix,
         generateScene,
+
+        activeSceneId,
+        setActiveSceneId,
+        activeSchedule,
+        setActiveSchedule,
+        activeProgram,
+        setActiveProgram,
       }}
     >
       {children}

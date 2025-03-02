@@ -9,30 +9,30 @@ export const addImage = ({
   url,
   generateBlobImageURL,
 }) => {
-  let uniqId = img.externalId;
+  // let uniqId = img.externalId;
+  let uniqId = mode ? uuidv4() : img.externalId;
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;
 
-  const modifiedImageURL = mode
-    ? generateBlobImageURL(`image:${url}`, `uploads/${img.content}`).slice(0, -".mp4".length)
-    : img.imageElement.src;
+  const modifiedImageURL = mode ? `image:${url}/${img.content}` : img.imageElement.src;
+  console.log("modifiedImageURL::: ", modifiedImageURL);
 
   if (mode) {
     sendOperation("source", {
       action: "add",
-      id: String(img.externalId),
+      id: String(uniqId),
       payload: {
         source: modifiedImageURL,
         x: 0,
         y: 0,
-        width: img.imageElement.width,
-        height: img.imageElement.height,
+        width: img.imageElement.width || img.width,
+        height: img.imageElement.height || img.height,
         name: img.name,
         type: "IMAGE",
         sceneId: getSelectedScene().id,
         content: img.content,
         mediaId: img.id,
-        externalId: img.externalId,
+        externalId: uniqId,
         metadata: { source: modifiedImageURL },
       },
     });
@@ -154,7 +154,10 @@ export const addImage = ({
     });
 
     mode
-      ? setSources((prev) => [...prev, { ...img, uniqId, sceneId: getSelectedScene().id }])
+      ? setSources((prev) => [
+          ...prev,
+          { ...img, externalId: uniqId, sceneId: getSelectedScene().id },
+        ])
       : null;
 
     selectedSceneLayer.draw();

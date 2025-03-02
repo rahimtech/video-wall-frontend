@@ -9,8 +9,8 @@ export const addVideo = ({
   url,
   loopVideos,
 }) => {
-  // let uniqId = mode ? uuidv4() : videoItem.externalId;
-  let uniqId = videoItem.externalId;
+  let uniqId = mode ? uuidv4() : videoItem.externalId;
+  // let uniqId = videoItem.externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
   let selectedStage = null;
@@ -20,10 +20,10 @@ export const addVideo = ({
 
   if (!selectedSceneLayer) return;
 
-  const modifiedVideoURL = mode
-    ? `video:${url}/uploads/${videoItem.content}`
-    : videoItem.videoElement.src;
-  console.log("videoItem::: ", videoItem);
+  const modifiedVideoURL = mode ? `video:${url}/${videoItem.content}` : videoItem.videoElement.src;
+
+  console.log("modifiedVideoURL::: ", modifiedVideoURL);
+  // videoItem.videoElement.src = `${url}/uploads/${videoItem.name}`;
 
   if (mode) {
     sendOperation("source", {
@@ -33,8 +33,8 @@ export const addVideo = ({
         source: modifiedVideoURL,
         x: 0,
         y: 0,
-        width: videoItem.videoElement.videoWidth,
-        height: videoItem.videoElement.videoHeight,
+        width: videoItem.videoElement.videoWidth || videoItem.width,
+        height: videoItem.videoElement.videoHeight || videoItem.height,
         name: videoItem.name,
         type: "VIDEO",
         sceneId: getSelectedScene().id,
@@ -92,7 +92,9 @@ export const addVideo = ({
 
     if (mode) {
       setSources((prev) =>
-        mode ? [...prev, { ...videoItem, uniqId, sceneId: getSelectedScene().id }] : prev
+        mode
+          ? [...prev, { ...videoItem, externalId: uniqId, sceneId: getSelectedScene().id }]
+          : prev
       );
     }
     if (mode) selectedStage.add(selectedSceneLayer);
@@ -217,7 +219,9 @@ export const addVideo = ({
 
       if (mode) {
         setSources((prev) =>
-          mode ? [...prev, { ...videoItem, uniqId, sceneId: getSelectedScene().id }] : prev
+          mode
+            ? [...prev, { ...videoItem, externalId: uniqId, sceneId: getSelectedScene().id }]
+            : prev
         );
       }
       selectedSceneLayer.add(group);

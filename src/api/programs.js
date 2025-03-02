@@ -9,3 +9,5 @@ export const getProgramById = (url, id) =>
 export const updateProgram = (url, id, data) =>
   axios.put(`${url}/programs/${id}`, data).then(extractData).catch(catchErr);
 export const deleteProgram = (url, id) => axios.delete(`${url}/programs/${id}`).catch(catchErr);
+export const updateProgramScheduleOrders = (url, id, data) =>
+  axios.put(`${url}/programs/${id}/schedules`, data).then(extractData).catch(catchErr);

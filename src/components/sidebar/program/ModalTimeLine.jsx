@@ -37,35 +37,60 @@ const ModalTimeLine = ({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [duration, setGeneralTime] = useState(null);
-  const { setIsLoading, scenes, url, setScenes, setFlagReset, flagReset } = useMyContext();
+  const { setIsLoading, scenes, url, setScenes, setFlagReset, flagReset, socket } = useMyContext();
   // Load existing timeline for the selected collection
   useEffect(() => {
     setTimeLine(
       collections
         .find((c) => c.id === selectedCollection)
-        ?.schedules?.map((s) => ({ id: s.id, sceneId: s.scene_id, duration: s.duration })) ?? []
+        ?.schedules?.map((s) => ({ ...s, id: s.id, scene_id: s.scene_id, duration: s.duration })) ??
+        []
     );
   }, [isOpen]);
+  console.log(timeLine);
 
-  const addSceneToTimeLine = () => {
+  const updateCollectionSchedules = (newTimeline) => {
+    setCollections((prev) =>
+      prev.map((collection) =>
+        collection.id === collectionSelected.id
+          ? { ...collection, schedules: newTimeline }
+          : collection
+      )
+    );
+  };
+
+  const addSceneToTimeLine = async () => {
     // if (!selectedScene || !startDate || !endDate || !startTime || !endTime || !generalTime) {
     if (!selectedScene || !duration) {
       alert("لطفاً تمام فیلدها را پر کنید.");
       return;
     }
 
-    const newEntry = {
-      sceneId: selectedScene.currentKey,
-      // startDate: startDate.format("YYYY-MM-DD"),
-      // endDate: endDate.format("YYYY-MM-DD"),
-      // startTime,
-      // endTime,
-      duration,
-    };
-
     try {
       setIsLoading(true);
-      api.addSceneToProgram(url, collectionSelected.id, selectedScene.currentKey, duration, false);
+      const dataSTP = await api.addSceneToProgram(
+        url,
+        collectionSelected.id,
+        selectedScene.currentKey,
+        duration,
+        false
+      );
+
+      setTimeLine((prev) => {
+        const newLine = {
+          ...dataSTP,
+          id: dataSTP.id,
+          scene_id: dataSTP.scene_id,
+          duration: dataSTP.duration,
+        };
+
+        const newTimeline = [...prev, newLine];
+
+        updateCollectionSchedules(newTimeline);
+
+        return newTimeline;
+      });
+
       setFlagReset(!flagReset);
     } catch (err) {
       console.log(err);
@@ -73,44 +98,71 @@ const ModalTimeLine = ({
       setIsLoading(false);
     }
     resetFields();
-    setTimeLine((prev) => [...prev, newEntry]);
   };
 
-  const removeSceneFromTimeLine = (entry, index) => {
+  const removeSceneFromTimeLine = async (entry, index, colSelected) => {
+    await api.deleteProgramSchedule(url, entry.id);
     setTimeLine((prev) => prev.filter((_, i) => i !== index));
-    api.deleteProgramSchedule(url, entry.id);
+
+    const colEndPoint = collections.map((col) => {
+      if (col.id === colSelected.id) {
+        const newSch = col.schedules.filter((sch) => sch.id !== entry.id);
+        return { ...col, schedules: newSch };
+      }
+      return col;
+    });
+
+    setCollections(colEndPoint);
   };
 
-  const moveSceneUp = (index) => {
+  const moveSceneUp = async (index) => {
     if (index === 0) return;
-    setTimeLine((prev) => {
+
+    const changeOrderTimeLine = (prev) => {
       const newTimeline = [...prev];
       [newTimeline[index], newTimeline[index - 1]] = [newTimeline[index - 1], newTimeline[index]];
       return newTimeline;
+    };
+
+    setTimeLine((prev) => {
+      const newTimeline = changeOrderTimeLine(prev);
+      updateCollectionSchedules(newTimeline);
+      return newTimeline;
+    });
+
+    await api.updateProgramScheduleOrders(url, collectionSelected.id, {
+      schedules: changeOrderTimeLine(timeLine),
     });
   };
 
-  const moveSceneDown = (index) => {
+  const moveSceneDown = async (index) => {
     if (index === timeLine.length - 1) return;
-    setTimeLine((prev) => {
+
+    const changeOrderTimeLine = (prev) => {
       const newTimeline = [...prev];
       [newTimeline[index], newTimeline[index + 1]] = [newTimeline[index + 1], newTimeline[index]];
       return newTimeline;
+    };
+
+    setTimeLine((prev) => {
+      const newTimeline = changeOrderTimeLine(prev);
+      updateCollectionSchedules(newTimeline);
+      return newTimeline;
+    });
+
+    await api.updateProgramScheduleOrders(url, collectionSelected.id, {
+      schedules: changeOrderTimeLine(timeLine),
     });
   };
 
   const saveTimeLineToCollection = () => {
-    console.log("collection::: ", collections);
-    console.log(
-      " prev.find((collection) => collection.id === selectedCollection).schedules::: ",
-      prev.find((collection) => collection.id === selectedCollection).schedules
-    );
+    socket.emit("activate-program", selectedCollection);
     // setCollections((prev) => prev.find((collection) => collection.id === selectedCollection).schedules);
     onOpenChange(false);
   };
 
   const resetFields = () => {
-    setSelectedScene(null);
+    // setSelectedScene(null);
     // setStartDate(null);
     // setEndDate(null);
     // setStartTime("");
@@ -216,7 +268,12 @@ const ModalTimeLine = ({
                       label="مدت زمان به ثانیه"
                       type="number"
                       value={duration}
-                      onChange={(e) => setGeneralTime(e.target.value)}
+                      max={30000000}
+                      min={1}
+                      onChange={(e) => {
+                        if (e.target.value <= 30_000_000 && e.target.value >= 1)
+                          setGeneralTime(e.target.value);
+                      }}
                     />
                   </div>
 
@@ -238,8 +295,8 @@ const ModalTimeLine = ({
                           className={`flex items-center justify-between p-3 shadow-md bg-gray-100 text-black rounded-md`}
                         >
                           <div className="text-sm">
-                            <strong>صحنه {entry.sceneId}:</strong>{" "}
-                            {collectionScenes.find((s) => s.id === entry.sceneId)?.name}
+                            <strong>صحنه {entry.scene_id}:</strong>{" "}
+                            {collectionScenes.find((s) => s.id === entry.scene_id)?.name}
                             {/* <br />
                             <strong>تاریخ:</strong> {entry.startDate} تا {entry.endDate}
                             <br />
@@ -270,7 +327,9 @@ const ModalTimeLine = ({
                               size="sm"
                               variant="flat"
                               color="danger"
-                              onPress={() => removeSceneFromTimeLine(entry, index)}
+                              onPress={() =>
+                                removeSceneFromTimeLine(entry, index, collectionSelected)
+                              }
                               aria-label="حذف صحنه"
                             >
                               <FaTrashAlt />
