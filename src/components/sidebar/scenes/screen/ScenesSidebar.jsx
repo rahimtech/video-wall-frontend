@@ -32,6 +32,8 @@ const ScenesSidebar = () => {
     getSelectedScene,
   } = useMyContext();
 
+  console.log("filteredScenes::: ", filteredScenes);
+  console.log("scenes::: ", scenes);
   const selectedScenes = scenes.filter((scene) => filteredScenes?.some((f) => f.id === scene.id));
   const unselectedScenes = scenes.filter(
     (scene) => !filteredScenes?.some((f) => f.id === scene.id)

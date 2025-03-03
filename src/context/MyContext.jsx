@@ -277,7 +277,6 @@ export const MyContextProvider = ({ children }) => {
     console.log("payload::: ", payload);
     if (connectionModeRef.current) {
       if (tempSocket) {
-        console.log("tempSocket::: ", tempSocket);
         tempSocket?.emit(action, payload);
       } else {
         socket?.emit(action, payload);
@@ -665,6 +664,7 @@ export const MyContextProvider = ({ children }) => {
       stageData: null,
       layer: new Konva.Layer(),
     }));
+    console.log("selectedCollectionScenes::: ", selectedCollectionScenes);
     setFilteredScenes(
       selectedCollectionScenes
       // scenes.filter((scene) =>
@@ -779,6 +779,8 @@ export const MyContextProvider = ({ children }) => {
         setActiveSchedule,
         activeProgram,
         setActiveProgram,
+
+        setFilteredScenes,
       }}
     >
       {children}

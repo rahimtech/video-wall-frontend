@@ -37,7 +37,17 @@ const ModalTimeLine = ({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [duration, setGeneralTime] = useState(null);
-  const { setIsLoading, scenes, url, setScenes, setFlagReset, flagReset, socket } = useMyContext();
+  const {
+    setIsLoading,
+    scenes,
+    url,
+    setScenes,
+    setFlagReset,
+    flagReset,
+    socket,
+    setFilteredScenes,
+    setActiveProgram,
+  } = useMyContext();
   // Load existing timeline for the selected collection
   useEffect(() => {
     setTimeLine(
@@ -47,17 +57,9 @@ const ModalTimeLine = ({
         []
     );
   }, [isOpen]);
-  console.log(timeLine);
 
-  const updateCollectionSchedules = (newTimeline) => {
-    setCollections((prev) =>
-      prev.map((collection) =>
-        collection.id === collectionSelected.id
-          ? { ...collection, schedules: newTimeline }
-          : collection
-      )
-    );
-  };
+  const updateCollectionSchedules = (newTimeline) => {};
+  console.log("timeLine::: ", timeLine);
 
   const addSceneToTimeLine = async () => {
     // if (!selectedScene || !startDate || !endDate || !startTime || !endTime || !generalTime) {
@@ -75,21 +77,35 @@ const ModalTimeLine = ({
         duration,
         false
       );
+      console.log("dataSTP::: ", dataSTP);
+      console.log("selectedScene::: ", selectedScene.currentKey);
 
+      let newTimeline = null;
       setTimeLine((prev) => {
         const newLine = {
           ...dataSTP,
           id: dataSTP.id,
           scene_id: dataSTP.scene_id,
           duration: dataSTP.duration,
+          scene: scenes.find((f) => f.id == selectedScene.currentKey),
         };
 
-        const newTimeline = [...prev, newLine];
+        newTimeline = [...prev, newLine];
 
-        updateCollectionSchedules(newTimeline);
+        // updateCollectionSchedules(newTimeline);
 
         return newTimeline;
       });
+      setCollections((prev) =>
+        prev.map((collection) =>
+          collection.id === collectionSelected.id
+            ? { ...collection, schedules: newTimeline }
+            : collection
+        )
+      );
+
+      console.log("newTimeline::: ", newTimeline);
+      setFilteredScenes(newTimeline);
 
       setFlagReset(!flagReset);
     } catch (err) {
@@ -157,6 +173,7 @@ const ModalTimeLine = ({
 
   const saveTimeLineToCollection = () => {
     socket.emit("activate-program", selectedCollection);
+    setActiveProgram(selectedCollection);
     // setCollections((prev) => prev.find((collection) => collection.id === selectedCollection).schedules);
     onOpenChange(false);
   };
@@ -295,8 +312,8 @@ const ModalTimeLine = ({
                           className={`flex items-center justify-between p-3 shadow-md bg-gray-100 text-black rounded-md`}
                         >
                           <div className="text-sm">
-                            <strong>صحنه {entry.scene_id}:</strong>{" "}
-                            {collectionScenes.find((s) => s.id === entry.scene_id)?.name}
+                            <strong dir="rtl">{entry.scene.name}:</strong>
+                            {/* {collectionScenes.find((s) => s.id === entry.scene_id)?.name} */}
                             {/* <br />
                             <strong>تاریخ:</strong> {entry.startDate} تا {entry.endDate}
                             <br />
