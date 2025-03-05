@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from "uuid";
 
 export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
   console.log("input::: ", input);
-  // let uniqId = mode ? uuidv4() : input.externalId;
-  let uniqId = input.externalId;
+  let uniqId = mode ? uuidv4() : input.externalId;
+  // let uniqId = input.externalId;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;

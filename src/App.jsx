@@ -125,7 +125,7 @@ function App() {
   }, [isToggleVideoWall, scenes]);
 
   function handleDisplayError(updatedDisplays) {
-    // if (!connectionMode) return;
+    if (!connectionModeRef.current) return;
     // console.log("🟠 Updated displays received from server:", updatedDisplays);
 
     setScenes((prevScenes) =>

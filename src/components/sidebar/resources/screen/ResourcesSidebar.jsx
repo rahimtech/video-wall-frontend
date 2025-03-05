@@ -103,7 +103,7 @@ const ResourcesSidebar = () => {
     } else if (type === "IFRAME") {
       Swal.fire({
         title: "Enter the URL:",
-        input: "url",
+        input: "text",
         inputPlaceholder: "https://example.com",
         showCancelButton: true,
         confirmButtonColor: "green",
@@ -393,9 +393,9 @@ const ResourcesSidebar = () => {
               <DropdownItem onPress={() => addResource("IMAGE")} key="image">
                 افزودن تصویر
               </DropdownItem>
-              <DropdownItem onPress={() => addResource("TEXT")} key="text">
+              {/* <DropdownItem onPress={() => addResource("TEXT")} key="text">
                 افزودن متن
-              </DropdownItem>
+              </DropdownItem> */}
               <DropdownItem onPress={() => addResource("IFRAME")} key="web">
                 افزودن صفحه وب
               </DropdownItem>
