@@ -186,7 +186,7 @@ const UsageSidebar = () => {
                       value={newName}
                       onChange={handleNameChange}
                       onBlur={() => handleNameSave(resource.externalId)}
-                      className={` ${darkMode ? "text-black" : "text-white"} p-1 rounded-sm`}
+                      className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
                       autoFocus
                     />
                   ) : (

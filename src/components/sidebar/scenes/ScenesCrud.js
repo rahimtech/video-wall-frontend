@@ -13,7 +13,7 @@ export const addScene = async ({
 }) => {
   const newId = scenes.length > 0 ? Math.max(...scenes.map((scene) => scene.id)) + 1 : 1;
   const newLayer = new Konva.Layer();
-  const newScene = {
+  let newScene = {
     id: newId,
     name: `صحنه ${newId}`,
     resources: [],
@@ -22,7 +22,9 @@ export const addScene = async ({
 
   try {
     setIsLoading(true);
-    await api.createScene(url, { name: newScene.name, metadata: {} });
+    const dataCS = await api.createScene(url, { name: newScene.name, metadata: {} });
+    newScene.id = dataCS.id;
+    newScene.name = `صحنه ${dataCS.id}`;
   } catch {
     console.log("Faild Add Scene");
   } finally {
@@ -81,6 +83,7 @@ export const deleteScene = ({
   selectedScene,
   setSelectedScene,
   url,
+  collections,
 }) => {
   Swal.fire({
     title: "آيا مطمئن هستید؟",
@@ -101,6 +104,28 @@ export const deleteScene = ({
         });
         return;
       }
+
+      let flagCheckForeignKey = false;
+
+      collections.find((f) => {
+        f.schedules.find((s) => {
+          if (s.scene_id == selectedScene) {
+            flagCheckForeignKey = true;
+          }
+        });
+      });
+
+      if (flagCheckForeignKey) {
+        Swal.fire({
+          title: "!هشدار مهم",
+          text: ".این صحنه در برنامه‌های پخش دیگر استفاده شد",
+          icon: "warning",
+          confirmButtonText: "باشه",
+          confirmButtonColor: "gray",
+        });
+        return;
+      }
+
       const updatedScenes = scenes.filter((scene) => scene.id !== id);
       const updatedSourcesUsage = sources.filter((item) => item.sceneId !== id);
 

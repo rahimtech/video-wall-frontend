@@ -47,6 +47,7 @@ const ModalTimeLine = ({
     socket,
     setFilteredScenes,
     setActiveProgram,
+    activeProgram,
   } = useMyContext();
   // Load existing timeline for the selected collection
   useEffect(() => {
@@ -57,9 +58,6 @@ const ModalTimeLine = ({
         []
     );
   }, [isOpen]);
-
-  const updateCollectionSchedules = (newTimeline) => {};
-  console.log("timeLine::: ", timeLine);
 
   const addSceneToTimeLine = async () => {
     // if (!selectedScene || !startDate || !endDate || !startTime || !endTime || !generalTime) {
@@ -104,7 +102,6 @@ const ModalTimeLine = ({
         )
       );
 
-      console.log("newTimeline::: ", newTimeline);
       setFilteredScenes(newTimeline);
 
       setFlagReset(!flagReset);
@@ -172,8 +169,10 @@ const ModalTimeLine = ({
   };
 
   const saveTimeLineToCollection = () => {
-    socket.emit("activate-program", selectedCollection);
-    setActiveProgram(selectedCollection);
+    if (activeProgram == selectedCollection) {
+      socket.emit("activate-program", selectedCollection);
+      setActiveProgram(selectedCollection);
+    }
     // setCollections((prev) => prev.find((collection) => collection.id === selectedCollection).schedules);
     onOpenChange(false);
   };

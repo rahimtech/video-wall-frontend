@@ -275,6 +275,7 @@ export const MyContextProvider = ({ children }) => {
   const sendOperation = (action, payload) => {
     console.log("action::: ", action);
     console.log("payload::: ", payload);
+
     if (connectionModeRef.current) {
       if (tempSocket) {
         tempSocket?.emit(action, payload);

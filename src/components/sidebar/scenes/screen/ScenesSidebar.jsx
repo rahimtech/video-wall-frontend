@@ -160,6 +160,7 @@ const ScenesSidebar = () => {
                             selectedScene,
                             setSelectedScene,
                             url,
+                            collections,
                           })
                         }
                         disabled={scenes.length === 1}
@@ -226,6 +227,7 @@ const ScenesSidebar = () => {
                             selectedScene,
                             setSelectedScene,
                             url,
+                            collections,
                           })
                         }
                         disabled={scenes.length === 1}
