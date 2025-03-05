@@ -37,7 +37,6 @@ const CollectionsSidebar = () => {
     setActiveProgram,
     activeProgram,
   } = useMyContext();
-  console.log("activeProgram::: ", activeProgram);
 
   let idSave = null;
 

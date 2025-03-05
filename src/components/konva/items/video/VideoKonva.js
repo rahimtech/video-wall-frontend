@@ -22,7 +22,6 @@ export const addVideo = ({
 
   const modifiedVideoURL = mode ? `video:${url}/${videoItem.content}` : videoItem.videoElement.src;
 
-  console.log("modifiedVideoURL::: ", modifiedVideoURL);
   // videoItem.videoElement.src = `${url}/uploads/${videoItem.name}`;
 
   if (mode) {

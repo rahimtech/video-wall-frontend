@@ -30,7 +30,6 @@ const ModalTimeLine = ({
   collectionSelected,
 }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [timeLine, setTimeLine] = useState([]);
   const [selectedScene, setSelectedScene] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -48,7 +47,10 @@ const ModalTimeLine = ({
     setFilteredScenes,
     setActiveProgram,
     activeProgram,
+    timeLine,
+    setTimeLine,
   } = useMyContext();
+
   // Load existing timeline for the selected collection
   useEffect(() => {
     setTimeLine(
@@ -75,8 +77,6 @@ const ModalTimeLine = ({
         duration,
         false
       );
-      console.log("dataSTP::: ", dataSTP);
-      console.log("selectedScene::: ", selectedScene.currentKey);
 
       let newTimeline = null;
       setTimeLine((prev) => {
@@ -159,7 +159,7 @@ const ModalTimeLine = ({
 
     setTimeLine((prev) => {
       const newTimeline = changeOrderTimeLine(prev);
-      updateCollectionSchedules(newTimeline);
+      // updateCollectionSchedules(newTimeline);
       return newTimeline;
     });
 

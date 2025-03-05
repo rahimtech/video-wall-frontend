@@ -275,7 +275,7 @@ function App() {
     >
       {miniLoad && (
         <div className=" z-[1000000] w-fit h-fit flex flex-col gap-3 justify-center items-center  fixed left-0 right-0 top-0 bottom-0  m-auto">
-          <CircularProgress label="در حال آپلود لطفا صبر کنید ..." />
+          <CircularProgress label="در حال انجام عملیات ..." />
         </div>
       )}
 

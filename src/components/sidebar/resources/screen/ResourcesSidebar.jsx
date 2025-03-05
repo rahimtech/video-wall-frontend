@@ -39,6 +39,9 @@ const ResourcesSidebar = () => {
     setResources,
     setMiniLoad,
     addWeb,
+    collections,
+    setCollections,
+    sources,
     trimPrefix,
   } = useMyContext();
   const uploadMedia = async (file, videoName) => {
@@ -152,12 +155,78 @@ const ResourcesSidebar = () => {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        setMiniLoad(true);
         try {
+          setMiniLoad(true);
           // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
           await api.deleteMedia(url, id);
         } finally {
           setMiniLoad(false);
+        }
+
+        let flagCheckIsResourceUse = false;
+        collections.find((f) => {
+          f.schedules.find((s) => {
+            s.scene.sources.find((item) => {
+              if (item.media.id == id) {
+                flagCheckIsResourceUse = true;
+              }
+            });
+          });
+        });
+
+        if (flagCheckIsResourceUse) {
+          Swal.fire({
+            title: "هشدار مهم این محتوا در جای دیگر استفاده شده",
+            text: ".با پاک کردن این محتوا در تمامی صحنه‌ها این محتوا پاک خواهد شد",
+            showDenyButton: true,
+            showCancelButton: false,
+            icon: "warning",
+            confirmButtonText: "بله",
+            denyButtonText: `خیر`,
+            confirmButtonColor: "green",
+            denyButtonColor: "gray",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              const colEndPoint = collections.map((so) => {
+                so.schedules.map((s) => {
+                  const newSch = s.scene.sources.filter((sch) => {
+                    if (sch.media.id !== id) {
+                      return sch;
+                    } else {
+                      let groupToRemove = getSelectedScene()
+                        ?.layer.getParent()
+                        .find(`#${sch.externalId}`);
+                      if (groupToRemove) {
+                        for (let index = 0; index < groupToRemove.length; index++) {
+                          groupToRemove[index].remove();
+                        }
+                        getSelectedScene()?.layer.getParent().draw();
+                      } else {
+                        // console.error(`Group with id ${id} not found`);
+                      }
+                    }
+                  });
+
+                  setSources(newSch || []);
+                  return { ...s, schedules: newSch };
+                });
+                return so;
+              });
+
+              // const colEndPoint2 = collections.map((col) => {
+              //   const newSch = col.schedules.filter((sch) => sch.scene_id !== id);
+              //   return { ...col, schedules: newSch };
+              //   // return col;
+              // });
+
+              console.log("colEndPoint::: ", colEndPoint);
+              setCollections(colEndPoint);
+              setResources(resources.filter((res) => res.id !== id));
+
+              return;
+            }
+          });
+          return;
         }
 
         setResources(resources.filter((res) => res.id !== id));
@@ -170,11 +239,11 @@ const ResourcesSidebar = () => {
           // console.error(`Group with id ${id} not found`);
         }
 
-        const videoElement = resources.find((item) => item.id === id)?.videoElement;
-        if (videoElement) {
-          videoElement.pause();
-          videoElement.src = "";
-        }
+        // const videoElement = resources.find((item) => item.id === id)?.videoElement;
+        // if (videoElement) {
+        //   videoElement.pause();
+        //   videoElement.src = "";
+        // }
       } else {
         return;
       }

@@ -127,8 +127,19 @@ const UsageSidebar = () => {
     if (resourceNode) {
       if (direction > 0) {
         resourceNode.moveDown();
+        sendOperation("source", {
+          action: "move",
+          id,
+          payload: { z: resourceNode.index },
+        });
       } else {
         resourceNode.moveUp();
+
+        sendOperation("source", {
+          action: "move",
+          id,
+          payload: { z: resourceNode.index },
+        });
       }
       getSelectedScene()?.layer.draw();
     }

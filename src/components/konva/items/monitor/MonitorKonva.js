@@ -28,6 +28,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
         draggable: false,
         id: `monitor-group-${monitor.id}`,
         catFix: "monitor",
+        index: 2,
       });
 
       const rect = new Konva.Rect({
@@ -153,9 +154,6 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
     layer.draw();
     return scene;
   });
-  //
-  // console.log("updatedScenes::: ", updatedScenes);
-  // setScenes(updatedScenes);
 };
 
 export const arrangeMForScenes = (updatedVideoWalls) => {

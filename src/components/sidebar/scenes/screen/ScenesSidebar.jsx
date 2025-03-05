@@ -28,12 +28,8 @@ const ScenesSidebar = () => {
     generateScene,
     videoWalls,
     createNewStage,
-    generateMonitorsForLayer,
-    getSelectedScene,
   } = useMyContext();
 
-  console.log("filteredScenes::: ", filteredScenes);
-  console.log("scenes::: ", scenes);
   const selectedScenes = scenes.filter((scene) => filteredScenes?.some((f) => f.id === scene.id));
   const unselectedScenes = scenes.filter(
     (scene) => !filteredScenes?.some((f) => f.id === scene.id)
@@ -161,6 +157,7 @@ const ScenesSidebar = () => {
                             setSelectedScene,
                             url,
                             collections,
+                            setCollections,
                           })
                         }
                         disabled={scenes.length === 1}
@@ -228,6 +225,7 @@ const ScenesSidebar = () => {
                             setSelectedScene,
                             url,
                             collections,
+                            setCollections,
                           })
                         }
                         disabled={scenes.length === 1}

@@ -84,6 +84,7 @@ export const deleteScene = ({
   setSelectedScene,
   url,
   collections,
+  setCollections,
 }) => {
   Swal.fire({
     title: "آيا مطمئن هستید؟",
@@ -109,7 +110,7 @@ export const deleteScene = ({
 
       collections.find((f) => {
         f.schedules.find((s) => {
-          if (s.scene_id == selectedScene) {
+          if (s.scene_id == id) {
             flagCheckForeignKey = true;
           }
         });
@@ -117,11 +118,52 @@ export const deleteScene = ({
 
       if (flagCheckForeignKey) {
         Swal.fire({
-          title: "!هشدار مهم",
-          text: ".این صحنه در برنامه‌های پخش دیگر استفاده شد",
+          title: "هشدار مهم این صحنه در جای دیگر استفاده شده",
+          text: ".با پاک کردن این صحنه در تمامی برنامه پخش ها این صحنه پاک خواهد شد",
+          showDenyButton: true,
+          showCancelButton: false,
           icon: "warning",
-          confirmButtonText: "باشه",
-          confirmButtonColor: "gray",
+          confirmButtonText: "بله",
+          denyButtonText: `خیر`,
+          confirmButtonColor: "green",
+          denyButtonColor: "gray",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            if (scenes.length <= 1) {
+              Swal.fire({
+                title: "باید حتما یک صحنه وجود داشته باشد!",
+                icon: "warning",
+                confirmButtonText: "باشه",
+                confirmButtonColor: "gray",
+              });
+
+              return;
+            }
+            const updatedScenes = scenes.filter((scene) => scene.id !== id);
+            const updatedSourcesUsage = sources.filter((item) => item.sceneId !== id);
+            const colEndPoint = collections.map((col) => {
+              const newSch = col.schedules.filter((sch) => sch.scene_id !== id);
+              return { ...col, schedules: newSch };
+              // return col;
+            });
+            setCollections(colEndPoint);
+            try {
+              setIsLoading(true);
+              api.deleteScene(`${url}`, id);
+            } catch (err) {
+              console.log(err);
+            } finally {
+              setIsLoading(false);
+            }
+
+            // console.log("updatedSourcesUsage::: ", updatedSourcesUsage);
+            setScenes(updatedScenes);
+            setSources(updatedSourcesUsage);
+            if (selectedScene === id && updatedScenes.length > 0) {
+              setSelectedScene(updatedScenes[0].id);
+            }
+            return;
+          }
         });
         return;
       }

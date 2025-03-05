@@ -86,6 +86,8 @@ export const MyContextProvider = ({ children }) => {
   const [activeSchedule, setActiveSchedule] = useState(null);
   const [activeProgram, setActiveProgram] = useState(null);
 
+  const [timeLine, setTimeLine] = useState([]);
+
   const [collections, setCollections] = useState([]);
   const [scenes, setScenes] = useState([]);
   const scenesRef = useRef(scenes);
@@ -519,6 +521,15 @@ export const MyContextProvider = ({ children }) => {
           }
         });
 
+        // tempSocket.on("currentScene", (e) => {
+        //   console.log(e);
+        // });
+
+        // tempSocket.on("source", (e) => {
+        //   console.log("incoming", e);
+        //   // initializeSocket();
+        // });
+
         tempSocket.on("update-cameras", (data) => {
           setInputs(data);
         });
@@ -665,7 +676,6 @@ export const MyContextProvider = ({ children }) => {
       stageData: null,
       layer: new Konva.Layer(),
     }));
-    console.log("selectedCollectionScenes::: ", selectedCollectionScenes);
     setFilteredScenes(
       selectedCollectionScenes
       // scenes.filter((scene) =>
@@ -782,6 +792,10 @@ export const MyContextProvider = ({ children }) => {
         setActiveProgram,
 
         setFilteredScenes,
+
+        timeLine,
+        setTimeLine,
+        motherLayer,
       }}
     >
       {children}
