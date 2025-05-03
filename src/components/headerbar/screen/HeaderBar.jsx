@@ -441,7 +441,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </DropdownMenu>
           </Dropdown>
 
-          <Tooltip content={"تازه‌سازی کامل"}>
+          <Tooltip content={"تازه‌سازی کامل ویدئووال و کنترلر"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -469,7 +469,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </Button>
           </Tooltip>
 
-          <Tooltip content={"تازه‌سازی کنترلر"}>
+          {/* <Tooltip content={"تازه‌سازی کنترلر"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -491,7 +491,7 @@ const HeaderBar = ({ toggleLayout }) => {
             >
               <TfiPanel size={20} />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
 
           {/* <Tooltip content={"تازه‌سازی نمایشگر"}>
             <Button
@@ -545,12 +545,12 @@ const HeaderBar = ({ toggleLayout }) => {
             </Button>
           </Tooltip> */}
 
-          <Tooltip content="تنظیمات شبکه">
+          <Tooltip content={connecting ? "تنظیمات شبکه(متصل)" : "تنظیمات شبکه(اشکال در اتصال)"}>
             <Button
               className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
               size="lg"
               variant="solid"
-              color="default"
+              color={connecting ? "default" : "danger"}
               onPress={async () => {
                 const defaultStaticIP = localStorage.getItem("host") ?? "192.168.1.101";
                 const defaultSubnetMask = "255.255.255.0";
@@ -569,22 +569,11 @@ const HeaderBar = ({ toggleLayout }) => {
                   <br />
                     <label>Static IP</label>
                     <input type="text" value="${defaultStaticIP}" id="swal-input1" class="swal2-input">
-                    <label>Subnet Mask</label>
-                    <input type="text" value="${defaultSubnetMask}" id="swal-input2" class="swal2-input">
-                    <label>Gateway</label>
-                    <input type="text" value="${defaultGateway}" id="swal-input3" class="swal2-input">
-                    <br />
-                    <label>DNS</label>
-                    <input type="text" value="${defaultDNS}" id="swal-input4" class="swal2-input">
+                    
                    `,
                   didOpen: () => {
                     const ipTypeSelect = document.getElementById("swal-ip-type");
-                    const staticFields = [
-                      document.getElementById("swal-input1"),
-                      document.getElementById("swal-input2"),
-                      document.getElementById("swal-input3"),
-                      document.getElementById("swal-input4"),
-                    ];
+                    const staticFields = [document.getElementById("swal-input1")];
 
                     ipTypeSelect.addEventListener("change", (e) => {
                       const isStatic = e.target.value === "static";
@@ -598,9 +587,9 @@ const HeaderBar = ({ toggleLayout }) => {
                   preConfirm: () => {
                     const ipType = document.getElementById("swal-ip-type").value;
                     const staticIP = document.getElementById("swal-input1").value.trim();
-                    const subnetMask = document.getElementById("swal-input2").value.trim();
-                    const gateway = document.getElementById("swal-input3").value.trim();
-                    const dns = document.getElementById("swal-input4").value.trim();
+                    // const subnetMask = document.getElementById("swal-input2").value.trim();
+                    // const gateway = document.getElementById("swal-input3").value.trim();
+                    // const dns = document.getElementById("swal-input4").value.trim();
 
                     if (ipType === "static") {
                       const ipRegex =
@@ -614,24 +603,24 @@ const HeaderBar = ({ toggleLayout }) => {
                         );
                         return false;
                       }
-                      if (!subnetMaskRegex.test(subnetMask)) {
-                        Swal.showValidationMessage(
-                          "لطفاً یک Subnet Mask معتبر وارد کنید (مثال: 255.255.255.0)"
-                        );
-                        return false;
-                      }
-                      if (!ipRegex.test(gateway)) {
-                        Swal.showValidationMessage(
-                          "لطفاً یک Gateway معتبر وارد کنید (مثال: 192.168.1.1)"
-                        );
-                        return false;
-                      }
-                      if (!ipRegex.test(dns)) {
-                        Swal.showValidationMessage("لطفاً یک DNS معتبر وارد کنید (مثال: 8.8.8.8)");
-                        return false;
-                      }
+                      // if (!subnetMaskRegex.test(subnetMask)) {
+                      //   Swal.showValidationMessage(
+                      //     "لطفاً یک Subnet Mask معتبر وارد کنید (مثال: 255.255.255.0)"
+                      //   );
+                      //   return false;
+                      // }
+                      // if (!ipRegex.test(gateway)) {
+                      //   Swal.showValidationMessage(
+                      //     "لطفاً یک Gateway معتبر وارد کنید (مثال: 192.168.1.1)"
+                      //   );
+                      //   return false;
+                      // }
+                      // if (!ipRegex.test(dns)) {
+                      //   Swal.showValidationMessage("لطفاً یک DNS معتبر وارد کنید (مثال: 8.8.8.8)");
+                      //   return false;
+                      // }
                       localStorage.setItem("host", staticIP);
-                      return { ipType, staticIP, subnetMask, gateway, dns };
+                      return { ipType, staticIP };
                     }
                     flagDHCP = true;
                     return { ipType };
@@ -667,6 +656,7 @@ const HeaderBar = ({ toggleLayout }) => {
                         ? `Static IP: ${formValues.staticIP}\nSubnet Mask: ${formValues.subnetMask}\nGateway: ${formValues.gateway}\nDNS: ${formValues.dns}`
                         : "تنظیمات برای IP Dynamic اعمال شد!",
                   });
+                  location.reload();
                 }
               }}
             >
