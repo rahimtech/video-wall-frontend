@@ -32,10 +32,14 @@ const UsageSidebar = () => {
     deleteSourceFromScene,
     fitToMonitors,
     sendOperation,
+    selectedSource,
+    setSelectedSource,
   } = useMyContext();
 
   let usageSources = null;
   usageSources = sources.filter((item) => item.sceneId === getSelectedScene()?.id) ?? [];
+  console.log("selectedSource::: ", selectedSource);
+  console.log("usageSources::: ", usageSources);
 
   const updateSourceName = (resourceId, newName, isSource = true) => {
     setSources((prev) =>
@@ -186,8 +190,12 @@ const UsageSidebar = () => {
             return (
               <li
                 key={`${resource.externalId}-${Math.random()}`}
-                className={`text-sm flex flex-wrap items-center justify-between ${
-                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                className={`text-sm flex flex-wrap items-center justify-between  ${
+                  selectedSource == resource.externalId
+                    ? "bg-blue-500"
+                    : darkMode
+                    ? "bg-gray-700"
+                    : "bg-gray-300"
                 } p-2 rounded-md shadow-sm`}
               >
                 <div className="flex items-center w-[50%]">

@@ -79,6 +79,8 @@ function App() {
     trimPrefix,
     monitorConnection,
     setMonitorConnection,
+    setSelectedSource,
+    selectedSource,
   } = useMyContext();
 
   useEffect(() => {
@@ -253,19 +255,37 @@ function App() {
 
   useEffect(() => {
     const selectedSceneLayer = getSelectedScene()?.layer;
-
     getSelectedScene()?.stageData?.on("click", (e) => {
+      setSelectedSource(e.target.attrs.uniqId);
+
       if (e.target === getSelectedScene()?.stageData || e.target.attrs.catFix == "monitor") {
         selectedSceneLayer.find("Transformer").forEach((tr) => tr.detach());
+        setSelectedSource(null);
 
         selectedSceneLayer.find("Group").forEach((group) => {
           group.draggable(false);
         });
 
         selectedSceneLayer.draw();
+      } else {
+        // console.log("e::: ", e.currentTarget.id());
+
+        selectedSceneLayer.find("Transformer").forEach((tr) => {
+          if (tr.attrs.id != e.target.attrs.uniqId) {
+            tr.detach();
+          }
+        });
+
+        selectedSceneLayer.find("Group").forEach((group) => {
+          if (group.attr.id != e.target.attrs.uniqId) {
+            group.draggable(false);
+          }
+        });
+
+        selectedSceneLayer.draw();
       }
     });
-  }, [getSelectedScene()?.stageData, getSelectedScene()?.layer]);
+  }, [getSelectedScene()?.stageData, getSelectedScene()?.layer, selectedSource]);
 
   return (
     <main

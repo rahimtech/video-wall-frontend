@@ -93,6 +93,7 @@ export const MyContextProvider = ({ children }) => {
   const scenesRef = useRef(scenes);
   const [url, setUrl] = useState(null);
 
+  const [selectedSource, setSelectedSource] = useState(null);
   const [selectedCollection, setSelectedCollection] = useState(1);
   const [sources, setSources] = useState([]);
   const [pendingOperations, setPendingOperation] = useState([]);
@@ -796,6 +797,9 @@ export const MyContextProvider = ({ children }) => {
         timeLine,
         setTimeLine,
         motherLayer,
+
+        selectedSource,
+        setSelectedSource,
       }}
     >
       {children}

@@ -15,6 +15,7 @@ import { useMyContext } from "@/context/MyContext";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import api from "@/api/api";
+import { Tabs, Tab, Card, CardBody } from "@heroui/react";
 
 const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -369,83 +370,59 @@ const ResourcesSidebar = () => {
       )}
 
       {/* Fixed Header */}
-      <div className="sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">
-            ورودی و فایل‌ها {`(${eval(resources.length + inputs.length)})`}
-          </h2>
-          <Dropdown dir="rtl" className="vazir">
-            <DropdownTrigger>
-              <Button
-                className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
-                size="lg"
-                variant="light"
-                color="default"
-              >
-                <MdAddBox />
-              </Button>
-            </DropdownTrigger>
-
-            <DropdownMenu aria-label="Static Actions">
-              <DropdownItem onPress={() => addResource("VIDEO")} key="video">
-                افزودن ویدیو
-              </DropdownItem>
-              <DropdownItem onPress={() => addResource("IMAGE")} key="image">
-                افزودن تصویر
-              </DropdownItem>
-              {/* <DropdownItem onPress={() => addResource("TEXT")} key="text">
-                افزودن متن
-              </DropdownItem> */}
-              <DropdownItem onPress={() => addResource("IFRAME")} key="web">
-                افزودن صفحه وب
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
-        </div>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto ">
-        <ul className="flex flex-col gap-2">
-          {inputs?.map((input) => (
-            <li
-              key={input.id}
-              className={`text-sm flex flex-wrap items-center justify-between ${
-                darkMode ? "bg-orange-600" : "bg-orange-600 "
-              } p-2 rounded-md shadow-sm flex-wrap`}
-            >
-              <div className="flex items-center w-[50%]">
-                {editingResourceId === input.id ? (
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={handleNameChange}
-                    onBlur={() => handleNameSave(input.id)}
-                    className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    className={` ${darkMode ? "text-white" : "text-white"} mr-2 truncate`}
-                    // onDoubleClick={() => handleDoubleClick(input)}
-                  >
-                    {input.name}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 w-[50%] justify-end">
-                <Tooltip content="افزودن به صحنه">
-                  <Button
-                    className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                    size="sm"
-                    variant="light"
-                    color="default"
-                    onPress={() => addInput({ input, getSelectedScene, setSources, sendOperation })}
-                  >
-                    <MdAddBox />
-                  </Button>
-                </Tooltip>
-                {/* <Dropdown>
+      <div className="sticky flex z-[50] ">
+        <div className="w-full">
+          <Tabs
+            classNames={{ base: "sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit" }}
+            aria-label="Options"
+          >
+            <Tab key="inputs" title={`ورودی‌ها: ${inputs.length}`}>
+              {/* Scrollable content INPUT */}
+              <div className="flex-1 overflow-y-auto ">
+                <ul className="flex flex-col gap-2">
+                  {inputs?.map((input) => (
+                    <li
+                      key={input.id}
+                      className={`text-sm flex flex-wrap items-center justify-between ${
+                        darkMode ? "bg-orange-600" : "bg-orange-600 "
+                      } p-2 rounded-md shadow-sm flex-wrap`}
+                    >
+                      <div className="flex items-center w-[50%]">
+                        {editingResourceId === input.id ? (
+                          <input
+                            type="text"
+                            value={newName}
+                            onChange={handleNameChange}
+                            onBlur={() => handleNameSave(input.id)}
+                            className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className={` ${darkMode ? "text-white" : "text-white"} mr-2 truncate`}
+                            // onDoubleClick={() => handleDoubleClick(input)}
+                          >
+                            {input.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 w-[50%] justify-end">
+                        <Tooltip content="افزودن به صحنه">
+                          <Button
+                            className={`${
+                              darkMode ? "text-white" : "text-black"
+                            } min-w-fit h-fit p-1`}
+                            size="sm"
+                            variant="light"
+                            color="default"
+                            onPress={() =>
+                              addInput({ input, getSelectedScene, setSources, sendOperation })
+                            }
+                          >
+                            <MdAddBox />
+                          </Button>
+                        </Tooltip>
+                        {/* <Dropdown>
                   <DropdownTrigger>
                     <Button
                       className={`${darkMode ? "text-white" : "text-white"} min-w-fit h-fit p-1`}
@@ -468,134 +445,149 @@ const ResourcesSidebar = () => {
                     </DropdownItem>
                   </DropdownMenu>
                 </Dropdown> */}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </li>
-          ))}
-          {resources?.map((resource) => (
-            <li
-              key={resource.id}
-              className={`text-sm flex flex-wrap items-center justify-between ${
-                darkMode ? "bg-gray-700" : "bg-gray-300"
-              } p-2 rounded-md shadow-sm flex-wrap`}
-            >
-              <div className="flex items-center w-[50%]">
-                {editingResourceId === resource.id ? (
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={handleNameChange}
-                    onBlur={() => handleNameSave(resource.id)}
-                    className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
-                    onDoubleClick={() => handleDoubleClick(resource)}
-                  >
-                    {resource.name}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 w-[50%] justify-end">
-                <Button
-                  className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                  size="sm"
-                  variant="light"
-                  color="default"
-                  onPress={() => deleteResource(resource.id)}
-                >
-                  <FaTrashAlt />
-                </Button>
-                <Tooltip content="افزودن به صحنه">
-                  {resource.type == "IMAGE" ? (
-                    <>
-                      <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                        size="sm"
-                        variant="light"
-                        color="default"
-                        onPress={() => {
-                          videoWalls.length > 0
-                            ? addImage({
-                                img: resource,
-                                getSelectedScene,
-                                setSources,
-                                sendOperation,
-                                url,
-                                generateBlobImageURL,
-                              })
-                            : Swal.fire({
-                                title: "!مانیتوری در صحنه وجود ندارد",
-                                icon: "warning",
-                                confirmButtonText: "باشه",
-                                confirmButtonColor: "gray",
-                              });
-                        }}
-                      >
-                        <MdAddBox />
-                      </Button>
-                    </>
-                  ) : resource.type == "VIDEO" ? (
-                    <>
-                      <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                        size="sm"
-                        variant="light"
-                        color="default"
-                        onPress={() => {
-                          videoWalls.length > 0
-                            ? addVideo({
-                                videoItem: resource,
-                                getSelectedScene,
-                                setSources,
-                                sendOperation,
-                                url,
-                                loopVideos,
-                              })
-                            : Swal.fire({
-                                title: "!مانیتوری در صحنه وجود ندارد",
-                                icon: "warning",
-                                confirmButtonText: "باشه",
-                                confirmButtonColor: "gray",
-                              });
-                        }}
-                      >
-                        <MdAddBox />
-                      </Button>
-                    </>
-                  ) : resource.type == "IFRAME" ? (
-                    <>
-                      <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                        size="sm"
-                        variant="light"
-                        color="default"
-                        onPress={() => {
-                          videoWalls.length > 0
-                            ? addWeb({
-                                webResource: resource,
-                                getSelectedScene,
-                                setSources,
-                                sendOperation,
-                                url,
-                              })
-                            : Swal.fire({
-                                title: "!مانیتوری در صحنه وجود ندارد",
-                                icon: "warning",
-                                confirmButtonText: "باشه",
-                                confirmButtonColor: "gray",
-                              });
-                        }}
-                      >
-                        <MdAddBox />
-                      </Button>
-                    </>
-                  ) : (
-                    <></>
-                  )}
-                </Tooltip>
-                {/* <Dropdown>
+            </Tab>
+            <Tab key="resources" title={`فایل‌ها: ${resources.length}`}>
+              {/* Scrollable content resources */}
+              <div className="flex-1 overflow-y-auto ">
+                <ul className="flex flex-col gap-2">
+                  {resources?.map((resource) => (
+                    <li
+                      key={resource.id}
+                      className={`text-sm flex flex-wrap items-center justify-between ${
+                        darkMode ? "bg-gray-700" : "bg-gray-300"
+                      } p-2 rounded-md shadow-sm flex-wrap`}
+                    >
+                      <div className="flex items-center w-[50%]">
+                        {editingResourceId === resource.id ? (
+                          <input
+                            type="text"
+                            value={newName}
+                            onChange={handleNameChange}
+                            onBlur={() => handleNameSave(resource.id)}
+                            className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
+                            onDoubleClick={() => handleDoubleClick(resource)}
+                          >
+                            {resource.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 w-[50%] justify-end">
+                        <Button
+                          className={`${
+                            darkMode ? "text-white" : "text-black"
+                          } min-w-fit h-fit p-1`}
+                          size="sm"
+                          variant="light"
+                          color="default"
+                          onPress={() => deleteResource(resource.id)}
+                        >
+                          <FaTrashAlt />
+                        </Button>
+                        <Tooltip content="افزودن به صحنه">
+                          {resource.type == "IMAGE" ? (
+                            <>
+                              <Button
+                                className={`${
+                                  darkMode ? "text-white" : "text-black"
+                                } min-w-fit h-fit p-1`}
+                                size="sm"
+                                variant="light"
+                                color="default"
+                                onPress={() => {
+                                  videoWalls.length > 0
+                                    ? addImage({
+                                        img: resource,
+                                        getSelectedScene,
+                                        setSources,
+                                        sendOperation,
+                                        url,
+                                        generateBlobImageURL,
+                                      })
+                                    : Swal.fire({
+                                        title: "!مانیتوری در صحنه وجود ندارد",
+                                        icon: "warning",
+                                        confirmButtonText: "باشه",
+                                        confirmButtonColor: "gray",
+                                      });
+                                }}
+                              >
+                                <MdAddBox />
+                              </Button>
+                            </>
+                          ) : resource.type == "VIDEO" ? (
+                            <>
+                              <Button
+                                className={`${
+                                  darkMode ? "text-white" : "text-black"
+                                } min-w-fit h-fit p-1`}
+                                size="sm"
+                                variant="light"
+                                color="default"
+                                onPress={() => {
+                                  videoWalls.length > 0
+                                    ? addVideo({
+                                        videoItem: resource,
+                                        getSelectedScene,
+                                        setSources,
+                                        sendOperation,
+                                        url,
+                                        loopVideos,
+                                      })
+                                    : Swal.fire({
+                                        title: "!مانیتوری در صحنه وجود ندارد",
+                                        icon: "warning",
+                                        confirmButtonText: "باشه",
+                                        confirmButtonColor: "gray",
+                                      });
+                                }}
+                              >
+                                <MdAddBox />
+                              </Button>
+                            </>
+                          ) : resource.type == "IFRAME" ? (
+                            <>
+                              <Button
+                                className={`${
+                                  darkMode ? "text-white" : "text-black"
+                                } min-w-fit h-fit p-1`}
+                                size="sm"
+                                variant="light"
+                                color="default"
+                                onPress={() => {
+                                  videoWalls.length > 0
+                                    ? addWeb({
+                                        webResource: resource,
+                                        getSelectedScene,
+                                        setSources,
+                                        sendOperation,
+                                        url,
+                                      })
+                                    : Swal.fire({
+                                        title: "!مانیتوری در صحنه وجود ندارد",
+                                        icon: "warning",
+                                        confirmButtonText: "باشه",
+                                        confirmButtonColor: "gray",
+                                      });
+                                }}
+                              >
+                                <MdAddBox />
+                              </Button>
+                            </>
+                          ) : (
+                            <></>
+                          )}
+                        </Tooltip>
+                        {/* <Dropdown>
                   <DropdownTrigger>
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
@@ -704,10 +696,43 @@ const ResourcesSidebar = () => {
                     </DropdownItem>
                   </DropdownMenu>
                 </Dropdown> */}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </li>
-          ))}
-        </ul>
+            </Tab>
+          </Tabs>
+        </div>
+        <div className="w-fit h-fit absolute left-0 top-[5px]">
+          <Dropdown dir="rtl" className="vazir">
+            <DropdownTrigger>
+              <Button
+                className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1 text-xl`}
+                size="lg"
+                variant="light"
+                color="default"
+              >
+                <MdAddBox />
+              </Button>
+            </DropdownTrigger>
+
+            <DropdownMenu aria-label="Static Actions">
+              <DropdownItem onPress={() => addResource("VIDEO")} key="video">
+                افزودن ویدیو
+              </DropdownItem>
+              <DropdownItem onPress={() => addResource("IMAGE")} key="image">
+                افزودن تصویر
+              </DropdownItem>
+              {/* <DropdownItem onPress={() => addResource("TEXT")} key="text">
+                افزودن متن
+              </DropdownItem> */}
+              <DropdownItem onPress={() => addResource("IFRAME")} key="web">
+                افزودن صفحه وب
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
       </div>
     </div>
   );

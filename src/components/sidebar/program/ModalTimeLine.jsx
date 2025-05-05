@@ -221,7 +221,7 @@ const ModalTimeLine = ({
           {(onClose) => (
             <>
               <ModalHeader className="text-lg font-bold border-b pb-2">
-                تایم لاین صحنه‌ها
+                زمانبندی صحنه‌ها
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-4">
@@ -303,6 +303,7 @@ const ModalTimeLine = ({
                 </div>
 
                 <div dir="rtl" className="mt-4">
+                  <div>لیست صحنه‌ها:</div>
                   {timeLine?.length > 0 ? (
                     <ul className="flex flex-col gap-2">
                       {timeLine?.map((entry, index) => (
@@ -355,7 +356,7 @@ const ModalTimeLine = ({
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-center text-gray-500">تایم لاینی تعریف نشده است.</p>
+                    <p className="text-center text-gray-500">صحنه‌ای تعریف نشده است.</p>
                   )}
                 </div>
               </ModalBody>
