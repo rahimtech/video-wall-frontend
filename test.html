@@ -17,7 +17,6 @@
     <video id="video" width="720" height="560" autoplay muted></video>
     <canvas id="overlay" width="720" height="560"></canvas>
 
-    <!-- بارگذاری TensorFlow.js و Face-api.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.0"></script>
     <script
       defer
@@ -25,7 +24,6 @@
     ></script>
 
     <script>
-      // گرفتن ویدیو از دوربین
       async function setupCamera() {
         const video = document.getElementById("video");
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
@@ -37,16 +35,14 @@
         });
       }
 
-      // بارگذاری مدل‌ها از CDN
       async function loadModels() {
         const MODEL_URL =
           "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights";
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL); // Tiny Face Detector
-        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL); // Face Landmarks
-        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL); // Face Expressions
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
       }
 
-      // تشخیص چندین چهره و حالات آن‌ها
       async function detectFaces() {
         const video = document.getElementById("video");
         const canvas = document.getElementById("overlay");
@@ -66,39 +62,36 @@
             const { expressions } = detection;
             const box = detection.detection.box;
 
-            // شناسایی احساس غالب
             const dominantExpression = Object.keys(expressions).reduce((a, b) =>
               expressions[a] > expressions[b] ? a : b
             );
 
-            // انتخاب رنگ بر اساس احساس
             let drawBoxColor;
             switch (dominantExpression) {
               case "happy":
-                drawBoxColor = "green"; // خوشحالی
+                drawBoxColor = "green";
                 break;
               case "angry":
-                drawBoxColor = "red"; // عصبانیت
+                drawBoxColor = "red";
                 break;
               case "sad":
-                drawBoxColor = "blue"; // ناراحتی
+                drawBoxColor = "blue";
                 break;
               case "surprised":
-                drawBoxColor = "orange"; // شگفتی
+                drawBoxColor = "orange";
                 break;
               case "fearful":
-                drawBoxColor = "purple"; // ترس
+                drawBoxColor = "purple";
                 break;
               case "disgusted":
-                drawBoxColor = "brown"; // انزجار
+                drawBoxColor = "brown";
                 break;
               case "neutral":
               default:
-                drawBoxColor = "pink"; // بی‌تفاوتی یا دیگر حالات
+                drawBoxColor = "pink";
                 break;
             }
 
-            // رسم جعبه با رنگ مناسب
             const drawBox = new faceapi.draw.DrawBox(box, {
               label: dominantExpression,
               boxColor: drawBoxColor,
@@ -108,11 +101,10 @@
         }, 100);
       }
 
-      // اجرای برنامه
       async function run() {
-        await loadModels(); // بارگذاری مدل‌ها
-        await setupCamera(); // فعال کردن دوربین
-        detectFaces(); // شروع تشخیص چندین چهره
+        await loadModels();
+        await setupCamera();
+        detectFaces();
       }
 
       window.onload = () => {

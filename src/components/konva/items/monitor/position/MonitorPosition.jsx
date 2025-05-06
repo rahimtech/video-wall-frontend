@@ -73,6 +73,30 @@ export const MonitorLayoutModal = () => {
     setSelectedLayout(key);
   };
 
+  const generateLayoutString = () => {
+    if (!selectedLayout || arrangedMonitors.length === 0) return "";
+
+    const [rows, cols] = selectedLayout.split("x").map(Number);
+    const monitor = arrangedMonitors[0][0];
+
+    const res = `${monitor.width},${monitor.height},60.000`;
+
+    let out = "";
+    let gridPos = "";
+
+    arrangedMonitors.forEach((row, rowIndex) => {
+      row.forEach((monitor, colIndex) => {
+        if (monitor) {
+          gridPos += ` gridPos=${colIndex},${rowIndex}`;
+          out += ` out=${monitor.position.x},${monitor.position.y}`;
+        }
+      });
+    });
+
+    const result = `rows=${rows} cols=${cols} res=${res}${gridPos} ${out} rotate=0 overlapcol=0 overlaprow=0`;
+    return result;
+  };
+
   const arrangeMonitors = (rows, cols) => {
     let monitorIndex = 0;
     const gap = 10;
@@ -103,7 +127,6 @@ export const MonitorLayoutModal = () => {
       })
     );
 
-    console.log("newArrangedMonitors::: ", newArrangedMonitors);
     setArrangedMonitors(newArrangedMonitors);
   };
 
@@ -130,6 +153,7 @@ export const MonitorLayoutModal = () => {
   };
 
   const sendDataToServer = () => {
+    generateLayoutString();
     onClose();
   };
 
@@ -376,7 +400,7 @@ export const updateMonitorPosition = (id, newX, newY) => {
     });
   } else {
     arrangeMForScenes(updatedVideoWalls);
-    setVideoWalls(updatedVideoWalls); // به‌روزرسانی state اگر برخوردی وجود نداشت
+    setVideoWalls(updatedVideoWalls);
   }
 };
 

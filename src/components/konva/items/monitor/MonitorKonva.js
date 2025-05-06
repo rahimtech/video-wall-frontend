@@ -205,7 +205,6 @@ export const arrangeMForScenes = (updatedVideoWalls) => {
           const { x: newX, y: newY } = matchingWall;
           group.position({ x: newX, y: newY });
 
-          // به‌روزرسانی متن مربوط به مانیتور
           const textNode = group.findOne(".monitorText");
           if (textNode) {
             textNode.text(`Monitor ${monitorId}\nX: ${newX}, Y: ${newY}`);
@@ -380,13 +379,12 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
       });
 
       if (hasCollision) {
-        // تغییر رنگ مستطیل در حال حرکت به قرمز
         rect.fill("red");
         setTimeout(() => {
           rect.fill(isConnected ? "#161616" : "red"); // بازگشت به رنگ بر اساس اتصال
           layer.draw();
         }, 500);
-        e.target.position(previousPosition); // بازگشت به موقعیت قبلی
+        e.target.position(previousPosition);
       } else {
         const newX = e.target.x();
         const newY = e.target.y();
@@ -406,8 +404,8 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
         arrangeMForScenes(updatedVideoWalls);
       }
 
-      layer.draw(); // بازسازی لایه
-      setVideoWalls(updatedVideoWalls); // به‌روزرسانی state
+      layer.draw();
+      setVideoWalls(updatedVideoWalls);
     });
 
     group.add(rect);

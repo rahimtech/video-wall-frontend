@@ -105,17 +105,17 @@ const HeaderBar = ({ toggleLayout }) => {
       })),
       displays: videoWalls.map((display) => {
         return {
-          id: display.id, // شناسه یکتا
-          monitorUniqId: display.monitorUniqId || display["Monitor ID"], // شناسه سخت‌افزاری نمایشگر
-          key: display.id || 0, // کلید یکتا برای React
-          x: display.x || 0, // مختصات افقی
-          y: display.y || 0, // مختصات عمودی
-          width: display.width || 1920, // عرض نمایشگر
-          height: display.height || 1080, // ارتفاع نمایشگر
-          Resolution: display.resolution || `${display.width || 1920} X ${display.height || 1080}`, // رزولوشن
-          ScaleFactor: display.scaleFactor || 1, // نسبت مقیاس
+          id: display.id,
+          monitorUniqId: display.monitorUniqId || display["Monitor ID"],
+          key: display.id || 0,
+          x: display.x || 0,
+          y: display.y || 0,
+          width: display.width || 1920,
+          height: display.height || 1080,
+          Resolution: display.resolution || `${display.width || 1920} X ${display.height || 1080}`,
+          ScaleFactor: display.scaleFactor || 1,
           Dpi: display.dpi || null,
-          RefreshRate: display.refreshRate || display["Frequency"] || 60, // نرخ تازه‌سازی
+          RefreshRate: display.refreshRate || display["Frequency"] || 60,
           Internal: display.internal || false,
           Name: display.name || `مانیتور ${display.id || 0}`,
           Primary: display.Primary || display.Primary === "Yes",
@@ -270,7 +270,6 @@ const HeaderBar = ({ toggleLayout }) => {
 
   const handleUpdate = async () => {
     try {
-      // نمایش لودینگ
       Swal.fire({
         title: "در حال دانلود و استخراج فایل...",
         allowOutsideClick: false,

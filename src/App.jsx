@@ -215,6 +215,7 @@ function App() {
   }
 
   useEffect(() => {
+    console.log("test");
     if (socket && connecting && connectionMode) {
       socket.on("displays-arranged", (e) => {
         setIsLoading(false);
@@ -257,7 +258,6 @@ function App() {
   useEffect(() => {
     const selectedSceneLayer = getSelectedScene()?.layer;
     getSelectedScene()?.stageData?.on("click", (e) => {
-      console.log("e::: ", e);
       setSelectedSource(e.target.attrs.uniqId);
 
       if (e.target === getSelectedScene()?.stageData || e.target.attrs.catFix == "monitor") {
@@ -279,7 +279,6 @@ function App() {
         });
 
         selectedSceneLayer.find("Group").forEach((group) => {
-          console.log("group::: ", group);
           if (group.attrs.id != e.target.attrs.uniqId) {
             group.draggable(false);
           }
