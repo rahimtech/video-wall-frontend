@@ -73,7 +73,6 @@ const Login = ({ setCheckLogin }) => {
 const Main = () => {
   const [checkLogin, setCheckLogin] = useState(false);
 
-  // بررسی localStorage برای وضعیت ورود
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
     if (isLoggedIn === "true") {

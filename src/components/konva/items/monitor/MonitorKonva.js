@@ -349,13 +349,13 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
 
     group.on("dragmove", (e) => {
       const { x, y } = e.target.position();
-      const newX = Math.round(x / step) * step; // گام‌های ۵ پیکسلی
+      const newX = Math.round(x / step) * step;
       const newY = Math.round(y / step) * step;
 
       const textNode = group.findOne(".monitorText");
-      textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`); // به‌روزرسانی متن
+      textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`);
 
-      e.target.position({ x: newX, y: newY }); // اعمال موقعیت جدید با گام‌های ۵ پیکسلی
+      e.target.position({ x: newX, y: newY });
     });
 
     group.on("dragend", (e) => {
@@ -381,7 +381,7 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
       if (hasCollision) {
         rect.fill("red");
         setTimeout(() => {
-          rect.fill(isConnected ? "#161616" : "red"); // بازگشت به رنگ بر اساس اتصال
+          rect.fill(isConnected ? "#161616" : "red");
           layer.draw();
         }, 500);
         e.target.position(previousPosition);
