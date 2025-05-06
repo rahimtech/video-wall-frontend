@@ -230,7 +230,9 @@ const CollectionsSidebar = () => {
           <AccordionItem
             className={`  ${
               selectedCollection === collection.id
-                ? "bg-blue-200 text-white"
+                ? darkMode
+                  ? "bg-blue-900 "
+                  : ""
                 : darkMode
                 ? "bg-gray-600"
                 : ""
@@ -343,10 +345,7 @@ const CollectionsSidebar = () => {
                           onDoubleClick={() => setEditingSceneId(scene.id)}
                           onClick={() => handleSceneSelection(scene)}
                         >
-                          <span className="flex-grow font-semibold">
-                            {scene.name}
-                            {filteredScenes?.find((f) => f.id == scene.id) ? " (منتخب) " : ""}
-                          </span>
+                          <span className="flex-grow font-semibold">{scene.name}</span>
                           <div className="flex gap-1">
                             <Tooltip content="حذف صحنه">
                               <Button

@@ -16,7 +16,7 @@ import Toolbar from "react-multi-date-picker/plugins/toolbar";
 import { useMyContext } from "../../../../context/MyContext";
 
 const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, item, uniqId }) => {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [selectedMonitors, setSelectedMonitors] = useState([]);
   const { getSelectedScene, allDataMonitors, sendOperation } = useMyContext();
   const handleMonitorSelection = (index) => {
@@ -36,6 +36,7 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, i
       sendOperation,
       id: uniqId,
     });
+    onClose();
     // onOpenChange(false); // Close the modal after applying
   };
 

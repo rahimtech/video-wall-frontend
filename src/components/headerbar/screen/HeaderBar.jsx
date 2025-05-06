@@ -561,18 +561,12 @@ const HeaderBar = ({ toggleLayout }) => {
                   confirmButtonColor: "gray",
                   title: "تنظیمات شبکه",
                   html: `
-                  <label>نوع IP</label>
-                  <select id="swal-ip-type" class="swal2-select">
-                    <option value="static" selected>Static</option>
-                    <option value="dynamic">Dynamic</option>
-                  </select>
-                  <br />
                     <label>Static IP</label>
                     <input type="text" value="${defaultStaticIP}" id="swal-input1" class="swal2-input">
                     
                    `,
                   didOpen: () => {
-                    const ipTypeSelect = document.getElementById("swal-ip-type");
+                    // const ipTypeSelect = document.getElementById("swal-ip-type");
                     const staticFields = [document.getElementById("swal-input1")];
 
                     ipTypeSelect.addEventListener("change", (e) => {
@@ -585,13 +579,13 @@ const HeaderBar = ({ toggleLayout }) => {
                   },
                   focusConfirm: false,
                   preConfirm: () => {
-                    const ipType = document.getElementById("swal-ip-type").value;
+                    // const ipType = document.getElementById("swal-ip-type").value;
                     const staticIP = document.getElementById("swal-input1").value.trim();
                     // const subnetMask = document.getElementById("swal-input2").value.trim();
                     // const gateway = document.getElementById("swal-input3").value.trim();
                     // const dns = document.getElementById("swal-input4").value.trim();
 
-                    if (ipType === "static") {
+                    if (true) {
                       const ipRegex =
                         /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$/;
                       const subnetMaskRegex =
@@ -620,7 +614,7 @@ const HeaderBar = ({ toggleLayout }) => {
                       //   return false;
                       // }
                       localStorage.setItem("host", staticIP);
-                      return { ipType, staticIP };
+                      return { staticIP };
                     }
                     flagDHCP = true;
                     return { ipType };
@@ -635,7 +629,7 @@ const HeaderBar = ({ toggleLayout }) => {
                 }
 
                 if (formValues) {
-                  if (formValues.ipType === "static") {
+                  if (true) {
                     socket.emit("state", {
                       ipType: formValues.ipType,
                       staticIP: formValues.staticIP,
@@ -664,7 +658,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </Button>
           </Tooltip>
 
-          <Tooltip content="وارد کردن فایل کانفیگ">
+          {/* <Tooltip content="وارد کردن فایل کانفیگ">
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -686,7 +680,7 @@ const HeaderBar = ({ toggleLayout }) => {
             >
               <MdUpload size={20} />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
           <Tooltip content="تغییر ظاهر">
             <Button
               className={`${darkMode ? "dark" : "light"} ${
@@ -730,7 +724,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </Button>
           </Tooltip>
 
-          {/* <Tooltip
+          <Tooltip
             content={
               isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
             }
@@ -792,7 +786,7 @@ const HeaderBar = ({ toggleLayout }) => {
                 <TbLayoutOff size={20} />
               </Button>
             )}
-          </Tooltip> */}
+          </Tooltip>
         </div>
       </div>
 

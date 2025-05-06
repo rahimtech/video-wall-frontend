@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Button,
+  Chip,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -463,6 +464,15 @@ const ResourcesSidebar = () => {
                       } p-2 rounded-md shadow-sm flex-wrap`}
                     >
                       <div className="flex items-center w-[50%]">
+                        <Chip
+                          className="flex text-[10px] p-0 items-center justify-center"
+                          color="warning"
+                          size="sm"
+                          variant="solid"
+                        >
+                          {resource.type}
+                        </Chip>
+
                         {editingResourceId === resource.id ? (
                           <input
                             type="text"

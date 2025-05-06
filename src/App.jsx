@@ -33,6 +33,7 @@ import CollectionsSidebar from "./components/sidebar/program/CollectionsSidebar"
 import UsageSidebar from "./components/sidebar/sources/UsageSidebar";
 import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-icons/md";
 import { CircularProgress, heroui } from "@heroui/react";
+import { MonitorLayoutModal } from "./components/konva/items/monitor/position/MonitorPosition";
 
 function App() {
   let {
@@ -256,6 +257,7 @@ function App() {
   useEffect(() => {
     const selectedSceneLayer = getSelectedScene()?.layer;
     getSelectedScene()?.stageData?.on("click", (e) => {
+      console.log("e::: ", e);
       setSelectedSource(e.target.attrs.uniqId);
 
       if (e.target === getSelectedScene()?.stageData || e.target.attrs.catFix == "monitor") {
@@ -277,7 +279,8 @@ function App() {
         });
 
         selectedSceneLayer.find("Group").forEach((group) => {
-          if (group.attr.id != e.target.attrs.uniqId) {
+          console.log("group::: ", group);
+          if (group.attrs.id != e.target.attrs.uniqId) {
             group.draggable(false);
           }
         });
@@ -315,7 +318,8 @@ function App() {
       />
       {isToggleVideoWall && videoWalls.length > 0 && (
         <div className="flex flex-col absolute right-0 m-4 gap-3 ">
-          {/* <MonitorLayoutModal /> */}
+          <MonitorLayoutModal />
+
           <MonitorPositionEditor
             monitors={videoWalls}
             updateMonitorPosition={updateMonitorPosition}
@@ -389,14 +393,9 @@ function App() {
         </>
       )}
 
-      <Modal
-        scrollBehavior="outside"
-        className=""
-        isOpen={activeModal === "resources"}
-        onClose={closeModal}
-      >
+      <Modal scrollBehavior="outside" isOpen={activeModal === "resources"} onClose={closeModal}>
         <ModalContent>
-          <ModalBody className="p-0">
+          <ModalBody className="p-0 ">
             <ResourcesSidebar />
           </ModalBody>
         </ModalContent>

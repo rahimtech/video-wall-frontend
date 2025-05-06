@@ -13,8 +13,27 @@ import {
   useDisclosure,
   useDraggable,
 } from "@nextui-org/react";
+import React, { useRef, useState } from "react";
+import { useMyContext } from "../../../../../context/MyContext";
+
+const generateLayoutOptions = (total) => {
+  const options = [];
+  for (let rows = 1; rows <= total; rows++) {
+    for (let cols = 1; cols <= total; cols++) {
+      if (rows * cols <= total) {
+        options.push(`${rows}x${cols}`);
+      }
+    }
+  }
+  return options;
+};
 
 export const LayoutDropdownArrMonitor = () => {
+  const { videoWalls } = useMyContext();
+  const totalMonitors = videoWalls.length;
+
+  const layoutOptions = generateLayoutOptions(totalMonitors);
+
   return (
     <div className="relative left-0 top-[200px] z-[100]">
       <Dropdown>
@@ -31,15 +50,9 @@ export const LayoutDropdownArrMonitor = () => {
             arrangeMonitors(rows, cols);
           }}
         >
-          <DropdownItem key="2x2">۲×۲</DropdownItem>
-          <DropdownItem key="3x3">۳×۳</DropdownItem>
-          <DropdownItem key="4x4">۴×۴</DropdownItem>
-          <DropdownItem key="5x5">۵×۵</DropdownItem>
-          <DropdownItem key="6x6">۶×۶</DropdownItem>
-          <DropdownItem key="7x7">۷×۷</DropdownItem>
-          <DropdownItem key="8x8">۸×۸</DropdownItem>
-          <DropdownItem key="9x9">۹×۹</DropdownItem>
-          <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
+          {layoutOptions.map((layout) => (
+            <DropdownItem key={layout}>{layout}</DropdownItem>
+          ))}
         </DropdownMenu>
       </Dropdown>
     </div>
@@ -47,10 +60,12 @@ export const LayoutDropdownArrMonitor = () => {
 };
 
 export const MonitorLayoutModal = () => {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [selectedLayout, setSelectedLayout] = useState(null);
   const [arrangedMonitors, setArrangedMonitors] = useState([]);
   const [selectedMonitors, setSelectedMonitors] = useState([]);
+
+  const { videoWalls } = useMyContext();
 
   const handleLayoutSelect = (key) => {
     const [rows, cols] = key.split("x").map(Number);
@@ -88,22 +103,37 @@ export const MonitorLayoutModal = () => {
       })
     );
 
+    console.log("newArrangedMonitors::: ", newArrangedMonitors);
     setArrangedMonitors(newArrangedMonitors);
   };
 
   const handleMonitorSelect = (rowIndex, colIndex, selectedMonitor) => {
-    const newArrangedMonitors = [...arrangedMonitors];
-    newArrangedMonitors[rowIndex][colIndex] = selectedMonitor;
+    const newArrangedMonitors = arrangedMonitors.map((row) =>
+      row.map((cell) => (cell?.id === selectedMonitor.id ? null : cell))
+    );
+
+    newArrangedMonitors[rowIndex][colIndex] = {
+      ...selectedMonitor,
+      position: {
+        x: colIndex * (selectedMonitor.width + 10),
+        y: rowIndex * (selectedMonitor.height + 10),
+      },
+    };
+
     setArrangedMonitors(newArrangedMonitors);
 
-    // بروزرسانی selectedMonitors
-    setSelectedMonitors((prevSelected) => [...prevSelected, selectedMonitor.id]);
+    const allSelectedIds = newArrangedMonitors
+      .flat()
+      .filter(Boolean)
+      .map((m) => m.id);
+    setSelectedMonitors(allSelectedIds);
   };
 
-  const availableMonitors = (rowIndex, colIndex) => {
-    // فیلتر کردن مانیتورهای قابل انتخاب (آنهایی که هنوز انتخاب نشده‌اند)
-    return videoWalls.filter((wall) => !selectedMonitors.includes(wall.id));
+  const sendDataToServer = () => {
+    onClose();
   };
+
+  const availableMonitors = () => videoWalls;
 
   const resetSelections = () => {
     setArrangedMonitors([]);
@@ -117,7 +147,16 @@ export const MonitorLayoutModal = () => {
         چیدمان مانیتورها
       </Button>
 
-      <Modal scrollBehavior="outside" isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        className="min-w-full  min-h-screen !border-none"
+        classNames={{
+          wrapper: "z-[1000] !border-none",
+          body: "!border-none",
+        }}
+        scrollBehavior="inside"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+      >
         <ModalContent className="w-full">
           {(onClose) => (
             <>
@@ -134,70 +173,60 @@ export const MonitorLayoutModal = () => {
                     color="secondary"
                     onAction={handleLayoutSelect}
                   >
-                    <DropdownItem key="2x2">۲×۲</DropdownItem>
-                    <DropdownItem key="3x3">۳×۳</DropdownItem>
-                    <DropdownItem key="4x4">۴×۴</DropdownItem>
-                    <DropdownItem key="5x5">۵×۵</DropdownItem>
-                    <DropdownItem key="6x6">۶×۶</DropdownItem>
-                    <DropdownItem key="7x7">۷×۷</DropdownItem>
-                    <DropdownItem key="8x8">۸×۸</DropdownItem>
-                    <DropdownItem key="9x9">۹×۹</DropdownItem>
-                    <DropdownItem key="10x10">۱۰×۱۰</DropdownItem>
+                    {generateLayoutOptions(videoWalls.length).map((layout) => (
+                      <DropdownItem key={layout}>{layout}</DropdownItem>
+                    ))}
                   </DropdownMenu>
                 </Dropdown>
 
                 {selectedLayout && (
-                  <div className="monitor-layout">
-                    <h3>چیدمان {selectedLayout}</h3>
-                    <div
-                      className="grid-layout"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: `repeat(${selectedLayout.split("x")[1]}, 1fr)`,
-                        gap: "10px",
-                        width: "100%", // استفاده از 100% عرض برای سازگاری
-                      }}
-                    >
-                      {arrangedMonitors.map((row, rowIndex) => (
+                  <div
+                    className="monitor-layout"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: `repeat(${selectedLayout.split("x")[1]}, 1fr)`,
+                      gridTemplateRows: `repeat(${selectedLayout.split("x")[0]}, 1fr)`,
+                      gap: "10px",
+                      width: "100%",
+                    }}
+                  >
+                    {arrangedMonitors.map((row, rowIndex) =>
+                      row.map((monitor, colIndex) => (
                         <div
-                          key={rowIndex}
-                          className="row"
-                          style={{ display: "flex", flexDirection: "row" }}
+                          key={`${rowIndex}-${colIndex}`}
+                          className="monitor-box"
+                          style={{
+                            width: "100%",
+                            height: "100px",
+                            border: "1px solid #ccc",
+                            padding: "10px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
-                          {row.map((monitor, colIndex) => (
-                            <div
-                              key={colIndex}
-                              className="monitor-box"
-                              style={{
-                                width: "100%",
-                                height: "100px",
-                                border: "1px solid #ccc",
-                                padding: "10px",
-                              }}
-                            >
-                              <p>{monitor ? monitor.name : "خالی"}</p>
-                              <Dropdown>
-                                <DropdownTrigger>
-                                  <Button size="sm" variant="solid">
-                                    انتخاب مانیتور
-                                  </Button>
-                                </DropdownTrigger>
-                                <DropdownMenu>
-                                  {availableMonitors(rowIndex, colIndex).map((wall) => (
-                                    <DropdownItem
-                                      key={wall.id}
-                                      onPress={() => handleMonitorSelect(rowIndex, colIndex, wall)}
-                                    >
-                                      {wall.name}
-                                    </DropdownItem>
-                                  ))}
-                                </DropdownMenu>
-                              </Dropdown>
-                            </div>
-                          ))}
+                          <p>{monitor ? monitor.name || "خالی" : "خالی"}</p>
+
+                          <Dropdown>
+                            <DropdownTrigger>
+                              <Button size="sm" variant="solid">
+                                انتخاب مانیتور
+                              </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu>
+                              {availableMonitors(rowIndex, colIndex).map((wall) => (
+                                <DropdownItem
+                                  key={wall.id}
+                                  onPress={() => handleMonitorSelect(rowIndex, colIndex, wall)}
+                                >
+                                  {wall.name}
+                                </DropdownItem>
+                              ))}
+                            </DropdownMenu>
+                          </Dropdown>
                         </div>
-                      ))}
-                    </div>
+                      ))
+                    )}
                   </div>
                 )}
 
@@ -214,7 +243,7 @@ export const MonitorLayoutModal = () => {
                 <Button color="danger" variant="light" onPress={onClose}>
                   بستن
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onPress={sendDataToServer}>
                   ذخیره
                 </Button>
               </ModalFooter>

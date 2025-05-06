@@ -38,7 +38,6 @@ const UsageSidebar = () => {
 
   let usageSources = null;
   usageSources = sources.filter((item) => item.sceneId === getSelectedScene()?.id) ?? [];
-  console.log("selectedSource::: ", selectedSource);
   console.log("usageSources::: ", usageSources);
 
   const updateSourceName = (resourceId, newName, isSource = true) => {
@@ -191,7 +190,13 @@ const UsageSidebar = () => {
               <li
                 key={`${resource.externalId}-${Math.random()}`}
                 className={`text-sm flex flex-wrap items-center justify-between  ${
-                  selectedSource == resource.externalId
+                  resource.type == "INPUT"
+                    ? selectedSource == resource.uniqId
+                      ? "bg-blue-500"
+                      : darkMode
+                      ? "bg-gray-700"
+                      : "bg-gray-300"
+                    : selectedSource == resource.externalId
                     ? "bg-blue-500"
                     : darkMode
                     ? "bg-gray-700"
