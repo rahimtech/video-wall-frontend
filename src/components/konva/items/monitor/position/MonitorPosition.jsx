@@ -15,6 +15,8 @@ import {
 } from "@nextui-org/react";
 import React, { useRef, useState } from "react";
 import { useMyContext } from "../../../../../context/MyContext";
+import { getConfigMosaic } from "../../../../../api/configuremosaic";
+import api from "../../../../../api/api";
 
 const generateLayoutOptions = (total) => {
   const options = [];
@@ -152,7 +154,9 @@ export const MonitorLayoutModal = () => {
     setSelectedMonitors(allSelectedIds);
   };
 
+  const { url } = useMyContext();
   const sendDataToServer = () => {
+    api.getConfigMosaic(url).then((data) => console.log(data));
     generateLayoutString();
     onClose();
   };

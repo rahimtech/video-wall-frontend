@@ -45,6 +45,8 @@ const ResourcesSidebar = () => {
     setCollections,
     sources,
     trimPrefix,
+    dataDrag,
+    setDataDrag,
   } = useMyContext();
   const uploadMedia = async (file, videoName) => {
     const formData = new FormData();
@@ -338,6 +340,41 @@ const ResourcesSidebar = () => {
     setNewName("");
   };
 
+  const handleDragDropItems = (resource) => {
+    if (resource.type == "IMAGE") {
+      setDataDrag({
+        type: "IMAGE",
+        img: resource,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+        generateBlobImageURL,
+      });
+    } else if (resource.type == "VIDEO") {
+      setDataDrag({
+        type: "VIDEO",
+        videoItem: resource,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+        loopVideos,
+      });
+    } else if (resource.type == "IFRAME") {
+      setDataDrag({
+        type: "IFRAME",
+        webResource: resource,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+      });
+    } else if (resource.type == "INPUT") {
+      setDataDrag({ type: "INPUT", input: resource, getSelectedScene, setSources, sendOperation });
+    }
+  };
+
   // const handleColorChange = (color) => {
   //   setSelectedColor(color.hex);
   //   if (colorPickerResourceId) {
@@ -384,6 +421,8 @@ const ResourcesSidebar = () => {
                   {inputs?.map((input) => (
                     <li
                       key={input.id}
+                      draggable={true}
+                      onDragStart={(e) => handleDragDropItems(input)}
                       className={`text-sm flex flex-wrap items-center justify-between ${
                         darkMode ? "bg-orange-600" : "bg-orange-600 "
                       } p-2 rounded-md shadow-sm flex-wrap`}
@@ -459,6 +498,8 @@ const ResourcesSidebar = () => {
                   {resources?.map((resource) => (
                     <li
                       key={resource.id}
+                      draggable={true}
+                      onDragStart={(e) => handleDragDropItems(resource)}
                       className={`text-sm flex flex-wrap items-center justify-between ${
                         darkMode ? "bg-gray-700" : "bg-gray-300"
                       } p-2 rounded-md shadow-sm flex-wrap`}

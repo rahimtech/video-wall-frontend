@@ -767,7 +767,7 @@ const HeaderBar = ({ toggleLayout }) => {
                     denyButtonColor: "gray",
                   }).then((result) => {
                     if (result.isConfirmed) {
-                      if (!videoWalls.length > 0) {
+                      if (videoWalls.length <= 0) {
                         Swal.fire({
                           title: "!مانیتوری وجود ندارد",
                           icon: "warning",

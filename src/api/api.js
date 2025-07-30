@@ -17,6 +17,7 @@ import {
   deleteProgramSchedule,
   addSceneToProgram,
 } from "./programSchedules";
+import { getConfigMosaic, setConfigMosaic } from "./configuremosaic";
 
 const api = {
   // Scenes
@@ -55,6 +56,10 @@ const api = {
   getMediaById,
   updateMedia,
   deleteMedia,
+
+  //Mosaic
+  setConfigMosaic,
+  getConfigMosaic,
 };
 
 export default api;

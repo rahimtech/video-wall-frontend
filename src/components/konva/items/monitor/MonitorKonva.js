@@ -1,6 +1,7 @@
 import Swal from "sweetalert2";
 
 export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
+  console.log("jsonData::: ", jsonData);
   if (!jsonData || !Array.isArray(jsonData)) {
     Swal.fire({
       title: "خطا",

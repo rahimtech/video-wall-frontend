@@ -51,7 +51,20 @@ export const MyContextProvider = ({ children }) => {
   let fetchDataColl = [];
 
   // States
-  const [videoWalls, setVideoWalls] = useState([]);
+  const [videoWalls, setVideoWalls] = useState([
+    {
+      id: 1,
+      name: "TV1",
+      x: 0,
+      y: 0,
+      width: 1440,
+      height: 900,
+      connected: true,
+      monitorUniqId: 12,
+      monitorNumber: 13,
+    },
+  ]);
+
   const [monitorConnection, setMonitorConnection] = useState([]);
   const [initSofware, setInitSoftwaew] = useState(false);
   const [socket, setSocket] = useState(null);
@@ -100,7 +113,7 @@ export const MyContextProvider = ({ children }) => {
   const [flagOperations, setFlagOperation] = useState(false);
   const [resources, setResources] = useState([]);
   const [flagReset, setFlagReset] = useState(false);
-
+  const [dataDrag, setDataDrag] = useState({});
   const [filteredScenes, setFilteredScenes] = useState([]);
 
   let arrayCollisions = [];
@@ -109,6 +122,24 @@ export const MyContextProvider = ({ children }) => {
   let allDataMonitors = videoWalls;
   let motherLayer;
   let motherStage;
+
+  addMonitorsToScenes({ jsonData: videoWalls, scenes: fetchDataScene, setScenes });
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    if (dataDrag.type == "IMAGE") {
+      addImage(dataDrag);
+    } else if (dataDrag.type == "VIDEO") {
+      addVideo(dataDrag);
+    } else if (dataDrag.type == "IFRAME") {
+      addWeb(dataDrag);
+    } else if (dataDrag.type == "INPUT") {
+      addInput(dataDrag);
+    }
+  };
 
   const getSelectedScene = () => {
     return scenes.find((scene) => scene.id === selectedScene);
@@ -276,9 +307,6 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const sendOperation = (action, payload) => {
-    console.log("action::: ", action);
-    console.log("payload::: ", payload);
-
     if (connectionModeRef.current) {
       if (tempSocket) {
         tempSocket?.emit(action, payload);
@@ -800,6 +828,12 @@ export const MyContextProvider = ({ children }) => {
 
         selectedSource,
         setSelectedSource,
+
+        handleDragOver,
+        handleDrop,
+
+        dataDrag,
+        setDataDrag,
       }}
     >
       {children}

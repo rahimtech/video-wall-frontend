@@ -34,6 +34,7 @@ import UsageSidebar from "./components/sidebar/sources/UsageSidebar";
 import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-icons/md";
 import { CircularProgress, heroui } from "@heroui/react";
 import { MonitorLayoutModal } from "./components/konva/items/monitor/position/MonitorPosition";
+import MosaicSetupModal from "./components/konva/items/monitor/position/MosaicSetupModal";
 
 function App() {
   let {
@@ -82,6 +83,8 @@ function App() {
     setMonitorConnection,
     setSelectedSource,
     selectedSource,
+    handleDragOver,
+    handleDrop,
   } = useMyContext();
 
   useEffect(() => {
@@ -316,13 +319,14 @@ function App() {
         }}
       />
       {isToggleVideoWall && videoWalls.length > 0 && (
-        <div className="flex flex-col absolute right-0 m-4 gap-3 ">
-          <MonitorLayoutModal />
+        <div className="flex flex-col top-[0px] absolute right-0 m-4 gap-3 z-[1000]">
+          <MosaicSetupModal />
+          {/* <MonitorLayoutModal />
 
           <MonitorPositionEditor
             monitors={videoWalls}
             updateMonitorPosition={updateMonitorPosition}
-          />
+          /> */}
         </div>
       )}
       <div className="h-full w-full flex z-50">
@@ -336,6 +340,8 @@ function App() {
                 {scenes.map((scene) => (
                   <div
                     key={scene.id}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
                     id={`containerKonva-${scene.id}`}
                     style={{ display: selectedScene === scene.id ? "block" : "none" }}
                   ></div>

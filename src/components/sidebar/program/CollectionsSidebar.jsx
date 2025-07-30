@@ -256,7 +256,9 @@ const CollectionsSidebar = () => {
                       <source src="/pulseAnim.webm" type="video/webm" />
                     </video>
                   )}
-                  <span className="truncate">{collection.name}</span>
+                  <span className={`truncate ${darkMode ? "text-white" : ""}`}>
+                    {collection.name}
+                  </span>
                 </div>
                 <div className="flex gap-1">
                   <Tooltip content="ویرایش برنامه">
