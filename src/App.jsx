@@ -35,6 +35,7 @@ import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-
 import { CircularProgress, heroui } from "@heroui/react";
 import { MonitorLayoutModal } from "./components/konva/items/monitor/position/MonitorPosition";
 import MosaicSetupModal from "./components/konva/items/monitor/position/MosaicSetupModal";
+import { addMonitorsToScenes } from "./components/konva/items/monitor/MonitorKonva";
 
 function App() {
   let {
@@ -75,6 +76,7 @@ function App() {
     updateMonitorPosition,
 
     IconMenuSidebar,
+    fetchDataScene,
 
     socket,
     connecting,
@@ -131,6 +133,8 @@ function App() {
   }, [isToggleVideoWall, scenes]);
 
   function handleDisplayError(updatedDisplays) {
+    console.log("updatedDisplays::: ", updatedDisplays);
+    console.log("connectionModeRef.current::: ", connectionModeRef.current);
     if (!connectionModeRef.current) return;
     // console.log("🟠 Updated displays received from server:", updatedDisplays);
 
@@ -149,7 +153,7 @@ function App() {
             if (!display.connected) {
               setMonitorConnection(false);
               if (rect) rect.fill("red");
-              if (text) text.text(`Monitor ${display.id} (Disconnected)`);
+              if (text) text.text(`Monitor ${display.name} (Disconnected)`);
 
               if (!group.findOne(".disconnectIcon")) {
                 const disconnectIcon = new Konva.Text({
@@ -163,8 +167,14 @@ function App() {
                 group.add(disconnectIcon);
               }
             } else {
+              // addMonitorsToScenes({
+              //   jsonData: updatedDisplays,
+              //   scenes: scenesRef.current,
+              //   setScenes,
+              // });
+
               if (rect) rect.fill("#161616");
-              if (text) text.setAttr("text", `Monitor ${display.id}`);
+              if (text) text.setAttr("text", `Monitor ${display.name}`);
               setMonitorConnection(true);
 
               const disconnectIcon = group.findOne(".disconnectIcon");
@@ -218,13 +228,13 @@ function App() {
   }
 
   useEffect(() => {
-    console.log("test");
     if (socket && connecting && connectionMode) {
       socket.on("displays-arranged", (e) => {
         setIsLoading(false);
       });
       socket.on("display_error", handleDisplayError);
     } else {
+      console.log("TETESS@@@");
       offDisplays();
     }
   }, [socket, connecting, connectionMode]);

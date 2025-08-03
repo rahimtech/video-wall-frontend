@@ -1,7 +1,6 @@
 import Swal from "sweetalert2";
 
 export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
-  console.log("jsonData::: ", jsonData);
   if (!jsonData || !Array.isArray(jsonData)) {
     Swal.fire({
       title: "خطا",
@@ -15,6 +14,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
   const step = 5;
   const updatedScenes = scenes.map((scene) => {
     const layer = scene.layer;
+
     if (layer) {
       layer.destroyChildren();
     }
@@ -62,7 +62,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
         x: 10,
         y: 10,
         text: monitor.connected
-          ? `Monitor ${monitor.id} (${monitor.monitorNumber})`
+          ? `Monitor ${monitor.name}`
           : `Monitor ${monitor.id} (Disconnected)`,
         fontSize: 50,
         fill: "white",
@@ -155,6 +155,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
     layer.draw();
     return scene;
   });
+  return updatedScenes;
 };
 
 export const arrangeMForScenes = (updatedVideoWalls) => {
@@ -324,9 +325,7 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
     const text = new Konva.Text({
       x: 10,
       y: 10,
-      text: isConnected
-        ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
-        : `Monitor ${monitor.id} (Disconnected)`,
+      text: isConnected ? `Monitor ${monitor.name}` : `Monitor ${monitor.name} (Disconnected)`,
       fontSize: 50,
       fill: "white",
       align: "left",

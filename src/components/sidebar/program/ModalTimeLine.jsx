@@ -139,7 +139,7 @@ const ModalTimeLine = ({
 
     setTimeLine((prev) => {
       const newTimeline = changeOrderTimeLine(prev);
-      updateCollectionSchedules(newTimeline);
+      // updateCollectionSchedules(newTimeline);
       return newTimeline;
     });
 

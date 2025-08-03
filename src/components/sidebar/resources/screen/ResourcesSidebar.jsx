@@ -159,14 +159,6 @@ const ResourcesSidebar = () => {
       confirmButtonText: "بله",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        try {
-          setMiniLoad(true);
-          // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
-          await api.deleteMedia(url, id);
-        } finally {
-          setMiniLoad(false);
-        }
-
         let flagCheckIsResourceUse = false;
         collections.find((f) => {
           f.schedules.find((s) => {
@@ -177,6 +169,16 @@ const ResourcesSidebar = () => {
             });
           });
         });
+
+        if (!flagCheckIsResourceUse) {
+          try {
+            setMiniLoad(true);
+            // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
+            await api.deleteMedia(url, id);
+          } finally {
+            setMiniLoad(false);
+          }
+        }
 
         if (flagCheckIsResourceUse) {
           Swal.fire({
@@ -189,7 +191,7 @@ const ResourcesSidebar = () => {
             denyButtonText: `خیر`,
             confirmButtonColor: "green",
             denyButtonColor: "gray",
-          }).then((result) => {
+          }).then(async (result) => {
             if (result.isConfirmed) {
               const colEndPoint = collections.map((so) => {
                 so.schedules.map((s) => {
@@ -216,6 +218,14 @@ const ResourcesSidebar = () => {
                 });
                 return so;
               });
+
+              try {
+                setMiniLoad(true);
+                // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
+                await api.deleteMedia(url, id);
+              } finally {
+                setMiniLoad(false);
+              }
 
               // const colEndPoint2 = collections.map((col) => {
               //   const newSch = col.schedules.filter((sch) => sch.scene_id !== id);

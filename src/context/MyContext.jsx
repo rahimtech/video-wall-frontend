@@ -59,9 +59,42 @@ export const MyContextProvider = ({ children }) => {
       y: 0,
       width: 1440,
       height: 900,
-      connected: true,
+      connected: false,
       monitorUniqId: 12,
       monitorNumber: 13,
+    },
+    {
+      id: 2,
+      name: "TV2",
+      x: 1440,
+      y: 0,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 14,
+      monitorNumber: 15,
+    },
+    {
+      id: 3,
+      name: "TV3",
+      x: 0,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 16,
+      monitorNumber: 17,
+    },
+    {
+      id: 4,
+      name: "TV4",
+      x: 1440,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 18,
+      monitorNumber: 19,
     },
   ]);
 
@@ -94,7 +127,7 @@ export const MyContextProvider = ({ children }) => {
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
 
-  //Scheduling Checks ...
+  //Scheduling Checks...
   const [activeSceneId, setActiveSceneId] = useState(null);
   const [activeSchedule, setActiveSchedule] = useState(null);
   const [activeProgram, setActiveProgram] = useState(null);
@@ -123,7 +156,7 @@ export const MyContextProvider = ({ children }) => {
   let motherLayer;
   let motherStage;
 
-  addMonitorsToScenes({ jsonData: videoWalls, scenes: fetchDataScene, setScenes });
+  // addMonitorsToScenes({ jsonData: videoWalls, scenes: fetchDataScene, setScenes });
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -275,6 +308,7 @@ export const MyContextProvider = ({ children }) => {
       height: window.innerHeight,
       draggable: true,
     });
+    console.log("window.innerHeight::: ", window.innerHeight);
     const newLayer = new Konva.Layer();
 
     var scaleBy = 1.04;
@@ -295,17 +329,28 @@ export const MyContextProvider = ({ children }) => {
         y: pointer.y - mousePointTo.y * newScale,
       };
       stage.position(newPos);
+      localStorage.setItem("wheelX", e.currentTarget.attrs.scaleX);
+      localStorage.setItem("wheelY", e.currentTarget.attrs.scaleY);
+      localStorage.setItem("positionX", e.currentTarget.attrs.x);
+      localStorage.setItem("positionY", e.currentTarget.attrs.y);
     });
+    let x = eval(window.innerWidth / 2) - 100;
+    let y = eval(window.innerHeight / 2) - 100;
+    let oldX = localStorage.getItem("wheelX");
+    let oldY = localStorage.getItem("wheelY");
+    let oldPX = localStorage.getItem("positionX");
+    let oldPY = localStorage.getItem("positionY");
 
-    stage.position({ x: 380, y: 200 });
+    stage.position({ x: x, y: y });
     stage.scale({ x: 0.09, y: 0.09 });
+    // stage.position({ x: parseInt(oldX) ?? 380, y: parseInt(oldY) ?? 200 });
+    // stage.scale({ x: parseInt(oldPX) ?? 0.09, y: parseInt(oldPY) ?? 0.09 });
 
     stage.add(isLayer ?? newLayer);
     motherLayer = newLayer;
     motherStage = stage;
     return { stage, layer: isLayer ?? newLayer };
   };
-
   const sendOperation = (action, payload) => {
     if (connectionModeRef.current) {
       if (tempSocket) {
@@ -316,6 +361,41 @@ export const MyContextProvider = ({ children }) => {
       // api.createSource(url, payload.payload);
     } else {
       setPendingOperation((prev) => [...prev, { action, payload }]);
+    }
+  };
+
+  const addTempMonitorToScreen = () => {
+    if (!connectionMode || !socket) {
+      console.log(
+        "%cCONNECTION DOWN",
+        "color: red; font-weight: bold; font-size: 20px; background: yellow; padding: 5px; border: 2px solid red; border-radius: 5px;"
+      );
+      if (scenesRef.length <= 0) {
+        setScenes([
+          {
+            name: "صحنه پیش فرض",
+            id: 1,
+            resources: [],
+            stageData: null,
+            layer: new Konva.Layer(),
+          },
+        ]);
+        const result = addMonitorsToScenes({
+          jsonData: videoWalls,
+          scenes: [
+            {
+              name: "صحنه پیش فرض",
+              id: 1,
+              resources: [],
+              stageData: null,
+              layer: new Konva.Layer(),
+            },
+          ],
+          setScenes,
+        });
+        setScenes(result);
+        setSelectedScene(1);
+      }
     }
   };
 
@@ -335,8 +415,16 @@ export const MyContextProvider = ({ children }) => {
       return;
     }
     async function initializeSocket() {
+      // console.log("videoWalls:123:: ", videoWalls);
+      // addMonitorsToScenes({ jsonData: videoWalls, scenes: fetchDataScene, setScenes });
+      // const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
+      // console.log("newScene.sources::: ", newScene.sources);
+      // setSources(newScene.sources);
+      // generateScene(newScene.sources, fetchDataScene[0]);
+
       try {
         if (!connectionMode) {
+          addTempMonitorToScreen();
           return;
         }
         const response = await axios.get("/config.json");
@@ -347,14 +435,19 @@ export const MyContextProvider = ({ children }) => {
         setSocket(io(`http://${host}:${port}`));
         tempSocket = io(`http://${host}:${port}`);
 
+        if (!tempSocket.connect) addTempMonitorToScreen();
+
         tempSocket.on("disconnect", () => {
           setConnecting(false);
         });
 
         tempSocket.on("init", async (data) => {
           setIsLoading(false);
-
-          console.log("INIT DATA: ", data);
+          console.log(
+            "%c❇️ CONNECTED INIT DATA",
+            "color: green; font-weight: bold; font-size: 20px; background: limegreen; padding: 5px; border: 2px solid green; border-radius: 5px;",
+            data
+          );
 
           if (data.activeProgram >= 0) {
             setActiveProgram(data.activeProgram);
@@ -379,8 +472,35 @@ export const MyContextProvider = ({ children }) => {
             // setResources([inputs, ...resources]);
           }
 
-          if (data.mosaicDisplays) {
-            const displays = data.mosaicDisplays.map((monitor, index) => {
+          // if (data.mosaicDisplays) {
+          //   const displays = data.mosaicDisplays.map((monitor, index) => {
+          //     return {
+          //       ...monitor,
+          //       // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
+          //       id: monitor.id,
+          //       name: monitor.name,
+          //       x: monitor.x,
+          //       y: monitor.y,
+          //       width: monitor.width,
+          //       height: monitor.height,
+          //       connected: monitor.connected,
+          //       monitorUniqId: monitor.monitorUniqId,
+          //       monitorNumber: monitor.monitorNumber,
+          //     };
+          //   });
+
+          //   await initData();
+          //   setVideoWalls(displays);
+
+          //   addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
+          //   const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
+          //   console.log("newScene.sources::: ", newScene.sources);
+          //   setSources(newScene.sources);
+          //   generateScene(newScene.sources, fetchDataScene[0]);
+          // }
+
+          if (data.displays) {
+            const displays = data.displays.map((monitor, index) => {
               return {
                 ...monitor,
                 // numberMonitor: parseInt(monitor.index), // if software have error return this parametr
@@ -391,8 +511,6 @@ export const MyContextProvider = ({ children }) => {
                 width: monitor.width,
                 height: monitor.height,
                 connected: monitor.connected,
-                monitorUniqId: monitor.monitorUniqId,
-                monitorNumber: monitor.monitorNumber,
               };
             });
 
@@ -401,9 +519,9 @@ export const MyContextProvider = ({ children }) => {
 
             addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
             const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
-            console.log("newScene.sources::: ", newScene.sources);
             setSources(newScene.sources);
             generateScene(newScene.sources, fetchDataScene[0]);
+            setMonitorConnection(true);
           }
 
           // if (data.sources && false) {
@@ -628,13 +746,11 @@ export const MyContextProvider = ({ children }) => {
       try {
         setIsLoading(true);
         const dataCol = await api.getPrograms(url);
-        console.log("dataCol::: ", dataCol);
         fetchDataColl = dataCol;
         setCollections(dataCol ?? []);
         setSelectedCollection(fetchDataColl[0]?.id);
 
         const dataSen = await api.getScenes(url);
-        console.log("dataSen::: ", dataSen);
         fetchDataScene =
           dataSen?.map((item) => ({
             name: item.name,
@@ -643,7 +759,17 @@ export const MyContextProvider = ({ children }) => {
             stageData: null,
             layer: new Konva.Layer(),
           })) ?? [];
-        setScenes(fetchDataScene);
+        if (fetchDataScene.length >= 0) {
+          setScenes(fetchDataScene);
+        } else {
+          setScenes({
+            name: "صحنه پیش فرض",
+            id: 0,
+            resources: [],
+            stageData: null,
+            layer: new Konva.Layer(),
+          });
+        }
 
         const selectedScene = fetchDataScene[0];
         setSelectedScene(fetchDataScene[0].id);

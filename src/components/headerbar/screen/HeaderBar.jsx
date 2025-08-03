@@ -440,7 +440,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </DropdownMenu>
           </Dropdown>
 
-          <Tooltip content={"تازه‌سازی کامل ویدئووال و کنترلر"}>
+          {/* <Tooltip content={"تازه‌سازی کامل ویدئووال و کنترلر"}>
             <Button
               className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
               size="lg"
@@ -466,7 +466,7 @@ const HeaderBar = ({ toggleLayout }) => {
             >
               <MdRefresh size={20} />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
 
           {/* <Tooltip content={"تازه‌سازی کنترلر"}>
             <Button
@@ -723,7 +723,7 @@ const HeaderBar = ({ toggleLayout }) => {
             </Button>
           </Tooltip>
 
-          <Tooltip
+          {/* <Tooltip
             content={
               isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
             }
@@ -785,7 +785,7 @@ const HeaderBar = ({ toggleLayout }) => {
                 <TbLayoutOff size={20} />
               </Button>
             )}
-          </Tooltip>
+          </Tooltip> */}
         </div>
       </div>
 
