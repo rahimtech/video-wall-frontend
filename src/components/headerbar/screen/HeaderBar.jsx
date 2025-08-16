@@ -26,6 +26,7 @@ import axios from "axios";
 import { AiOutlinePoweroff } from "react-icons/ai";
 import { useMyContext } from "../../../context/MyContext";
 import { BsEyeSlash } from "react-icons/bs";
+import { Link } from "@heroui/react";
 
 const HeaderBar = ({ toggleLayout }) => {
   let {
@@ -694,6 +695,10 @@ const HeaderBar = ({ toggleLayout }) => {
               <BsEyeSlash size={25} />
             </Button>
           </Tooltip>
+
+          {/* <Tooltip content="معرفی و راهنمای نرم افزار">
+            <Link href="/doc">لینک</Link>
+          </Tooltip> */}
 
           <ModalVideoWall darkMode={darkMode} videoWall={videoWalls} />
 
