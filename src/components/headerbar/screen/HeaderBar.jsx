@@ -329,7 +329,7 @@ const HeaderBar = ({ toggleLayout }) => {
         id="setting"
         className={` ${isToggleLayout ? "" : ""} ${
           darkMode ? "text-white" : "text-black"
-        } flex items-center z-[100] absolute left-0 p-[10px]`}
+        } flex items-center z-[100]  left-0 right-0 mx-auto p-[10px]`}
       >
         <div className="flex gap-2">
           <Tooltip content={"خروج از اکانت"}>
@@ -786,52 +786,6 @@ const HeaderBar = ({ toggleLayout }) => {
               </Button>
             )}
           </Tooltip> */}
-        </div>
-      </div>
-
-      <div
-        className={` ${
-          darkMode ? "text-white" : "text-black"
-        } flex items-center z-[100] absolute right-0 p-[10px]`}
-      >
-        <div dir="rtl" className="flex flex-col justify-end">
-          <div className="flex items-center">
-            {connecting && connectionMode ? (
-              <div className="blob"></div>
-            ) : (connecting || !connecting) && !connectionMode ? (
-              <div className="bloborange"></div>
-            ) : (
-              <div className="blobred"></div>
-            )}
-            {(connecting || !connecting) && !connectionMode ? (
-              <div className="mr-2">درایور آفلاین</div>
-            ) : !connecting && connectionMode ? (
-              <div className="mr-2">در حال اتصال به درایور</div>
-            ) : connecting && connectionMode ? (
-              <div className="mr-2  ">اتصال به درایور</div>
-            ) : (
-              <></>
-            )}
-          </div>
-          <div className="flex items-center">
-            {monitorConnection && connectionMode ? (
-              <div className="blob"></div>
-            ) : (monitorConnection || !monitorConnection) && !connectionMode ? (
-              <div className="bloborange"></div>
-            ) : (
-              <div className="blobred"></div>
-            )}
-
-            {(monitorConnection || !monitorConnection) && !connectionMode ? (
-              <div className="mr-2">{"مانیتور‌ها آفلاین"}</div>
-            ) : !monitorConnection && connectionMode ? (
-              <div className="mr-2">{"منتظر اتصال مانیتور‌ها "}</div>
-            ) : monitorConnection && connectionMode ? (
-              <div className="mr-2">{"مانیتور‌ها متصل است"}</div>
-            ) : (
-              <></>
-            )}
-          </div>
         </div>
       </div>
     </>

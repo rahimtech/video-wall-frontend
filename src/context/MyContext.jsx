@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import config from "../../public/config.json";
 import api from "../api/api";
 import { deleteSourceFromScene } from "../components/konva/common/deleteSourceFromScene";
@@ -101,6 +101,8 @@ export const MyContextProvider = ({ children }) => {
   const [monitorConnection, setMonitorConnection] = useState([]);
   const [initSofware, setInitSoftwaew] = useState(false);
   const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
+
   const [activeModal, setActiveModal] = useState(null);
   const openModal = (modalType) => setActiveModal(modalType);
   const closeModal = () => setActiveModal(null);
@@ -109,6 +111,8 @@ export const MyContextProvider = ({ children }) => {
   const [isToggleLayout, setIsToggleLayout] = useState(
     localStorage.getItem("layout") === "true" ? true : false || false
   );
+  const [isRightControlsVisible, setIsRightControlsVisible] = useState(true);
+
   const [isLoading, setIsLoading] = useState(false);
   const [miniLoad, setMiniLoad] = useState(false);
   const [isToggleVideoWall, setIsToggleVideoWall] = useState(false);
@@ -124,6 +128,8 @@ export const MyContextProvider = ({ children }) => {
   const videoWallsRef = useRef(videoWalls);
   const connectionModeRef = useRef(connectionMode);
   const [selectedScene, setSelectedScene] = useState(null);
+  const selectedSceneRef = useRef(selectedScene);
+
   const [isBottomControlsVisible, setIsBottomControlsVisible] = useState(true);
   const [editingSceneId, setEditingSceneId] = useState(null);
 
@@ -138,6 +144,7 @@ export const MyContextProvider = ({ children }) => {
   const [scenes, setScenes] = useState([]);
   const scenesRef = useRef(scenes);
   const [url, setUrl] = useState(null);
+  const urlRef = useRef(url);
 
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedCollection, setSelectedCollection] = useState(1);
@@ -175,7 +182,8 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const getSelectedScene = () => {
-    return scenes.find((scene) => scene.id === selectedScene);
+    let scn = scenes.find((scene) => scene.id === selectedScene);
+    return scn;
   };
 
   function generateBlobURL(newBaseURL, videoName) {
@@ -197,81 +205,203 @@ export const MyContextProvider = ({ children }) => {
     return str;
   }
 
-  function generateScene(data, sceneData) {
-    const sceneDataFuncConvertor = () => {
-      return sceneData;
-    };
-    data.forEach((item) => {
-      let type;
-      let content;
-      let endObj = {};
-
-      if (item.media?.type == "INPUT") {
-        type = "INPUT";
-        content = item.media.content;
-        endObj = { name: item.name ?? "INPUT", externalId: item.externalId };
-      } else if (item.media?.type == "IMAGE") {
-        type = "IMAGE";
-        content = item.media.content;
-        const imageURL = `${url}/${content}`;
-        let img = new Image();
-        img.src = imageURL;
-        let imageName = "image" + counterImages++;
-        endObj = {
-          name: item.name ?? imageName,
-          imageElement: img,
-          externalId: item.externalId,
-        };
-      } else if (item.media?.type == "VIDEO") {
-        type = "VIDEO";
-        content = item.media.content;
-        const video = document.createElement("video");
-        video.src = `${url}/${item.media.content}`;
-        const videoName = "video" + counterVideos++;
-        video.setAttribute("name", videoName);
-        video.setAttribute("id", item.id);
-        endObj = {
-          videoElement: video,
-          name: item.name ?? videoName,
-          externalId: item.externalId,
-        };
-      } else if (item.media?.type == "IFRAME") {
-        type = "IFRAME";
-        content = item.media.content;
-        endObj = {
-          externalId: item.externalId,
-        };
-      }
-
+  function contentGenerator(type, item) {
+    let endObj;
+    if (type === "INPUT") {
+      endObj = { name: item.name ?? "INPUT", externalId: item.externalId };
+    } else if (type === "IMAGE") {
+      const imageURL = `${urlRef.current}/${item.media?.content || item.content}`;
+      const img = new Image();
+      img.src = imageURL;
+      const imageName = "image" + counterImages++;
       endObj = {
-        ...endObj,
-        id: item.id,
-        sceneId: item.sceneId,
-        type,
-        content: item.media.content,
-        width: item.width,
-        height: item.height,
-        x: item.x,
-        y: item.y,
-        name: item.name ?? "",
-        rotation: parseInt(item.rotation),
+        name: item.name ?? imageName,
+        imageElement: img,
+        externalId: item.externalId,
       };
+    } else if (type === "VIDEO") {
+      const video = document.createElement("video");
+      video.src = `${urlRef.current}/${item.media?.content || item.content}`;
+      const videoName = "video" + counterVideos++;
+      video.setAttribute("name", videoName);
+      video.setAttribute("id", item.id);
+      endObj = {
+        videoElement: video,
+        name: item.name ?? videoName,
+        externalId: item.externalId,
+      };
+    } else if (type === "IFRAME") {
+      endObj = { externalId: item.externalId };
+    }
 
+    console.log("endObj:::1231 ", endObj);
+    endObj = {
+      ...endObj,
+      id: item.id,
+      sceneId: item.sceneId,
+      type,
+      content: item.media?.content || item.content,
+      width: item.width,
+      height: item.height,
+      x: item.x,
+      y: item.y,
+      name: item.name ?? "",
+      rotation: parseInt(item.rotation) || 0,
+    };
+
+    return { endObj, type };
+  }
+
+  const removeSource = (id) => {
+    const scene = scenesRef.current.find((s) => s.id === selectedSceneRef.current);
+    if (!scene) return;
+    const toRemove = scene.layer.find(`#${id}`);
+    toRemove.forEach((g) => g.destroy());
+    scene.layer.draw();
+    setSources((prev) => prev.filter((item) => item.externalId !== id));
+  };
+
+  const updateSource = (id, attrs) => {
+    const scene = scenesRef.current.find(
+      (s) => s.id === (attrs?.sceneId ?? selectedSceneRef.current)
+    );
+    if (!scene) return;
+
+    const group = scene.layer.findOne(`#${id}`);
+    if (!group) return;
+
+    if (attrs.x !== undefined || attrs.y !== undefined) {
+      group.position({
+        x: attrs.x !== undefined ? attrs.x : group.x(),
+        y: attrs.y !== undefined ? attrs.y : group.y(),
+      });
+    }
+
+    const imageNode = group.findOne(".object") || group.findOne("Image");
+
+    if (imageNode && (attrs.width !== undefined || attrs.height !== undefined)) {
+      if (attrs.width !== undefined) imageNode.width(attrs.width);
+      if (attrs.height !== undefined) imageNode.height(attrs.height);
+      group.scale({ x: 1, y: 1 });
+    }
+
+    if (attrs.rotation !== undefined) {
+      group.rotation(attrs.rotation);
+    }
+
+    scene.layer.batchDraw();
+
+    setSources((prev) => prev.map((src) => (src.externalId === id ? { ...src, ...attrs } : src)));
+  };
+
+  const handleSourceEvent = useCallback(({ action, payload, id }) => {
+    const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
+    const scene = getScene();
+    if (!scene || !scene.layer) return;
+    switch (action) {
+      case "add": {
+        const { endObj, type } = contentGenerator(payload.type, payload);
+        const getSelected = () => getScene();
+        if (type === "VIDEO") {
+          addVideo({
+            videoItem: endObj,
+            mode: false,
+            getSelectedScene: getSelected,
+            setSources,
+            sendOperation,
+            url: urlRef.current,
+            loopVideos,
+          });
+        } else if (type === "IMAGE") {
+          addImage({
+            img: endObj,
+            mode: false,
+            getSelectedScene: getSelected,
+            setSources,
+            sendOperation,
+            url: urlRef.current,
+            generateBlobImageURL,
+          });
+        } else if (type === "INPUT") {
+          addInput({
+            input: endObj,
+            mode: false,
+            getSelectedScene: getSelected,
+            setSources,
+            sendOperation,
+          });
+        } else if (type === "IFRAME") {
+          addWeb({
+            webResource: endObj,
+            mode: false,
+            getSelectedScene: getSelected,
+            setSources,
+            sendOperation,
+          });
+        }
+        break;
+      }
+      case "remove":
+        removeSource(id);
+        break;
+      case "update":
+      case "move":
+      case "resize":
+        updateSource(id, payload);
+      case "rotate":
+        updateSource(id, payload);
+        break;
+      case "play":
+        playVideo(id);
+        break;
+      case "pause":
+        pauseVideo(id);
+        break;
+      case "loop":
+        toggleLoopVideo(id);
+        break;
+      case "fit":
+        fitToMonitors({
+          uniqId: id,
+          selectedMonitors: payload?.selectedMonitors || [],
+          getSelectedScene: getScene,
+          allDataMonitors,
+          sendOperation,
+          id,
+        });
+        break;
+      case "reset":
+        console.log("Resetting all sources and the entire driver canvas");
+        break;
+      default:
+        console.log(`Unsupported action ${action}:${id}`, payload);
+        break;
+    }
+  }, []);
+
+  function generateScene(data, sceneData) {
+    data.forEach((item) => {
+      let { endObj, type } = contentGenerator(item.media?.type, item);
+
+      //Just convert to fuction
+      const convertToFunction = () => {
+        return sceneData;
+      };
       if (type === "IMAGE") {
         addImage({
           img: endObj,
           mode: false,
-          getSelectedScene: sceneDataFuncConvertor,
+          getSelectedScene: convertToFunction,
           setSources,
           sendOperation,
-          url,
+          url: urlRef.current,
           generateBlobImageURL,
         });
       } else if (type === "INPUT") {
         addInput({
           input: endObj,
           mode: false,
-          getSelectedScene: sceneDataFuncConvertor,
+          getSelectedScene: convertToFunction,
           setSources,
           sendOperation,
         });
@@ -279,17 +409,17 @@ export const MyContextProvider = ({ children }) => {
         addVideo({
           videoItem: endObj,
           mode: false,
-          getSelectedScene: sceneDataFuncConvertor,
+          getSelectedScene: convertToFunction,
           setSources,
           sendOperation,
-          url,
+          url: urlRef.current,
           loopVideos,
         });
       } else if (type == "IFRAME") {
         addWeb({
           webResource: endObj,
           mode: false,
-          getSelectedScene: sceneDataFuncConvertor,
+          getSelectedScene: convertToFunction,
           setSources,
           sendOperation,
         });
@@ -308,7 +438,6 @@ export const MyContextProvider = ({ children }) => {
       height: window.innerHeight,
       draggable: true,
     });
-    console.log("window.innerHeight::: ", window.innerHeight);
     const newLayer = new Konva.Layer();
 
     var scaleBy = 1.04;
@@ -334,7 +463,7 @@ export const MyContextProvider = ({ children }) => {
       localStorage.setItem("positionX", e.currentTarget.attrs.x);
       localStorage.setItem("positionY", e.currentTarget.attrs.y);
     });
-    let x = eval(window.innerWidth / 2) - 100;
+    let x = eval(window.innerWidth / 2) - 170;
     let y = eval(window.innerHeight / 2) - 100;
     let oldX = localStorage.getItem("wheelX");
     let oldY = localStorage.getItem("wheelY");
@@ -342,7 +471,7 @@ export const MyContextProvider = ({ children }) => {
     let oldPY = localStorage.getItem("positionY");
 
     stage.position({ x: x, y: y });
-    stage.scale({ x: 0.09, y: 0.09 });
+    stage.scale({ x: 0.25, y: 0.25 });
     // stage.position({ x: parseInt(oldX) ?? 380, y: parseInt(oldY) ?? 200 });
     // stage.scale({ x: parseInt(oldPX) ?? 0.09, y: parseInt(oldPY) ?? 0.09 });
 
@@ -353,8 +482,8 @@ export const MyContextProvider = ({ children }) => {
   };
   const sendOperation = (action, payload) => {
     if (connectionModeRef.current) {
-      if (tempSocket) {
-        tempSocket?.emit(action, payload);
+      if (socketRef.current) {
+        socketRef.current?.emit(action, payload);
       } else {
         socket?.emit(action, payload);
       }
@@ -365,12 +494,13 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const addTempMonitorToScreen = () => {
-    if (!connectionMode || !socket) {
+    if (!connectionMode || !socketRef.current) {
       console.log(
         "%cCONNECTION DOWN",
         "color: red; font-weight: bold; font-size: 20px; background: yellow; padding: 5px; border: 2px solid red; border-radius: 5px;"
       );
-      if (scenesRef.length <= 0) {
+      if (scenesRef.current.length <= 0) {
+        console.log("test");
         setScenes([
           {
             name: "صحنه پیش فرض",
@@ -407,41 +537,66 @@ export const MyContextProvider = ({ children }) => {
       host = localStorage.getItem("host");
       port = localStorage.getItem("port");
     }
-    setUrl(`http://${host}:${port}`);
+    const u = `http://${host}:${port}`;
+    setUrl(u);
+    urlRef.current = u;
   }, [config.host, config.port, localStorage.getItem("host"), localStorage.getItem("port")]);
+
+  useEffect(() => {
+    scenesRef.current = scenes;
+  }, [scenes]);
+
+  useEffect(() => {
+    selectedSceneRef.current = selectedScene;
+  }, [selectedScene]);
 
   useEffect(() => {
     if (!url) {
       return;
     }
     async function initializeSocket() {
-      // console.log("videoWalls:123:: ", videoWalls);
-      // addMonitorsToScenes({ jsonData: videoWalls, scenes: fetchDataScene, setScenes });
-      // const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
-      // console.log("newScene.sources::: ", newScene.sources);
-      // setSources(newScene.sources);
-      // generateScene(newScene.sources, fetchDataScene[0]);
-
       try {
         if (!connectionMode) {
           addTempMonitorToScreen();
           return;
         }
+
         const response = await axios.get("/config.json");
         const data = response.data;
         if (data.host) host = localStorage.getItem("host") ?? data.host;
         if (data.port) port = localStorage.getItem("port") ?? data.port;
 
-        setSocket(io(`http://${host}:${port}`));
-        tempSocket = io(`http://${host}:${port}`);
+        const s = io(`http://${host}:${port}`);
+        socketRef.current = s;
+        setSocket(s);
 
-        if (!tempSocket.connect) addTempMonitorToScreen();
+        s.on("source", handleSourceEvent);
 
-        tempSocket.on("disconnect", () => {
+        s.on("connect", () => {
+          console.log("✅ Socket connected");
+          setConnecting(true);
+
+          if (pendingOperations.length > 0) {
+            pendingOperations.forEach((op) => s.emit(op.action, op.payload));
+            setPendingOperation([]);
+          }
+        });
+
+        s.on("disconnect", () => {
           setConnecting(false);
         });
 
-        tempSocket.on("init", async (data) => {
+        if (!s.connected) addTempMonitorToScreen();
+        s.on("source", handleSourceEvent);
+
+        s.on("connect", () => {
+          console.log("✅ Socket connected");
+        });
+        s.on("disconnect", () => {
+          setConnecting(false);
+        });
+
+        s.on("init", async (data) => {
           setIsLoading(false);
           console.log(
             "%c❇️ CONNECTED INIT DATA",
@@ -668,20 +823,20 @@ export const MyContextProvider = ({ children }) => {
           }
         });
 
-        // tempSocket.on("currentScene", (e) => {
+        // s.on("currentScene", (e) => {
         //   console.log(e);
         // });
 
-        // tempSocket.on("source", (e) => {
+        // s.on("source", (e) => {
         //   console.log("incoming", e);
         //   // initializeSocket();
         // });
 
-        tempSocket.on("update-cameras", (data) => {
+        s.on("update-cameras", (data) => {
           setInputs(data);
         });
 
-        tempSocket.on("connect", () => {
+        s.on("connect", () => {
           setConnecting(true);
         });
 
@@ -738,7 +893,7 @@ export const MyContextProvider = ({ children }) => {
           layer.find(".guid-line").forEach((l) => l.destroy());
         });
       } catch (err) {
-        console.warn("Failed to fetch config.json or initialize tempSocket", err);
+        console.warn("Failed to fetch config.json or initialize s", err);
       }
     }
 
@@ -783,7 +938,11 @@ export const MyContextProvider = ({ children }) => {
     initializeSocket();
 
     return () => {
-      if (tempSocket) tempSocket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.off("source", handleSourceEvent);
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
       // if (getSelectedScene()?.stageData) getSelectedScene()?.stageData.destroy();
       // if (motherLayer) motherLayer.destroy();
     };
@@ -909,6 +1068,9 @@ export const MyContextProvider = ({ children }) => {
         MonitorPositionEditor,
         updateKonvaMonitorPosition,
         updateMonitorPosition,
+
+        isRightControlsVisible,
+        setIsRightControlsVisible,
 
         addMonitorsToScenes,
         arrangeMForScenes,

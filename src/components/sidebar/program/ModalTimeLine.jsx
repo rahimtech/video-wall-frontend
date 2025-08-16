@@ -201,7 +201,7 @@ const ModalTimeLine = ({
         <Button
           className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
           size="sm"
-          variant="light"
+          variant="flat"
           color="default"
           onPress={(e) => {
             handleOpenModal(collectionSelected);

@@ -15,7 +15,6 @@ export const addImage = ({
   if (!selectedSceneLayer) return;
 
   const modifiedImageURL = mode ? `image:${url}/${img.content}` : img.imageElement.src;
-  console.log("modifiedImageURL::: ", modifiedImageURL);
 
   if (mode) {
     sendOperation("source", {

@@ -152,7 +152,6 @@ const UsageSidebar = () => {
       dir="rtl"
       className="p-2 rounded-lg h-full overflow-auto  flex flex-col"
       style={{
-        backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",
       }}
     >
@@ -182,7 +181,7 @@ const UsageSidebar = () => {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto ">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         <ul className="flex flex-col gap-2">
           {usageSources?.map((resource) => {
             return (

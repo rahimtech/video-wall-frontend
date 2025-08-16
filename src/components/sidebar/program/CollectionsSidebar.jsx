@@ -204,9 +204,8 @@ const CollectionsSidebar = () => {
   return (
     <div
       dir="rtl"
-      className="p-2 rounded-lg h-full overflow-auto"
+      className="p-2 rounded-lg h-full overflow-auto scrollbar-hide"
       style={{
-        backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",
       }}
     >
@@ -231,7 +230,7 @@ const CollectionsSidebar = () => {
             className={`  ${
               selectedCollection === collection.id
                 ? darkMode
-                  ? "bg-blue-900 "
+                  ? "bg-primary-700 "
                   : ""
                 : darkMode
                 ? "bg-gray-600"
@@ -241,7 +240,7 @@ const CollectionsSidebar = () => {
             aria-label={collection.name}
             onPress={() => handleCollectionClick(collection.id)}
             title={
-              <div className={`text-sm flex items-center justify-between w-full p-2  `}>
+              <div className={`text-sm flex-col items-center justify-between w-full p-2  `}>
                 <div className="flex items-center gap-2">
                   {collection.id == activeProgram && (
                     <video
@@ -260,12 +259,12 @@ const CollectionsSidebar = () => {
                     {collection.name}
                   </span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex mt-3 gap-1">
                   <Tooltip content="ویرایش برنامه">
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                       size="sm"
-                      variant="light"
+                      variant="flat"
                       color="default"
                       onPress={(e) => {
                         handleOpenModal(collection);
@@ -287,7 +286,7 @@ const CollectionsSidebar = () => {
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                       size="sm"
-                      variant="light"
+                      variant="flat"
                       color="default"
                       onPress={(e) => {
                         handleDeleteCollection(collection.id);
@@ -300,7 +299,7 @@ const CollectionsSidebar = () => {
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                       size="sm"
-                      variant="light"
+                      variant="flat"
                       color="default"
                       onPress={(e) => {
                         handleBroadcast(collection.id);

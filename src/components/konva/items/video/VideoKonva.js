@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import api from "../../../../api/api";
 
 export const addVideo = ({
   videoItem,
@@ -18,6 +19,7 @@ export const addVideo = ({
     selectedStage = getSelectedScene()?.stageData;
   }
 
+  console.log("selectedSceneLayer::: ", selectedSceneLayer);
   if (!selectedSceneLayer) return;
 
   const modifiedVideoURL = mode ? `video:${url}/${videoItem.content}` : videoItem.videoElement.src;
@@ -89,14 +91,11 @@ export const addVideo = ({
     group.add(text);
     selectedSceneLayer.add(group);
 
-    if (mode) {
-      setSources((prev) =>
-        mode
-          ? [...prev, { ...videoItem, externalId: uniqId, sceneId: getSelectedScene().id }]
-          : prev
-      );
-    }
-    if (mode) selectedStage.add(selectedSceneLayer);
+    setSources((prev) => [
+      ...prev,
+      { ...videoItem, externalId: uniqId, sceneId: getSelectedScene().id },
+    ]);
+    selectedStage.add(selectedSceneLayer);
 
     const transformer = new Konva.Transformer({
       nodes: [group],
@@ -173,7 +172,7 @@ export const addVideo = ({
 
     videoItem.loop = loopVideos[videoItem.name] || false;
   } else {
-    videoItem.videoElement.onloadeddata = () => {
+    videoItem.videoElement.onloadeddata = async () => {
       const text = new Konva.Text({
         x: 0,
         y: 0,
@@ -216,13 +215,6 @@ export const addVideo = ({
       group.add(image);
       group.add(text);
 
-      if (mode) {
-        setSources((prev) =>
-          mode
-            ? [...prev, { ...videoItem, externalId: uniqId, sceneId: getSelectedScene().id }]
-            : prev
-        );
-      }
       selectedSceneLayer.add(group);
       if (mode) selectedStage.add(selectedSceneLayer);
 
@@ -243,15 +235,12 @@ export const addVideo = ({
       });
 
       transformer.on("transformend", (e) => {
-        console.log("1");
         const newWidth = image.width() * group.scaleX();
         const newHeight = image.height() * group.scaleY();
-        console.log("12");
 
         const rotation = Math.round(group.getAttr("rotation"));
         const x = group.x();
         const y = group.y();
-        console.log("13");
 
         sendOperation("source", {
           action: "resize",
@@ -264,7 +253,6 @@ export const addVideo = ({
             rotation,
           },
         });
-
         setSources((prev) =>
           prev.map((item) =>
             item.uniqId === e.target.attrs.uniqId
@@ -300,6 +288,9 @@ export const addVideo = ({
 
         selectedSceneLayer.draw();
       });
+
+      const newScene = await api.getSceneById(url, videoItem.sceneId);
+      setSources(newScene.sources);
 
       videoItem.loop = loopVideos[videoItem.name] || false;
     };

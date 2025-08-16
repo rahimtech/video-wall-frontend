@@ -37,6 +37,7 @@ const ScenesSidebar = () => {
 
   const handleSceneSelection = async (scene) => {
     if (selectedScene == scene.id) return;
+    console.log("scene.id::: ", scene.id);
     setSelectedScene(scene.id);
     const selectedLayer = scenes.find((sceneItem) => sceneItem.id === scene.id).layer;
     let sceneTarget = scenes.find((sceneItem) => sceneItem.id === scene.id);
@@ -64,7 +65,6 @@ const ScenesSidebar = () => {
       dir="rtl"
       className="p-2 rounded-lg h-full overflow-auto"
       style={{
-        backgroundColor: darkMode ? "#1a1a1a" : "#eaeaea",
         color: darkMode ? "#ffffff" : "#000000",
       }}
     >
@@ -101,7 +101,7 @@ const ScenesSidebar = () => {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         <ul className="flex flex-col gap-2">
           {selectedScenes?.map((scene) => (
             <li key={scene.id} className="flex items-center justify-between">
