@@ -152,12 +152,7 @@ export const addImage = ({
       });
     });
 
-    mode
-      ? setSources((prev) => [
-          ...prev,
-          { ...img, externalId: uniqId, sceneId: getSelectedScene().id },
-        ])
-      : null;
+    setSources((prev) => [...prev, { ...img, externalId: uniqId, sceneId: getSelectedScene().id }]);
 
     selectedSceneLayer.draw();
   };

@@ -422,6 +422,7 @@ const ResourcesSidebar = () => {
           <Tabs
             classNames={{ base: "sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit" }}
             aria-label="Options"
+            defaultSelectedKey={"resources"}
           >
             <Tab key="inputs" title={`ورودی‌ها: ${inputs.length}`}>
               {/* Scrollable content INPUT */}

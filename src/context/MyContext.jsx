@@ -261,7 +261,7 @@ export const MyContextProvider = ({ children }) => {
     setSources((prev) => prev.filter((item) => item.externalId !== id));
   };
 
-  const updateSource = (id, attrs) => {
+  const updateSourceRealTime = (id, attrs) => {
     const scene = scenesRef.current.find(
       (s) => s.id === (attrs?.sceneId ?? selectedSceneRef.current)
     );
@@ -277,11 +277,18 @@ export const MyContextProvider = ({ children }) => {
       });
     }
 
-    const imageNode = group.findOne(".object") || group.findOne("Image");
+    const imageNode = group.findOne("Image");
+    const rectNode = group.findOne("Rect");
 
     if (imageNode && (attrs.width !== undefined || attrs.height !== undefined)) {
       if (attrs.width !== undefined) imageNode.width(attrs.width);
       if (attrs.height !== undefined) imageNode.height(attrs.height);
+      group.scale({ x: 1, y: 1 });
+    }
+
+    if (rectNode && (attrs.width !== undefined || attrs.height !== undefined)) {
+      if (attrs.width !== undefined) rectNode.width(attrs.width);
+      if (attrs.height !== undefined) rectNode.height(attrs.height);
       group.scale({ x: 1, y: 1 });
     }
 
@@ -295,12 +302,14 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const handleSourceEvent = useCallback(({ action, payload, id }) => {
+    console.log("id::: ", id);
     const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
     const scene = getScene();
     if (!scene || !scene.layer) return;
     switch (action) {
       case "add": {
         const { endObj, type } = contentGenerator(payload.type, payload);
+        console.log("endObj123::: ", endObj);
         const getSelected = () => getScene();
         if (type === "VIDEO") {
           addVideo({
@@ -347,9 +356,9 @@ export const MyContextProvider = ({ children }) => {
       case "update":
       case "move":
       case "resize":
-        updateSource(id, payload);
+        updateSourceRealTime(id, payload);
       case "rotate":
-        updateSource(id, payload);
+        updateSourceRealTime(id, payload);
         break;
       case "play":
         playVideo(id);
@@ -587,7 +596,6 @@ export const MyContextProvider = ({ children }) => {
         });
 
         if (!s.connected) addTempMonitorToScreen();
-        s.on("source", handleSourceEvent);
 
         s.on("connect", () => {
           console.log("✅ Socket connected");
