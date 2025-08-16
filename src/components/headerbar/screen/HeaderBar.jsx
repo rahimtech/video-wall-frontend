@@ -25,6 +25,7 @@ import JSZip from "jszip";
 import axios from "axios";
 import { AiOutlinePoweroff } from "react-icons/ai";
 import { useMyContext } from "../../../context/MyContext";
+import { BsEyeSlash } from "react-icons/bs";
 
 const HeaderBar = ({ toggleLayout }) => {
   let {
@@ -680,7 +681,7 @@ const HeaderBar = ({ toggleLayout }) => {
               <MdUpload size={20} />
             </Button>
           </Tooltip> */}
-          <Tooltip content="تغییر ظاهر">
+          <Tooltip content="پنهان کردن منوها">
             <Button
               className={`${darkMode ? "dark" : "light"} ${
                 isToggleLayout ? "bg-blue-500 " : ""
@@ -690,7 +691,7 @@ const HeaderBar = ({ toggleLayout }) => {
               color="default"
               onPress={toggleLayout}
             >
-              <TbLayoutSidebarLeftCollapse size={25} />
+              <BsEyeSlash size={25} />
             </Button>
           </Tooltip>
 

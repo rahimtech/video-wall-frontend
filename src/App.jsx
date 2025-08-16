@@ -323,7 +323,11 @@ function App() {
         darkMode ? "bg-[#1E232A]" : "bg-[#e3e4e4]"
       }  h-screen w-full flex flex-col z-50  items-center `}
     >
-      <div className={`${darkMode ? "text-white" : "text-black"} flex justify-end mt-4 z-[100]`}>
+      <div
+        className={`${
+          darkMode ? "text-white" : "text-black"
+        } flex absolute justify-end mt-4 z-[100]`}
+      >
         <div dir="rtl" className="flex gap-4">
           {/* Driver Status */}
           <div

@@ -187,6 +187,36 @@ const UsageSidebar = () => {
             return (
               <li
                 key={`${resource.externalId}-${Math.random()}`}
+                onClick={() => {
+                  const selectedSceneLayer = getSelectedScene()?.layer;
+                  selectedSceneLayer.find("Transformer").forEach((tr) => {
+                    if (tr.attrs.id != resource.externalId) {
+                      tr.detach();
+                    }
+                  });
+
+                  selectedSceneLayer.find("Group").forEach((group) => {
+                    if (group.attrs.id != resource.externalId) {
+                      group.draggable(false);
+                    }
+                  });
+
+                  selectedSceneLayer.draw();
+                  const targetGroup = selectedSceneLayer.findOne(`#${resource.externalId}`);
+                  if (!targetGroup) return;
+
+                  const transformer = selectedSceneLayer.findOne("Transformer");
+
+                  if (transformer) {
+                    transformer.nodes([targetGroup]);
+                    transformer.getLayer().batchDraw();
+                  }
+
+                  // فعال کردن درگ
+                  targetGroup.draggable(true);
+
+                  setSelectedSource(resource.externalId);
+                }}
                 className={`text-sm flex flex-wrap items-center justify-between  ${
                   resource.type == "INPUT"
                     ? selectedSource == resource.uniqId
