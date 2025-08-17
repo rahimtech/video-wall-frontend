@@ -14,6 +14,9 @@ export const addImage = ({
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;
 
+  const targetX = Number.isFinite(img?.x) ? img.x : 0;
+  const targetY = Number.isFinite(img?.y) ? img.y : 0;
+
   const modifiedImageURL = mode ? `image:${url}/${img.content}` : img.imageElement.src;
 
   if (mode) {
@@ -22,8 +25,8 @@ export const addImage = ({
       id: String(uniqId),
       payload: {
         source: modifiedImageURL,
-        x: 0,
-        y: 0,
+        x: targetX,
+        y: targetY,
         width: img.imageElement.width || img.width,
         height: img.imageElement.height || img.height,
         name: img.name,
@@ -70,8 +73,8 @@ export const addImage = ({
     });
 
     const group = new Konva.Group({
-      x: mode ? 0 : img.x,
-      y: mode ? 0 : img.y,
+      x: mode ? targetX : img.x,
+      y: mode ? targetY : img.y,
       draggable: false,
       uniqId,
       id: String(uniqId),

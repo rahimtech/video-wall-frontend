@@ -13,6 +13,8 @@ export const addVideo = ({
   let uniqId = mode ? uuidv4() : videoItem.externalId;
   // let uniqId = videoItem.externalId;
 
+  const targetX = Number.isFinite(videoItem?.x) ? videoItem.x : 0;
+  const targetY = Number.isFinite(videoItem?.y) ? videoItem.y : 0;
   const selectedSceneLayer = getSelectedScene()?.layer;
   let selectedStage = null;
   if (mode) {
@@ -32,8 +34,8 @@ export const addVideo = ({
       id: String(uniqId),
       payload: {
         source: modifiedVideoURL,
-        x: 0,
-        y: 0,
+        x: targetX,
+        y: targetY,
         width: videoItem.videoElement.videoWidth || videoItem.width,
         height: videoItem.videoElement.videoHeight || videoItem.height,
         name: videoItem.name,
@@ -64,8 +66,8 @@ export const addVideo = ({
     });
 
     const group = new Konva.Group({
-      x: mode ? 0 : videoItem.x,
-      y: mode ? 0 : videoItem.y,
+      x: mode ? targetX : videoItem.x,
+      y: mode ? targetY : videoItem.y,
       draggable: false,
       id: String(uniqId),
       uniqId,
@@ -189,8 +191,8 @@ export const addVideo = ({
       });
 
       const group = new Konva.Group({
-        x: mode ? 0 : videoItem.x,
-        y: mode ? 0 : videoItem.y,
+        x: mode ? targetX : videoItem.x,
+        y: mode ? targetY : videoItem.y,
         draggable: false,
         uniqId,
         id: String(uniqId),

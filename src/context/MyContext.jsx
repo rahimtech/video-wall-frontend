@@ -52,6 +52,7 @@ export const MyContextProvider = ({ children }) => {
 
   // States
   const [videoWalls, setVideoWalls] = useState([
+    // --- Row 1 ---
     {
       id: 1,
       name: "TV1",
@@ -60,8 +61,8 @@ export const MyContextProvider = ({ children }) => {
       width: 1440,
       height: 900,
       connected: false,
-      monitorUniqId: 12,
-      monitorNumber: 13,
+      monitorUniqId: 101,
+      monitorNumber: 1,
     },
     {
       id: 2,
@@ -71,30 +72,122 @@ export const MyContextProvider = ({ children }) => {
       width: 1440,
       height: 900,
       connected: false,
-      monitorUniqId: 14,
-      monitorNumber: 15,
+      monitorUniqId: 102,
+      monitorNumber: 2,
     },
     {
       id: 3,
       name: "TV3",
+      x: 2880,
+      y: 0,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 103,
+      monitorNumber: 3,
+    },
+    {
+      id: 4,
+      name: "TV4",
+      x: 4320,
+      y: 0,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 104,
+      monitorNumber: 4,
+    },
+
+    // --- Row 2 ---
+    {
+      id: 5,
+      name: "TV5",
       x: 0,
       y: 900,
       width: 1440,
       height: 900,
       connected: false,
-      monitorUniqId: 16,
-      monitorNumber: 17,
+      monitorUniqId: 105,
+      monitorNumber: 5,
     },
     {
-      id: 4,
-      name: "TV4",
+      id: 6,
+      name: "TV6",
       x: 1440,
       y: 900,
       width: 1440,
       height: 900,
       connected: false,
-      monitorUniqId: 18,
-      monitorNumber: 19,
+      monitorUniqId: 106,
+      monitorNumber: 6,
+    },
+    {
+      id: 7,
+      name: "TV7",
+      x: 2880,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 107,
+      monitorNumber: 7,
+    },
+    {
+      id: 8,
+      name: "TV8",
+      x: 4320,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 108,
+      monitorNumber: 8,
+    },
+
+    // --- Row 3 ---
+    {
+      id: 9,
+      name: "TV9",
+      x: 0,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 109,
+      monitorNumber: 9,
+    },
+    {
+      id: 10,
+      name: "TV10",
+      x: 1440,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 110,
+      monitorNumber: 10,
+    },
+    {
+      id: 11,
+      name: "TV11",
+      x: 2880,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 111,
+      monitorNumber: 11,
+    },
+    {
+      id: 12,
+      name: "TV12",
+      x: 4320,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 112,
+      monitorNumber: 12,
     },
   ]);
 
@@ -156,6 +249,8 @@ export const MyContextProvider = ({ children }) => {
   const [dataDrag, setDataDrag] = useState({});
   const [filteredScenes, setFilteredScenes] = useState([]);
 
+  const [isRunFitStage, setIsRunFitStage] = useState(false);
+
   let arrayCollisions = [];
   let counterImages = 0;
   let counterVideos = 0;
@@ -169,17 +264,127 @@ export const MyContextProvider = ({ children }) => {
     e.preventDefault();
   };
 
+  function getContentPointerFromDomEvent(stage, evt) {
+    const ne = evt?.nativeEvent ?? evt;
+    if (!ne) return null;
+
+    stage.setPointersPositions({ clientX: ne.clientX, clientY: ne.clientY });
+
+    const p = stage.getPointerPosition(); // مختصات روی کانواس نمایش (screen coords)
+    if (!p) return null;
+
+    const inv = stage.getAbsoluteTransform().copy().invert();
+    return inv.point(p); // {x, y} در فضای محتوای استیج
+  }
+
+  function forcePlaceById({ layer, id, x, y, center = false }) {
+    requestAnimationFrame(() => {
+      // گروه را پیدا کن
+      const g = layer.findOne(`#${id}`) || layer.findOne(`[id="${id}"]`) || layer.findOne(`.${id}`);
+      if (!g) return;
+
+      if (center) {
+        // اگر می‌خواهی مرکز شیء زیر موس بیفتد:
+        const node = g.findOne(".object") || g.findOne("Image") || g.findOne("Rect") || g;
+        const w = (node.width?.() ?? 0) * (g.scaleX?.() ?? 1);
+        const h = (node.height?.() ?? 0) * (g.scaleY?.() ?? 1);
+        g.absolutePosition({ x: x - w / 2, y: y - h / 2 });
+      } else {
+        // گوشه‌ی بالا-چپ دقیقا زیر موس
+        g.absolutePosition({ x, y });
+      }
+
+      g.getLayer()?.batchDraw();
+    });
+  }
+
+  // 3) یک کمک کوچک برای درآوردن id بیرونیِ آیتمِ درَگ شده
+  function pickExternalId(payload) {
+    // بسته به ساختار شما:
+    return (
+      payload?.externalId ||
+      payload?.id ||
+      payload?.img?.externalId ||
+      payload?.videoItem?.externalId ||
+      payload?.webResource?.externalId ||
+      payload?.input?.externalId
+    );
+  }
+
+  // ---- handler اصلی
   const handleDrop = (e) => {
-    if (dataDrag.type == "IMAGE") {
-      addImage(dataDrag);
-    } else if (dataDrag.type == "VIDEO") {
-      addVideo(dataDrag);
-    } else if (dataDrag.type == "IFRAME") {
-      addWeb(dataDrag);
-    } else if (dataDrag.type == "INPUT") {
-      addInput(dataDrag);
+    e.preventDefault();
+
+    const scn = getSelectedScene();
+    const stage = scn?.stageData;
+    const layer = scn?.layer;
+    if (!stage || !layer) return;
+
+    // اگر رویداد اصلِ مرورگر داریم، مختصات موس رو به Konva بده
+    if (e.nativeEvent) {
+      stage.setPointersPositions(e.nativeEvent);
+    }
+
+    // مختصات موس در فضای صفحهٔ نمایش
+    let screenPt = stage.getPointerPosition();
+    if (!screenPt) {
+      // fallback اگر getPointerPosition چیزی نداد
+      const rect = stage.container().getBoundingClientRect();
+      screenPt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    // تبدیل مختصاتِ صفحه به مختصات "محتوا" (با درنظرگرفتن scale/position استیج)
+    const inv = stage.getAbsoluteTransform().copy().invert();
+    const contentPt = inv.point(screenPt);
+    const baseSceneId = scn.id;
+
+    // حالا براساس نوع منبع، مختصات را داخل آبجکت داخلی قرار بده
+    if (dataDrag.type === "IMAGE" && dataDrag.img) {
+      addImage({
+        ...dataDrag,
+        img: { ...dataDrag.img, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
+      });
+    } else if (dataDrag.type === "VIDEO" && dataDrag.videoItem) {
+      addVideo({
+        ...dataDrag,
+        videoItem: { ...dataDrag.videoItem, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
+      });
+    } else if (dataDrag.type === "IFRAME" && dataDrag.webResource) {
+      addWeb({
+        ...dataDrag,
+        webResource: {
+          ...dataDrag.webResource,
+          x: contentPt.x,
+          y: contentPt.y,
+          sceneId: baseSceneId,
+        },
+      });
+    } else if (dataDrag.type === "INPUT" && dataDrag.input) {
+      addInput({
+        ...dataDrag,
+        input: { ...dataDrag.input, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
+      });
     }
   };
+
+  // --- helper: تبدیل مختصات client به مختصات استیج
+  function clientToStagePoint(stage, evtOrReactEvent) {
+    const ev = evtOrReactEvent?.nativeEvent ?? evtOrReactEvent;
+    const rect = stage.container().getBoundingClientRect();
+    const clientX = ev?.clientX ?? 0;
+    const clientY = ev?.clientY ?? 0;
+
+    // نقطه در مختصات «کانتینر»
+    const point = {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+
+    // اعمال اسکیل و ترنسلیت استیج
+    const transform = stage.getAbsoluteTransform().copy();
+    const inv = transform.invert();
+    return inv.point(point);
+  }
 
   const getSelectedScene = () => {
     let scn = scenes.find((scene) => scene.id === selectedScene);
@@ -436,6 +641,43 @@ export const MyContextProvider = ({ children }) => {
     });
   }
 
+  function fitStageToMonitors({ stage, monitors, padding = 40 }) {
+    if (!stage || !monitors?.length) return;
+
+    // 1) bbox مانیتورها
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    for (const m of monitors) {
+      if (m.x < minX) minX = m.x;
+      if (m.y < minY) minY = m.y;
+      if (m.x + m.width > maxX) maxX = m.x + m.width;
+      if (m.y + m.height > maxY) maxY = m.y + m.height;
+    }
+    const contentW = Math.max(1, maxX - minX);
+    const contentH = Math.max(1, maxY - minY);
+
+    // 2) ابعاد واقعی دید از روی DOM (دقیق‌تر از stage.width/height در بعضی حالت‌ها)
+    const rect = stage.container().getBoundingClientRect();
+    const viewW = Math.max(1, rect.width || stage.width());
+    const viewH = Math.max(1, rect.height || stage.height());
+
+    // 3) اسکیلِ لازم برای فیت شدن (با پدینگ) و کَلمپ به 1
+    const scaleX = (viewW - padding * 2) / contentW;
+    const scaleY = (viewH - padding * 2) / contentH;
+    const scale = Math.min(scaleX, scaleY, 1); // مهم: هرگز > 1 نشود
+
+    // 4) مبدأ نگاه (0,0) + جبرانِ offset محتوا و padding
+    stage.scale({ x: scale, y: scale });
+    stage.position({
+      x: -minX * scale + padding,
+      y: -minY * scale + padding,
+    });
+
+    stage.batchDraw();
+  }
+
   // const filteredScenes = scenes.filter((scene) =>
   //   collections.find((item) => item.id == selectedCollection).scenes.includes(scene.id)
   // );
@@ -472,15 +714,15 @@ export const MyContextProvider = ({ children }) => {
       localStorage.setItem("positionX", e.currentTarget.attrs.x);
       localStorage.setItem("positionY", e.currentTarget.attrs.y);
     });
-    let x = eval(window.innerWidth / 2) - 170;
-    let y = eval(window.innerHeight / 2) - 100;
+    let x = eval(window.innerWidth / 2);
+    let y = eval(window.innerHeight / 2);
     let oldX = localStorage.getItem("wheelX");
     let oldY = localStorage.getItem("wheelY");
     let oldPX = localStorage.getItem("positionX");
     let oldPY = localStorage.getItem("positionY");
 
     stage.position({ x: x, y: y });
-    stage.scale({ x: 0.25, y: 0.25 });
+    stage.scale({ x: 0.35, y: 0.35 });
     // stage.position({ x: parseInt(oldX) ?? 380, y: parseInt(oldY) ?? 200 });
     // stage.scale({ x: parseInt(oldPX) ?? 0.09, y: parseInt(oldPY) ?? 0.09 });
 
@@ -537,6 +779,86 @@ export const MyContextProvider = ({ children }) => {
       }
     }
   };
+
+  function getGridCellAtPointer(layer, pointer) {
+    if (!layer || !pointer) return null;
+
+    // شکلی که زیر پوینتره
+    const target = layer.getStage().getIntersection(pointer);
+    if (!target) return null;
+
+    // رفتن به بالا تا برسیم به گروپ مانیتور
+    let group = target.getParent();
+    while (
+      group &&
+      !(group.getClassName() === "Group" && String(group.id()).startsWith("monitor-group-"))
+    ) {
+      group = group.getParent();
+    }
+    if (!group) return null;
+
+    const gridMeta = group.getAttr("gridMeta");
+    if (!gridMeta?.rows || !gridMeta?.cols) return null;
+
+    const rect = group.findOne("Rect");
+    if (!rect) return null;
+
+    // تبدیل مختصات pointer به لوکال مانیتور
+    const abs = group.getAbsoluteTransform().copy();
+    const inv = abs.invert();
+
+    const local = inv.point(pointer); // pointer در مختصات خود مانیتور
+    const { rows, cols } = gridMeta;
+    const cellW = rect.width() / cols;
+    const cellH = rect.height() / rows;
+
+    // ایندکس سطر/ستون
+    const ci = Math.floor(local.x / cellW);
+    const ri = Math.floor(local.y / cellH);
+    if (ci < 0 || ci >= cols || ri < 0 || ri >= rows) return null;
+
+    const cellLocal = { x: ci * cellW, y: ri * cellH, width: cellW, height: cellH };
+
+    const cellTLAbs = abs.point({ x: cellLocal.x, y: cellLocal.y });
+    const cellBRAbs = abs.point({
+      x: cellLocal.x + cellLocal.width,
+      y: cellLocal.y + cellLocal.height,
+    });
+
+    return {
+      monitorGroup: group,
+      rows,
+      cols,
+      rowIndex: ri,
+      colIndex: ci,
+      // مستطیل سلول در مختصات لایه/استیج:
+      rect: {
+        x: cellTLAbs.x,
+        y: cellTLAbs.y,
+        width: cellBRAbs.x - cellTLAbs.x,
+        height: cellBRAbs.y - cellTLAbs.y,
+      },
+    };
+  }
+
+  function fitGroupToRect(sourceGroup, cellRect) {
+    if (!sourceGroup || !cellRect) return;
+
+    // جابه‌جایی خود گروه
+    sourceGroup.position({ x: cellRect.x, y: cellRect.y });
+
+    // تغییر اندازه نود محتوایی داخل گروه (Image/Rect/Video-Rect/...)
+    const contentNode =
+      sourceGroup.findOne(".object") || sourceGroup.findOne("Image") || sourceGroup.findOne("Rect");
+
+    if (contentNode) {
+      contentNode.width(cellRect.width);
+      contentNode.height(cellRect.height);
+    }
+
+    // هرگونه scale قبلی رو خنثی کن
+    sourceGroup.scale({ x: 1, y: 1 });
+  }
 
   useEffect(() => {
     if (!localStorage.getItem("host")) {
@@ -685,6 +1007,15 @@ export const MyContextProvider = ({ children }) => {
             setSources(newScene.sources);
             generateScene(newScene.sources, fetchDataScene[0]);
             setMonitorConnection(true);
+            requestAnimationFrame(() => {
+              const scn = scenesRef.current.find((s) => s.id === selectedSceneRef.current);
+              if (scn?.stageData) {
+                fitStageToMonitors({
+                  stage: scn.stageData,
+                  monitors: displays,
+                });
+              }
+            });
           }
 
           // if (data.sources && false) {
@@ -1006,6 +1337,18 @@ export const MyContextProvider = ({ children }) => {
     );
   }, [collections, selectedCollection, flagReset]);
 
+  useEffect(() => {
+    const scn = getSelectedScene();
+    if (!scn?.stageData) return;
+    if (!videoWalls?.length) return;
+    if (isRunFitStage) return;
+    setIsRunFitStage(true);
+    fitStageToMonitors({
+      stage: scn.stageData,
+      monitors: videoWalls,
+    });
+  }, [selectedScene, videoWalls, scenes]);
+
   return (
     <MyContext.Provider
       value={{
@@ -1130,6 +1473,9 @@ export const MyContextProvider = ({ children }) => {
 
         dataDrag,
         setDataDrag,
+
+        fitStageToMonitors,
+        selectedSceneRef,
       }}
     >
       {children}

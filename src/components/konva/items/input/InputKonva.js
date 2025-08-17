@@ -1,16 +1,18 @@
 import { v4 as uuidv4 } from "uuid";
 
 export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
-  console.log("input::: ", input);
   let uniqId = mode ? uuidv4() : input.externalId;
   // let uniqId = input.externalId;
+
+  const targetX = Number.isFinite(input?.x) ? input.x : 0;
+  const targetY = Number.isFinite(input?.y) ? input.y : 0;
 
   const selectedSceneLayer = getSelectedScene()?.layer;
   if (!selectedSceneLayer) return;
 
   const group = new Konva.Group({
-    x: input.x || 0,
-    y: input.y || 0,
+    x: targetX,
+    y: targetY,
     draggable: false,
     id: String(uniqId),
     type: "INPUT",
@@ -50,8 +52,8 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
       id: uniqId,
       payload: {
         source: "input:" + input.content,
-        x: 0,
-        y: 0,
+        x: targetX,
+        y: targetY,
         width: input.width,
         height: input.height,
         name: input.name,

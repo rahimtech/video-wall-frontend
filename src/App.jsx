@@ -48,6 +48,7 @@ import { MonitorLayoutModal } from "./components/konva/items/monitor/position/Mo
 import MosaicSetupModal from "./components/konva/items/monitor/position/MosaicSetupModal";
 import { addMonitorsToScenes } from "./components/konva/items/monitor/MonitorKonva";
 import { FaServer, FaDesktop } from "react-icons/fa";
+import Canvas from "./Canvas";
 
 function App() {
   let {
@@ -103,6 +104,8 @@ function App() {
     selectedSource,
     handleDragOver,
     handleDrop,
+    fitStageToMonitors,
+    selectedSceneRef,
   } = useMyContext();
 
   const [leftTab, setLeftTab] = useState("Sources");
@@ -317,73 +320,133 @@ function App() {
     });
   }, [getSelectedScene()?.stageData, getSelectedScene()?.layer, selectedSource]);
 
+  function fitStageToMonitorsSmart({
+    stage,
+    layer,
+    monitorSelector = (n) => n.getAttr("catFix") === "monitor",
+    paddingAuto = true,
+    padding = 60, // اگر paddingAuto=false
+    maxScaleAuto = true,
+    maxScale = 1, // اگر maxScaleAuto=false
+  }) {
+    if (!stage || !layer) return;
+
+    // --- مونیتورها را پیدا کن
+    const monitors = layer.find(monitorSelector);
+    if (!monitors.length) return;
+
+    // --- ترنسفورم فعلی را ذخیره و صفر کن (تا باکس محتوا دقیق شود)
+    const prevScale = { x: stage.scaleX(), y: stage.scaleY() };
+    const prevPos = { x: stage.x(), y: stage.y() };
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: 0, y: 0 });
+
+    // --- باکس کل مانیتورها
+    let rect = monitors[0].getClientRect({ skipShadow: true, skipStroke: false });
+    for (let i = 1; i < monitors.length; i++) {
+      const r = monitors[i].getClientRect({ skipShadow: true, skipStroke: false });
+      const minX = Math.min(rect.x, r.x);
+      const minY = Math.min(rect.y, r.y);
+      const maxX = Math.max(rect.x + rect.width, r.x + r.width);
+      const maxY = Math.max(rect.y + rect.height, r.y + r.height);
+      rect = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
+
+    // اگر چیزی اشتباه بود
+    if (!(rect.width > 0 && rect.height > 0)) {
+      // ترنسفورم قبل را برگردان
+      stage.scale(prevScale);
+      stage.position(prevPos);
+      stage.batchDraw();
+      return;
+    }
+
+    // --- اندازه‌ی ویو
+    const viewW = stage.width();
+    const viewH = stage.height();
+
+    // --- padding و maxScale هوشمند
+    const smartPad = Math.round(
+      clamp(Math.min(viewW, viewH) * 0.06, 24, 120) // 6% حداقل 24 حداکثر 120px
+    );
+    const usePad = paddingAuto ? smartPad : padding;
+
+    const scaleX = (viewW - usePad * 2) / rect.width;
+    const scaleY = (viewH - usePad * 2) / rect.height;
+    let scale = Math.min(scaleX, scaleY);
+
+    // حداکثر اسکیل: کمی بزرگتر از ۱ تا اگه محتوا کوچیکه، ملایم بزرگ شه (نه غلو)
+    const smartMax = 1.15;
+    const useMax = maxScaleAuto ? smartMax : maxScale;
+    scale = Math.min(scale, useMax);
+
+    // --- سنتر کردن
+    const contentCX = rect.x + rect.width / 2;
+    const contentCY = rect.y + rect.height / 2;
+    const viewCX = viewW / 2;
+    const viewCY = viewH / 2;
+
+    stage.scale({ x: scale, y: scale });
+    stage.position({
+      x: viewCX - contentCX * scale,
+      y: viewCY - contentCY * scale,
+    });
+
+    stage.batchDraw();
+  }
+
+  function centerStageOnMonitors({
+    stage,
+    layer,
+    monitorSelector = (n) => n.getAttr("catFix") === "monitor",
+  }) {
+    if (!stage || !layer) return;
+    const monitors = layer.find(monitorSelector);
+    if (!monitors.length) return;
+
+    const prevScale = { x: stage.scaleX(), y: stage.scaleY() };
+    const prevPos = { x: stage.x(), y: stage.y() };
+
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: 0, y: 0 });
+
+    let rect = monitors[0].getClientRect({ skipShadow: true, skipStroke: false });
+    for (let i = 1; i < monitors.length; i++) {
+      const r = monitors[i].getClientRect({ skipShadow: true, skipStroke: false });
+      const minX = Math.min(rect.x, r.x);
+      const minY = Math.min(rect.y, r.y);
+      const maxX = Math.max(rect.x + rect.width, r.x + r.width);
+      const maxY = Math.max(rect.y + rect.height, r.y + r.height);
+      rect = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
+
+    const viewW = stage.width();
+    const viewH = stage.height();
+    const scale = prevScale.x || 1;
+
+    const contentCX = rect.x + rect.width / 2;
+    const contentCY = rect.y + rect.height / 2;
+    const viewCX = viewW / 2;
+    const viewCY = viewH / 2;
+
+    stage.scale({ x: scale, y: scale });
+    stage.position({
+      x: viewCX - contentCX * scale,
+      y: viewCY - contentCY * scale,
+    });
+    stage.batchDraw();
+  }
+
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
   return (
     <main
       className={`${
         darkMode ? "bg-[#1E232A]" : "bg-[#e3e4e4]"
       }  h-screen w-full flex flex-col z-50  items-center `}
     >
-      <div
-        className={`${
-          darkMode ? "text-white" : "text-black"
-        } flex absolute justify-end mt-4 z-[100]`}
-      >
-        <div dir="rtl" className="flex gap-4">
-          {/* Driver Status */}
-          <div
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border
-      ${
-        connecting && connectionMode
-          ? darkMode
-            ? "bg-green-600/20 border-green-500 text-green-400"
-            : " border-green-500 text-green-400"
-          : !connectionMode
-          ? darkMode
-            ? "bg-orange-600/20 border-orange-500 text-orange-400"
-            : " border-orange-500 text-orange-400"
-          : darkMode
-          ? "bg-red-600/20 border-red-500 text-red-400"
-          : " border-red-500 text-red-400"
-      }`}
-          >
-            <FaServer className="text-lg" />
-            <span className="text-sm font-medium">
-              {connecting && connectionMode
-                ? "اتصال به درایور"
-                : !connectionMode
-                ? "درایور آفلاین"
-                : "در حال اتصال به درایور"}
-            </span>
-          </div>
-
-          {/* Monitor Status */}
-          <div
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border
-      ${
-        monitorConnection && connectionMode
-          ? darkMode
-            ? "bg-green-600/20 border-green-500 text-green-400"
-            : " border-green-500 text-green-400"
-          : !connectionMode
-          ? darkMode
-            ? "bg-orange-600/20 border-orange-500 text-orange-400"
-            : " border-orange-500 text-orange-400"
-          : darkMode
-          ? "bg-red-600/20 border-red-500 text-red-400"
-          : " border-red-500 text-red-400"
-      }`}
-          >
-            <FaDesktop className="text-lg" />
-            <span className="text-sm font-medium">
-              {monitorConnection && connectionMode
-                ? "مانیتورها متصل‌اند"
-                : !connectionMode
-                ? "مانیتورها آفلاین"
-                : "منتظر اتصال مانیتورها"}
-            </span>
-          </div>
-        </div>
-      </div>
       {/* Loader */}
       {miniLoad && (
         <div className=" z-[1000000] w-fit h-fit flex flex-col gap-3 justify-center items-center  m-auto">
@@ -398,28 +461,43 @@ function App() {
           </div>
         </div>
       )}
-      <div className="h-full w-full flex z-50">
-        <div id="Video-Wall-Section" className="w-full h-full flex">
-          <div
-            id="Monitor"
-            className={`block w-full overflow-hidden active:cursor-grabbing relative h-full `}
-          >
-            <div id="infiniteDiv" style={{ scale: 1 }} className={`xxx w-full h-full relative`}>
-              <div id="content" className="absolute w-full h-full top-0 left-0">
-                {scenes.map((scene) => (
-                  <div
-                    key={scene.id}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    id={`containerKonva-${scene.id}`}
-                    style={{ display: selectedScene === scene.id ? "block" : "none" }}
-                  ></div>
-                ))}
-              </div>
-            </div>
+      <Canvas
+        darkMode={darkMode}
+        title={`${getSelectedScene()?.name} فعال است`}
+        subtitle={connecting ? "اتصال برقرار است" : "حالت آفلاین"}
+        scenes={scenes}
+        selectedScene={selectedScene}
+        handleDragOver={handleDragOver}
+        handleDrop={handleDrop}
+        onFit={() => {
+          const scn = getSelectedScene();
+          if (!scn?.stageData) return;
+          if (!videoWalls?.length) return;
+          if (isRunFitStage) return;
+          setIsRunFitStage(true);
+          fitStageToMonitors({
+            stage: scn.stageData,
+            monitors: videoWalls,
+          });
+        }}
+        onCenter={() => {
+          const scn = getSelectedScene();
+          if (!scn?.stageData || !scn?.layer) return;
+          centerStageOnMonitors({ stage: scn.stageData, layer: scn.layer });
+        }}
+        onReset={() => {
+          const scn = getSelectedScene();
+          if (!scn?.stageData) return;
+          scn.stageData.scale({ x: 1, y: 1 });
+          scn.stageData.position({ x: 0, y: 0 });
+          scn.stageData.batchDraw();
+        }}
+        footerSlot={
+          <div className="rounded-xl px-3 py-2 backdrop-blur-sm bg-black/10 dark:bg-white/10 shadow-sm">
+            {/* <div></ */}
           </div>
-        </div>
-      </div>
+        }
+      />
       {/* === Left Sidebar (full-height with Tabs) === */}
       {!isToggleLayout && (
         <>
@@ -427,7 +505,7 @@ function App() {
             className={`fixed left-0 top-0 z-[100] h-screen border-r ${
               darkMode ? "bg-[#1b1f25] border-[#2a2f36]" : "bg-white border-[#e5e7eb]"
             }`}
-            style={{ width: 360 }}
+            style={{ width: "20%" }}
             initial={{ x: -360 }}
             animate={{ x: isBottomControlsVisible ? 0 : -360 }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
@@ -501,7 +579,7 @@ function App() {
             className={`fixed bottom-5 left-0 w-[30px] h-[30px] text-xl z-[101] min-w-fit p-2 rounded-r-2xl shadow-md
         ${darkMode ? "bg-[#232933] text-white" : "bg-white text-black"}
       `}
-            style={{ left: isBottomControlsVisible ? 10 : 10 }}
+            style={{ left: isBottomControlsVisible ? 20 : 20 }}
             onPress={() => setIsBottomControlsVisible(!isBottomControlsVisible)}
             aria-label="toggle-left-panel"
           >
@@ -510,9 +588,9 @@ function App() {
 
           <motion.div
             className="pointer-events-none"
-            style={{ width: 360 }}
+            style={{ width: "20%" }}
             initial={{ width: 0 }}
-            animate={{ width: isBottomControlsVisible ? 360 : 0 }}
+            animate={{ width: isBottomControlsVisible ? "20%" : 0 }}
             transition={{ duration: 0.3 }}
           />
         </>
@@ -524,7 +602,7 @@ function App() {
             className={`fixed right-0 top-0 z-[100]  h-full border-l ${
               darkMode ? "bg-[#1b1f25] border-[#2a2f36]" : "bg-white border-[#e5e7eb]"
             }`}
-            style={{ width: 360 }}
+            style={{ width: "20%" }}
             initial={{ x: 360 }}
             animate={{ x: isRightControlsVisible ? 0 : 360 }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
@@ -543,7 +621,7 @@ function App() {
             className={`fixed bottom-5 right-0 w-[30px] h-[30px] text-xl z-[101] min-w-fit p-2 rounded-l-2xl shadow-md
         ${darkMode ? "bg-[#232933] text-white" : "bg-white text-black"}
       `}
-            style={{ right: isRightControlsVisible ? 10 : 10 }}
+            style={{ right: isRightControlsVisible ? 20 : 20 }}
             onPress={() => setIsRightControlsVisible(!isRightControlsVisible)}
             aria-label="toggle-right-panel"
           >
@@ -553,15 +631,15 @@ function App() {
           {/* Spacer so content doesn’t hide under sidebar */}
           <motion.div
             className="pointer-events-none"
-            style={{ width: 360 }}
+            style={{ width: "20%" }}
             initial={{ width: 0 }}
-            animate={{ width: isRightControlsVisible ? 360 : 0 }}
+            animate={{ width: isRightControlsVisible ? "20%" : 0 }}
             transition={{ duration: 0.3 }}
           />
         </>
       )}
 
-      <div className=" overflow-auto scrollbar-hide flex bottom-0 absolute left-0 right-0 m-auto flex-col p-3 space-y-4">
+      <div className=" overflow-auto scrollbar-hide flex top-0 absolute left-0  right-0 m-auto flex-col p-3 space-y-4">
         {/* Header */}
         <HeaderBar
           toggleLayout={() => {
@@ -583,6 +661,68 @@ function App() {
             */}
           </div>
         )}
+      </div>
+
+      <div
+        className={`${isToggleLayout ? "w-[98%] flex" : "w-[59%]"} ${
+          darkMode ? "text-white bg-gray-800" : "text-black bg-gray-100"
+        } z-[10] bottom-3 relative p-2 rounded-xl  justify-center left-0 right-0  `}
+      >
+        <div dir="rtl" className="flex gap-4">
+          {/* Driver Status */}
+          <div
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border
+      ${
+        connecting && connectionMode
+          ? darkMode
+            ? "bg-green-600/20 border-green-500 text-green-400"
+            : " border-green-500 text-green-400"
+          : !connectionMode
+          ? darkMode
+            ? "bg-orange-600/20 border-orange-500 text-orange-400"
+            : " border-orange-500 text-orange-400"
+          : darkMode
+          ? "bg-red-600/20 border-red-500 text-red-400"
+          : " border-red-500 text-red-400"
+      }`}
+          >
+            <FaServer className="text-lg" />
+            <span className="text-sm font-medium">
+              {connecting && connectionMode
+                ? "اتصال به درایور"
+                : !connectionMode
+                ? "درایور آفلاین"
+                : "در حال اتصال به درایور"}
+            </span>
+          </div>
+
+          {/* Monitor Status */}
+          <div
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border
+      ${
+        monitorConnection && connectionMode
+          ? darkMode
+            ? "bg-green-600/20 border-green-500 text-green-400"
+            : " border-green-500 text-green-400"
+          : !connectionMode
+          ? darkMode
+            ? "bg-orange-600/20 border-orange-500 text-orange-400"
+            : " border-orange-500 text-orange-400"
+          : darkMode
+          ? "bg-red-600/20 border-red-500 text-red-400"
+          : " border-red-500 text-red-400"
+      }`}
+          >
+            <FaDesktop className="text-lg" />
+            <span className="text-sm font-medium">
+              {monitorConnection && connectionMode
+                ? "مانیتورها متصل‌اند"
+                : !connectionMode
+                ? "مانیتورها آفلاین"
+                : "منتظر اتصال مانیتورها"}
+            </span>
+          </div>
+        </div>
       </div>
       <Modal scrollBehavior="outside" isOpen={activeModal === "resources"} onClose={closeModal}>
         <ModalContent>

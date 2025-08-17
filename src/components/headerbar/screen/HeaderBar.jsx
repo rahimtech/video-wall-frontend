@@ -1,5 +1,5 @@
 import React from "react";
-import { FaDownload, FaNetworkWired, FaPowerOff, FaUpload, FaWifi } from "react-icons/fa";
+import { FaDownload, FaExpand, FaNetworkWired, FaPowerOff, FaUpload, FaWifi } from "react-icons/fa";
 import SwitchCustom from "../SwitchCustom";
 import {
   Alert,
@@ -325,13 +325,23 @@ const HeaderBar = ({ toggleLayout }) => {
     URL.revokeObjectURL(url);
   };
 
+  const handleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error("Fullscreen error:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   return (
     <>
       <div
         id="setting"
-        className={` ${isToggleLayout ? "" : ""} ${
-          darkMode ? "text-white" : "text-black"
-        } flex items-center z-[100]  left-0 right-0 mx-auto p-[10px]`}
+        className={` ${isToggleLayout ? "w-[100%]" : "w-[59%]"} ${
+          darkMode ? "text-white bg-gray-800" : "text-black bg-gray-100"
+        } flex items-center z-[100] mb-2 p-2 rounded-xl   justify-center left-0 right-0 mx-auto `}
       >
         <div className="flex gap-2">
           <Tooltip content={"خروج از اکانت"}>
@@ -726,6 +736,20 @@ const HeaderBar = ({ toggleLayout }) => {
               }}
             >
               <FaWifi size={20} />
+            </Button>
+          </Tooltip>
+
+          <Tooltip content="نمایش تمام صفحه">
+            <Button
+              className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
+              size="lg"
+              variant="solid"
+              color="light"
+              onPress={() => {
+                handleFullscreen();
+              }}
+            >
+              <FaExpand size={20} />
             </Button>
           </Tooltip>
 

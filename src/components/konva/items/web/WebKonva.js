@@ -11,9 +11,10 @@ export const addWeb = async ({
   url,
 }) => {
   const { id, content, x, y, width, height, externalId, mediaId, rotation } = webResource;
-  console.log("webResource::: ", webResource);
-  console.log("y::: ", y);
-  console.log("x::: ", x);
+
+  const targetX = Number.isFinite(webResource?.x) ? webResource.x : 0;
+  const targetY = Number.isFinite(webResource?.y) ? webResource.y : 0;
+
   // let uniqId = externalId;
   let uniqId = mode ? uuidv4() : externalId;
 
@@ -27,8 +28,8 @@ export const addWeb = async ({
       id: String(uniqId),
       payload: {
         source: "iframe:" + content,
-        x: 0,
-        y: 0,
+        x: targetX,
+        y: targetY,
         width: 1920,
         height: 1080,
         name: content,
@@ -45,8 +46,8 @@ export const addWeb = async ({
   if (!selectedSceneLayer) return;
 
   const group = new Konva.Group({
-    x: mode ? 0 : x,
-    y: mode ? 0 : y,
+    x: mode ? targetX : x,
+    y: mode ? targetY : y,
     draggable: false,
     id: String(uniqId),
     uniqId,
