@@ -86,17 +86,6 @@ export const MyContextProvider = ({ children }) => {
       monitorUniqId: 103,
       monitorNumber: 3,
     },
-    {
-      id: 4,
-      name: "TV4",
-      x: 4320,
-      y: 0,
-      width: 1440,
-      height: 900,
-      connected: false,
-      monitorUniqId: 104,
-      monitorNumber: 4,
-    },
 
     // --- Row 2 ---
     {
@@ -132,17 +121,6 @@ export const MyContextProvider = ({ children }) => {
       monitorUniqId: 107,
       monitorNumber: 7,
     },
-    {
-      id: 8,
-      name: "TV8",
-      x: 4320,
-      y: 900,
-      width: 1440,
-      height: 900,
-      connected: false,
-      monitorUniqId: 108,
-      monitorNumber: 8,
-    },
 
     // --- Row 3 ---
     {
@@ -177,17 +155,6 @@ export const MyContextProvider = ({ children }) => {
       connected: false,
       monitorUniqId: 111,
       monitorNumber: 11,
-    },
-    {
-      id: 12,
-      name: "TV12",
-      x: 4320,
-      y: 1800,
-      width: 1440,
-      height: 900,
-      connected: false,
-      monitorUniqId: 112,
-      monitorNumber: 12,
     },
   ]);
 

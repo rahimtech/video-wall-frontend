@@ -341,7 +341,7 @@ const HeaderBar = ({ toggleLayout }) => {
         id="setting"
         className={` ${isToggleLayout ? "w-[100%]" : "w-[59%]"} ${
           darkMode ? "text-white bg-gray-800" : "text-black bg-gray-100"
-        } flex items-center z-[100] mb-2 p-2 rounded-xl   justify-center left-0 right-0 mx-auto `}
+        } flex items-center z-[10] mb-2 p-2 rounded-xl   justify-center left-0 right-0 mx-auto `}
       >
         <div className="flex gap-2">
           <Tooltip content={"خروج از اکانت"}>
