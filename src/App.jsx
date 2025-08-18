@@ -502,7 +502,7 @@ function App() {
       {!isToggleLayout && (
         <>
           <motion.aside
-            className={`fixed left-0 top-0 z-[100] h-screen border-r ${
+            className={`fixed left-0 top-0 z-[10] h-screen border-r ${
               darkMode ? "bg-[#1b1f25] border-[#2a2f36]" : "bg-white border-[#e5e7eb]"
             }`}
             style={{ width: "20%" }}
@@ -576,7 +576,7 @@ function App() {
           </motion.aside>
 
           <Button
-            className={`fixed bottom-5 left-0 w-[30px] h-[30px] text-xl z-[101] min-w-fit p-2 rounded-r-2xl shadow-md
+            className={`fixed bottom-5 left-0 w-[30px] h-[30px] text-xl z-[10] min-w-fit p-2 rounded-r-2xl shadow-md
         ${darkMode ? "bg-[#232933] text-white" : "bg-white text-black"}
       `}
             style={{ left: isBottomControlsVisible ? 20 : 20 }}
@@ -599,7 +599,7 @@ function App() {
       {!isToggleLayout && (
         <>
           <motion.aside
-            className={`fixed right-0 top-0 z-[100]  h-full border-l ${
+            className={`fixed right-0 top-0 z-[10]  h-full border-l ${
               darkMode ? "bg-[#1b1f25] border-[#2a2f36]" : "bg-white border-[#e5e7eb]"
             }`}
             style={{ width: "20%" }}
@@ -618,7 +618,7 @@ function App() {
 
           {/* Toggle button on right edge */}
           <Button
-            className={`fixed bottom-5 right-0 w-[30px] h-[30px] text-xl z-[101] min-w-fit p-2 rounded-l-2xl shadow-md
+            className={`fixed bottom-5 right-0 w-[30px] h-[30px] text-xl z-[10] min-w-fit p-2 rounded-l-2xl shadow-md
         ${darkMode ? "bg-[#232933] text-white" : "bg-white text-black"}
       `}
             style={{ right: isRightControlsVisible ? 20 : 20 }}
