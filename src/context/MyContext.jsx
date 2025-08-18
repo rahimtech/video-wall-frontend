@@ -18,7 +18,7 @@ import {
   arrangeMonitors,
   generateMonitorsForLayer,
 } from "../components/konva/items/monitor/MonitorKonva";
-import { addText, editText } from "../components/konva/items/text/TextKonva";
+import { addText } from "../components/konva/items/text/TextKonva";
 import {
   addVideo,
   pauseVideo,
@@ -287,25 +287,21 @@ export const MyContextProvider = ({ children }) => {
     const layer = scn?.layer;
     if (!stage || !layer) return;
 
-    // اگر رویداد اصلِ مرورگر داریم، مختصات موس رو به Konva بده
-    if (e.nativeEvent) {
-      stage.setPointersPositions(e.nativeEvent);
-    }
+    // مختصات موس را به Konva بده
+    if (e.nativeEvent) stage.setPointersPositions(e.nativeEvent);
 
-    // مختصات موس در فضای صفحهٔ نمایش
+    // مختصات در فضای کانتینر (اسکرین)
     let screenPt = stage.getPointerPosition();
     if (!screenPt) {
-      // fallback اگر getPointerPosition چیزی نداد
       const rect = stage.container().getBoundingClientRect();
       screenPt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
-    // تبدیل مختصاتِ صفحه به مختصات "محتوا" (با درنظرگرفتن scale/position استیج)
+    // تبدیل به مختصات محتوا (با درنظر گرفتن scale/position)
     const inv = stage.getAbsoluteTransform().copy().invert();
     const contentPt = inv.point(screenPt);
     const baseSceneId = scn.id;
 
-    // حالا براساس نوع منبع، مختصات را داخل آبجکت داخلی قرار بده
     if (dataDrag.type === "IMAGE" && dataDrag.img) {
       addImage({
         ...dataDrag,
@@ -330,6 +326,11 @@ export const MyContextProvider = ({ children }) => {
       addInput({
         ...dataDrag,
         input: { ...dataDrag.input, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
+      });
+    } else if (dataDrag.type === "TEXT" && dataDrag.textItem) {
+      addText({
+        ...dataDrag,
+        textItem: { ...dataDrag.textItem, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
       });
     }
   };
@@ -1408,7 +1409,6 @@ export const MyContextProvider = ({ children }) => {
         addImage,
         addInput,
         addText,
-        editText,
         addWeb,
         editWeb,
         IconMenuSidebar,

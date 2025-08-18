@@ -463,8 +463,16 @@ function App() {
       )}
       <Canvas
         darkMode={darkMode}
-        title={`${getSelectedScene()?.name} فعال است`}
-        subtitle={connecting ? "اتصال برقرار است" : "حالت آفلاین"}
+        title={
+          getSelectedScene()?.name ? `${getSelectedScene()?.name} فعال است` : "خطا در دریافت صحنه"
+        }
+        subtitle={
+          connectionMode
+            ? connecting
+              ? "اتصال برقرار است"
+              : "اتصال صحنه دچار مشکل شده"
+            : "حالت آفلاین فعال شده"
+        }
         scenes={scenes}
         selectedScene={selectedScene}
         handleDragOver={handleDragOver}
@@ -532,7 +540,7 @@ function App() {
                   cursor: darkMode ? "bg-blue-400" : "bg-blue-600",
                 }}
               >
-                <Tab key="resources" title="فایل‌ها" />
+                <Tab key="resources" title="منابع" />
                 <Tab key="scenes" title="صحنه‌ها" />
                 <Tab key="collections" title="برنامه‌ها" />
               </Tabs>

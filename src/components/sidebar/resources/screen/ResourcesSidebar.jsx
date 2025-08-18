@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import api from "@/api/api";
 import { Tabs, Tab, Card, CardBody } from "@heroui/react";
+import { addText } from "../../../konva/items/text/TextKonva";
 
 const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -87,7 +88,7 @@ const ResourcesSidebar = () => {
           const id = uuidv4();
 
           let newResource = {
-            type: "text",
+            type: "TEXT",
             id,
             color: "black",
             name: result.value,
@@ -380,6 +381,15 @@ const ResourcesSidebar = () => {
         sendOperation,
         url,
       });
+    } else if (resource.type == "TEXT") {
+      setDataDrag({
+        type: "TEXT",
+        textItem: resource,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+      });
     } else if (resource.type == "INPUT") {
       setDataDrag({ type: "INPUT", input: resource, getSelectedScene, setSources, sendOperation });
     }
@@ -511,7 +521,7 @@ const ResourcesSidebar = () => {
                       draggable={true}
                       onDragStart={(e) => handleDragDropItems(resource)}
                       className={`text-sm flex flex-wrap items-center justify-between ${
-                        darkMode ? "bg-gray-700" : "bg-gray-300"
+                        darkMode ? "bg-gray-700" : "bg-gray-200"
                       } p-2 rounded-md shadow-sm flex-wrap`}
                     >
                       <div className="flex items-center w-[50%]">
@@ -628,6 +638,35 @@ const ResourcesSidebar = () => {
                                   videoWalls.length > 0
                                     ? addWeb({
                                         webResource: resource,
+                                        getSelectedScene,
+                                        setSources,
+                                        sendOperation,
+                                        url,
+                                      })
+                                    : Swal.fire({
+                                        title: "!مانیتوری در صحنه وجود ندارد",
+                                        icon: "warning",
+                                        confirmButtonText: "باشه",
+                                        confirmButtonColor: "gray",
+                                      });
+                                }}
+                              >
+                                <MdAddBox />
+                              </Button>
+                            </>
+                          ) : resource.type == "TEXT" ? (
+                            <>
+                              <Button
+                                className={`${
+                                  darkMode ? "text-white" : "text-black"
+                                } min-w-fit h-fit p-1`}
+                                size="sm"
+                                variant="light"
+                                color="default"
+                                onPress={() => {
+                                  videoWalls.length > 0
+                                    ? addText({
+                                        textItem: resource,
                                         getSelectedScene,
                                         setSources,
                                         sendOperation,
@@ -790,6 +829,9 @@ const ResourcesSidebar = () => {
               </DropdownItem> */}
               <DropdownItem onPress={() => addResource("IFRAME")} key="web">
                 افزودن صفحه وب
+              </DropdownItem>
+              <DropdownItem onPress={() => addResource("TEXT")} key="text">
+                افزودن متن
               </DropdownItem>
             </DropdownMenu>
           </Dropdown>

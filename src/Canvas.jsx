@@ -297,7 +297,7 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
     handleDrop,
     getSelectedScene,
     videoWalls,
-    resources, // لیست فایل‌ها
+    resources, // لیست
     inputs, // لیست ورودی‌ها
     addImage,
     addVideo,
@@ -320,6 +320,7 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
   const [gridRows, setGridRows] = useState(2);
   const [gridCols, setGridCols] = useState(2);
   const [gridMonitorId, setGridMonitorId] = useState(null);
+  const [isActiveGrid, setIsActiveGrid] = useState(false);
 
   const [cellOptions, setCellOptions] = useState([]); // [{key,value,label}]
 
@@ -500,6 +501,23 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
 
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          <Switch
+            classNames={{ label: `${darkMode ? "dark" : "light"}` }}
+            size="sm"
+            isSelected={isActiveGrid}
+            onValueChange={() => setIsActiveGrid(!isActiveGrid)}
+          >
+            چیدمان مجازی
+          </Switch>
+          <Switch
+            classNames={{ label: `${darkMode ? "dark" : "light"}` }}
+            size="sm"
+            isSelected={dragEnabled}
+            onValueChange={toggleDrag}
+            className="ml-1"
+          >
+            درگ کردن
+          </Switch>
           <Button size="sm" variant="flat" onPress={doFit} startContent={<TbMaximize />}>
             فیت
           </Button>
@@ -518,16 +536,6 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
           <Button size="sm" variant="flat" onPress={doZoomIn} startContent={<TbZoomIn />}>
             Zoom+
           </Button>
-
-          <Switch
-            classNames={darkMode ? "dark" : "light"}
-            size="sm"
-            isSelected={dragEnabled}
-            onValueChange={toggleDrag}
-            className="ml-1"
-          >
-            Drag
-          </Switch>
         </div>
       </CardHeader>
 
@@ -577,101 +585,103 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
           </div>
 
           {/* Footer bar: Virtual Grid Builder */}
-          <div className="absolute left-3 right-3 bottom-1 flex items-center gap-2 rounded-xl px-3 py-2 backdrop-blur-sm bg-black/10 dark:bg-white/10 shadow-sm">
-            <TbGridDots className="opacity-80" />
-            <Select
-              size="sm"
-              label="مانیتور"
-              selectedKeys={gridMonitorId ? [String(gridMonitorId)] : []}
-              className="w-44"
-              onChange={(e) => setGridMonitorId(Number(e.target.value))}
-            >
-              {videoWalls.map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.name ?? `Monitor ${m.id}`}
-                </SelectItem>
-              ))}
-            </Select>
-            <Input
-              size="sm"
-              type="number"
-              min={1}
-              label="سطر"
-              className="w-24"
-              value={String(gridRows)}
-              onChange={(e) => setGridRows(e.target.value)}
-            />
-            <Input
-              size="sm"
-              type="number"
-              min={1}
-              label="ستون"
-              className="w-24"
-              value={String(gridCols)}
-              onChange={(e) => setGridCols(e.target.value)}
-            />
-            <Button size="sm" color="primary" onPress={applyGrid}>
-              اعمال گرید
-            </Button>
+          {isActiveGrid && (
+            <div className="absolute left-3 right-3 bottom-1 flex items-center gap-2 rounded-xl px-3 py-2 backdrop-blur-sm bg-black/10 dark:bg-white/10 shadow-sm">
+              <TbGridDots className="opacity-80" />
+              <Select
+                size="sm"
+                label="مانیتور"
+                selectedKeys={gridMonitorId ? [String(gridMonitorId)] : []}
+                className="w-44"
+                onChange={(e) => setGridMonitorId(Number(e.target.value))}
+              >
+                {videoWalls.map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.name ?? `Monitor ${m.id}`}
+                  </SelectItem>
+                ))}
+              </Select>
+              <Input
+                size="sm"
+                type="number"
+                min={1}
+                label="سطر"
+                className="w-24"
+                value={String(gridRows)}
+                onChange={(e) => setGridRows(e.target.value)}
+              />
+              <Input
+                size="sm"
+                type="number"
+                min={1}
+                label="ستون"
+                className="w-24"
+                value={String(gridCols)}
+                onChange={(e) => setGridCols(e.target.value)}
+              />
+              <Button size="sm" color="primary" onPress={applyGrid}>
+                اعمال گرید
+              </Button>
 
-            <div className="h-6 w-px bg-gray-300/30 mx-1" />
+              <div className="h-6 w-px bg-gray-300/30 mx-1" />
 
-            <Select
-              size="sm"
-              label="سلول"
-              selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
-              className="w-36"
-              onChange={(e) => setSelectedCellIndex(e.target.value)}
-              isDisabled={!cellOptions.length}
-            >
-              {cellOptions.map((c) => (
-                <SelectItem key={c.key} value={c.value}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </Select>
+              <Select
+                size="sm"
+                label="سلول"
+                selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
+                className="w-36"
+                onChange={(e) => setSelectedCellIndex(e.target.value)}
+                isDisabled={!cellOptions.length}
+              >
+                {cellOptions.map((c) => (
+                  <SelectItem key={c.key} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            <Select
-              size="sm"
-              label="منبع"
-              selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
-              className="w-60"
-              onChange={(e) => setSelectedAssetKey(e.target.value)}
-            >
-              {/* Inputs */}
-              {inputs.length > 0 && (
-                <SelectItem key="__group_inputs" isReadOnly>
-                  — ورودی‌ها —
-                </SelectItem>
-              )}
-              {inputs.map((i) => (
-                <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
-                  [INPUT] {i.name}
-                </SelectItem>
-              ))}
+              <Select
+                size="sm"
+                label="منبع"
+                selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
+                className="w-60"
+                onChange={(e) => setSelectedAssetKey(e.target.value)}
+              >
+                {/* Inputs */}
+                {inputs.length > 0 && (
+                  <SelectItem key="__group_inputs" isReadOnly>
+                    — ورودی‌ها —
+                  </SelectItem>
+                )}
+                {inputs.map((i) => (
+                  <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
+                    [INPUT] {i.name}
+                  </SelectItem>
+                ))}
 
-              {/* Resources */}
-              {resources.length > 0 && (
-                <SelectItem key="__group_files" isReadOnly>
-                  — فایل‌ها —
-                </SelectItem>
-              )}
-              {resources.map((r) => (
-                <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
-                  [{r.type}] {r.name}
-                </SelectItem>
-              ))}
-            </Select>
+                {/* Resources */}
+                {resources.length > 0 && (
+                  <SelectItem key="__group_files" isReadOnly>
+                    — فایل‌ها —
+                  </SelectItem>
+                )}
+                {resources.map((r) => (
+                  <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
+                    [{r.type}] {r.name}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            <Button
-              size="sm"
-              color="success"
-              onPress={handlePlace}
-              isDisabled={!selectedCellIndex || !selectedAssetKey}
-            >
-              قرار بده
-            </Button>
-          </div>
+              <Button
+                size="sm"
+                color="success"
+                onPress={handlePlace}
+                isDisabled={!selectedCellIndex || !selectedAssetKey}
+              >
+                قرار بده
+              </Button>
+            </div>
+          )}
         </div>
       </CardBody>
     </Card>

@@ -14,6 +14,7 @@ import { MdAddBox, MdDelete, MdDeleteForever, MdDeleteSweep } from "react-icons/
 import { SketchPicker } from "react-color";
 import { BsArrowDown } from "react-icons/bs";
 import { useMyContext } from "@/context/MyContext";
+import { openTextContextMenuById } from "@/components/konva/items/text/TextKonva";
 
 const UsageSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -305,6 +306,27 @@ const UsageSidebar = () => {
                     monitors={allDataMonitors}
                     fitToMonitors={fitToMonitors}
                   />
+                  {resource.type === "TEXT" && (
+                    <Tooltip content="تنظیمات متن">
+                      <Button
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        size="sm"
+                        variant="light"
+                        color="default"
+                        onPress={() =>
+                          openTextContextMenuById(resource.externalId, {
+                            getSelectedScene,
+                            setSources,
+                            sendOperation,
+                          })
+                        }
+                      >
+                        <FaCog size={15} />
+                      </Button>
+                    </Tooltip>
+                  )}
+
+                  {/* حذف از صحنه */}
                   <Tooltip content="حذف از صحنه">
                     <Button
                       className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
