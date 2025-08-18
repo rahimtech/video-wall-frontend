@@ -1,5 +1,13 @@
-import React from "react";
-import { FaDownload, FaExpand, FaNetworkWired, FaPowerOff, FaUpload, FaWifi } from "react-icons/fa";
+import React, { useState } from "react";
+import {
+  FaDownload,
+  FaExpand,
+  FaNetworkWired,
+  FaPlug,
+  FaPowerOff,
+  FaUpload,
+  FaWifi,
+} from "react-icons/fa";
 import SwitchCustom from "../SwitchCustom";
 import {
   Alert,
@@ -16,7 +24,15 @@ import { TbLayoutOff } from "react-icons/tb";
 import { TbLayout } from "react-icons/tb";
 import ModalVideoWall from "../ModalVideoWall";
 import Swal from "sweetalert2";
-import { MdDownload, MdLogout, MdOutlineResetTv, MdRefresh, MdUpload } from "react-icons/md";
+import {
+  MdConnectingAirports,
+  MdDownload,
+  MdLogout,
+  MdOutlineResetTv,
+  MdRefresh,
+  MdSettings,
+  MdUpload,
+} from "react-icons/md";
 import { PiNetwork } from "react-icons/pi";
 import ModalInfo from "../ModalInfo";
 import { CgArrangeBack } from "react-icons/cg";
@@ -27,6 +43,7 @@ import { AiOutlinePoweroff } from "react-icons/ai";
 import { useMyContext } from "../../../context/MyContext";
 import { BsEyeSlash } from "react-icons/bs";
 import { Link } from "@heroui/react";
+import SettingsModal from "../SettingsModal";
 
 const HeaderBar = ({ toggleLayout }) => {
   let {
@@ -62,6 +79,7 @@ const HeaderBar = ({ toggleLayout }) => {
     socket,
     monitorConnection,
   } = useMyContext();
+  const [openSettings, setOpenSettings] = useState(false);
 
   const handleExportProject = () => {
     const data = {
@@ -735,7 +753,7 @@ const HeaderBar = ({ toggleLayout }) => {
                 });
               }}
             >
-              <FaWifi size={20} />
+              <FaPlug size={20} />
             </Button>
           </Tooltip>
 
@@ -744,7 +762,7 @@ const HeaderBar = ({ toggleLayout }) => {
               className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
               size="lg"
               variant="solid"
-              color="light"
+              color="default"
               onPress={() => {
                 handleFullscreen();
               }}
@@ -752,6 +770,8 @@ const HeaderBar = ({ toggleLayout }) => {
               <FaExpand size={20} />
             </Button>
           </Tooltip>
+
+          <SettingsModal isOpen={openSettings} onClose={() => setOpenSettings(false)} />
 
           {/* <Tooltip
             content={
