@@ -1,5 +1,5 @@
 // src/components/konva/Canvas.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
   Card,
   CardHeader,
@@ -211,7 +211,8 @@ function getGridCells(layer, monitorId, { debug = false, clearPrev = true } = {}
     : null;
 
   const cells = [];
-  let idx = 1;
+  const startIndex = Number(group.getAttr("gridStartIndex")) || 1;
+  let idx = startIndex;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = absBox.x + c * cellW;
@@ -409,6 +410,37 @@ export default function Canvas({
   const [groupCounter, setGroupCounter] = useState(1);
   const [groups, setGroups] = useState([]); // آرایه‌ای از Konva.Group ها
   const [selectedGroupIndex, setSelectedGroupIndex] = useState(null);
+  const [activeTab, setActiveTab] = useState("grid"); // "grid" | "groups" | "place"
+
+  const cellCacheRef = useRef(new Map());
+
+  useEffect(() => {
+    const tabs = [
+      { btn: "#tab-grid", panel: "#panel-grid" },
+      { btn: "#tab-groups", panel: "#panel-groups" },
+      { btn: "#tab-place", panel: "#panel-place" },
+    ];
+    const setActive = (idx) => {
+      tabs.forEach((t, i) => {
+        const b = document.querySelector(t.btn);
+        const p = document.querySelector(t.panel);
+        if (!b || !p) return;
+        b.dataset.active = i === idx ? "true" : "false";
+        p.classList.toggle("hidden", i !== idx);
+      });
+    };
+    tabs.forEach((t, i) => {
+      const b = document.querySelector(t.btn);
+      b && b.addEventListener("click", () => setActive(i));
+    });
+    setActive(0);
+    return () => {
+      tabs.forEach((t) => {
+        const b = document.querySelector(t.btn);
+        b && b.replaceWith(b.cloneNode(true)); // remove handlers
+      });
+    };
+  }, [isActiveGrid, darkMode]);
 
   const handlePlaceIntoGroup = () => {
     const { layer } = getStageAndLayer(getSelectedScene);
@@ -607,6 +639,37 @@ export default function Canvas({
   }
 
   useEffect(() => {
+    // هر بار scene عوض شد، کش سلول‌ها را پاک کن تا سازگار بماند
+    cellCacheRef.current.clear();
+  }, [selectedScene]);
+
+  useEffect(() => {
+    const { layer } = getStageAndLayer(getSelectedScene);
+    if (!layer || !gridMonitorId) {
+      setCellOptions([]);
+      return;
+    }
+
+    // اول از کش بخوان
+    let cells = cellCacheRef.current.get(gridMonitorId);
+    if (!cells) {
+      // فقط اگر کش نداریم، حساب کن
+      cells = getGridCells(layer, gridMonitorId);
+      cellCacheRef.current.set(gridMonitorId, cells);
+    }
+
+    startTransition(() => {
+      setCellOptions(
+        cells.map((c) => ({
+          key: String(c.index),
+          value: String(c.index),
+          label: `سلول ${c.index}`,
+        }))
+      );
+    });
+  }, [gridMonitorId]); // بقیه‌ی وابستگی‌ها را حذف کن تا بی‌خودی دوباره محاسبه نشود
+
+  useEffect(() => {
     const { layer } = getStageAndLayer(getSelectedScene);
     if (!layer) return;
 
@@ -784,6 +847,18 @@ export default function Canvas({
       parseInt(gridCols),
       startIndex
     );
+    const cells = getGridCells(layer, gridMonitorId);
+    cellCacheRef.current.set(gridMonitorId, cells);
+    // و آپشن‌های سلکت را سریع از کش بساز
+    startTransition(() => {
+      setCellOptions(
+        cells.map((c) => ({
+          key: String(c.index),
+          value: String(c.index),
+          label: `سلول ${c.index}`,
+        }))
+      );
+    });
   };
 
   useEffect(() => {
@@ -935,168 +1010,274 @@ export default function Canvas({
             </div>
           </div>
 
-          {/* Footer bar: Virtual Grid Builder */}
           {isActiveGrid && (
-            <div className="absolute left-3 right-3 bottom-1 flex-col items-center  rounded-xl px-3 py-2 backdrop-blur-sm bg-black/10 dark:bg-white/10 shadow-sm">
-              <div className="w-full flex items-center gap-2">
-                <TbGridDots className="opacity-80" />
-                <Select
-                  size="sm"
-                  label="مانیتور"
-                  selectedKeys={gridMonitorId ? [String(gridMonitorId)] : []}
-                  className="w-44"
-                  onChange={(e) => setGridMonitorId(Number(e.target.value))}
-                >
-                  {videoWalls.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name ?? `Monitor ${m.id}`}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Input
-                  size="sm"
-                  type="number"
-                  min={1}
-                  label="سطر"
-                  className="w-24"
-                  value={String(gridRows)}
-                  onChange={(e) => setGridRows(e.target.value)}
-                />
-                <Input
-                  size="sm"
-                  type="number"
-                  min={1}
-                  label="ستون"
-                  className="w-24"
-                  value={String(gridCols)}
-                  onChange={(e) => setGridCols(e.target.value)}
-                />
-                <Button size="sm" color="primary" onPress={applyGrid}>
-                  اعمال گرید
-                </Button>
-
-                <div className="h-6 w-px bg-gray-300/30 mx-1" />
-
-                <Select
-                  size="sm"
-                  label="سلول"
-                  selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
-                  className="w-36"
-                  onChange={(e) => setSelectedCellIndex(e.target.value)}
-                  isDisabled={!cellOptions.length}
-                >
-                  {cellOptions.map((c) => (
-                    <SelectItem key={c.key} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-
-                <Select
-                  size="sm"
-                  label="منبع"
-                  selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
-                  className="w-60"
-                  onChange={(e) => setSelectedAssetKey(e.target.value)}
-                >
-                  {/* Inputs */}
-                  {inputs.length > 0 && (
-                    <SelectItem key="__group_inputs" isReadOnly>
-                      — ورودی‌ها —
-                    </SelectItem>
-                  )}
-                  {inputs.map((i) => (
-                    <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
-                      [INPUT] {i.name}
-                    </SelectItem>
-                  ))}
-
-                  {/* Resources */}
-                  {resources.length > 0 && (
-                    <SelectItem key="__group_files" isReadOnly>
-                      — فایل‌ها —
-                    </SelectItem>
-                  )}
-                  {resources.map((r) => (
-                    <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
-                      [{r.type}] {r.name}
-                    </SelectItem>
-                  ))}
-                </Select>
-
-                <Button
-                  size="sm"
-                  color="success"
-                  onPress={handlePlace}
-                  isDisabled={!selectedCellIndex || !selectedAssetKey}
-                >
-                  قرار بده
-                </Button>
+            <div
+              className={`
+      absolute left-3 right-3 bottom-2 rounded-2xl
+      backdrop-blur-md shadow-lg border
+      ${darkMode ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}
+    `}
+            >
+              <div className="px-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TbGridDots className="opacity-80" />
+                    <span
+                      className={`text-sm font-medium ${
+                        darkMode ? "text-white/80" : "text-black/80"
+                      }`}
+                    >
+                      ابزار چیدمان
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="light" onPress={doZoomOut} isIconOnly>
+                      <TbZoomOut />
+                    </Button>
+                    <Button size="sm" variant="light" onPress={doZoomIn} isIconOnly>
+                      <TbZoomIn />
+                    </Button>
+                    <Button size="sm" variant="light" onPress={doCenter} isIconOnly>
+                      <TbFocusCentered />
+                    </Button>
+                    <Button size="sm" variant="light" onPress={onFit} isIconOnly>
+                      <TbMaximize />
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div className="w-full flex mt-3 items-center gap-2">
-                <Select
-                  size="sm"
-                  selectionMode="multiple"
-                  label="انتخاب مانیتورها"
-                  selectedKeys={selectedMonitors.map(String)}
-                  onSelectionChange={(keys) => setSelectedMonitors([...keys].map(Number))}
-                >
-                  {videoWalls.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name ?? `Monitor ${m.id}`}
-                    </SelectItem>
-                  ))}
-                </Select>
 
-                <Button
-                  size="sm"
-                  color="danger"
-                  isDisabled={!selectedMonitors.length} // فقط وقتی انتخابی نیست، غیرفعاله
-                  onPress={handleCreateGroup}
+              <div className="px-3 pb-3">
+                <div
+                  className={`mt-2 rounded-xl overflow-hidden border ${
+                    darkMode ? "border-white/10" : "border-black/10"
+                  }`}
                 >
-                  ایجاد گروه
-                </Button>
+                  {/* Tabs */}
+                  <div
+                    className={`grid grid-cols-3 text-center text-sm font-medium ${
+                      darkMode ? "bg-white/5 text-white/70" : "bg-gray-400 text-black/70"
+                    }`}
+                  >
+                    <button
+                      className={`py-2 hover:opacity-80 ${
+                        activeTab === "grid" ? "bg-primary/20" : ""
+                      }`}
+                      onClick={() => setActiveTab("grid")}
+                    >
+                      گرید
+                    </button>
+                    <button
+                      className={`py-2 hover:opacity-80 ${
+                        activeTab === "groups" ? "bg-primary/20" : ""
+                      }`}
+                      onClick={() => setActiveTab("groups")}
+                    >
+                      گروه‌ها
+                    </button>
+                    <button
+                      className={`py-2 hover:opacity-80 ${
+                        activeTab === "place" ? "bg-primary/20" : ""
+                      }`}
+                      onClick={() => setActiveTab("place")}
+                    >
+                      قرار دادن
+                    </button>
+                  </div>
 
-                <Button
-                  size="sm"
-                  color="warning"
-                  isDisabled={!groups.length} // اگر هیچ گروهی نیست، غیرفعاله
-                  onPress={handleCancelGroup}
-                >
-                  لغو گروه
-                </Button>
-                <Select
-                  size="sm"
-                  label="گروه"
-                  selectedKeys={
-                    selectedGroupIndex !== null && selectedGroupIndex !== undefined
-                      ? [String(selectedGroupIndex)]
-                      : []
-                  }
-                  className="w-40"
-                  onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
-                  isDisabled={!groups.length}
-                >
-                  {groups.map((g, idx) => (
-                    <SelectItem key={idx} value={String(idx)}>
-                      {g.getAttr("groupName") || `Group ${idx + 1}`}
-                    </SelectItem>
-                  ))}
-                </Select>
+                  {/* Panels */}
+                  <div className={`${darkMode ? "bg-[#0f131a]" : "bg-white"} p-3`}>
+                    {/* === Grid panel === */}
+                    <div className={activeTab === "grid" ? "grid grid-cols-12 gap-2" : "hidden"}>
+                      <div className="col-span-12 md:col-span-3">
+                        <Select
+                          size="sm"
+                          label="مانیتور"
+                          selectedKeys={gridMonitorId ? [String(gridMonitorId)] : []}
+                          onChange={(e) => setGridMonitorId(Number(e.target.value))}
+                        >
+                          {videoWalls.map((m) => (
+                            <SelectItem key={m.id} value={String(m.id)}>
+                              {m.name ?? `Monitor ${m.id}`}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </div>
+                      <div className="col-span-6 md:col-span-2">
+                        <Input
+                          size="sm"
+                          type="number"
+                          min={1}
+                          label="سطر"
+                          value={String(gridRows)}
+                          onChange={(e) => setGridRows(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-6 md:col-span-2">
+                        <Input
+                          size="sm"
+                          type="number"
+                          min={1}
+                          label="ستون"
+                          value={String(gridCols)}
+                          onChange={(e) => setGridCols(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-12 md:col-span-2 flex items-end">
+                        <Button size="sm" color="primary" className="w-full" onPress={applyGrid}>
+                          اعمال گرید
+                        </Button>
+                      </div>
+                      <div className="col-span-12 md:col-span-3">
+                        <Select
+                          size="sm"
+                          label="سلول"
+                          selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
+                          onChange={(e) => setSelectedCellIndex(e.target.value)}
+                          isDisabled={!cellOptions.length}
+                        >
+                          {cellOptions.length === 0 ? (
+                            <SelectItem key="__empty" isReadOnly>
+                              ابتدا گرید را اعمال کنید
+                            </SelectItem>
+                          ) : (
+                            cellOptions.map((c) => (
+                              <SelectItem key={c.key} value={c.value}>
+                                {c.label}
+                              </SelectItem>
+                            ))
+                          )}
+                        </Select>
+                      </div>
+                    </div>
 
-                <Button
-                  size="sm"
-                  color="success"
-                  onPress={handlePlaceIntoGroup}
-                  isDisabled={
-                    !selectedAssetKey ||
-                    selectedGroupIndex === null ||
-                    selectedGroupIndex === undefined ||
-                    !groups.length
-                  }
-                >
-                  قرار بده در گروه
-                </Button>
+                    {/* === Groups panel === */}
+                    <div className={activeTab === "groups" ? "grid grid-cols-12 gap-2" : "hidden"}>
+                      <div className="col-span-12 md:col-span-5">
+                        <Select
+                          size="sm"
+                          selectionMode="multiple"
+                          label="انتخاب مانیتورها"
+                          selectedKeys={selectedMonitors.map(String)}
+                          onSelectionChange={(keys) => setSelectedMonitors([...keys].map(Number))}
+                        >
+                          {videoWalls.map((m) => (
+                            <SelectItem key={m.id} value={String(m.id)}>
+                              {m.name ?? `Monitor ${m.id}`}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </div>
+                      <div className="col-span-6 md:col-span-2 flex items-end">
+                        <Button
+                          size="sm"
+                          color="danger"
+                          className="w-full"
+                          isDisabled={!selectedMonitors.length}
+                          onPress={handleCreateGroup}
+                        >
+                          ایجاد گروه
+                        </Button>
+                      </div>
+                      <div className="col-span-6 md:col-span-2 flex items-end">
+                        <Button
+                          size="sm"
+                          color="warning"
+                          className="w-full"
+                          isDisabled={!groups.length}
+                          onPress={handleCancelGroup}
+                        >
+                          لغو گروه اخیر
+                        </Button>
+                      </div>
+                      <div className="col-span-12 md:col-span-3">
+                        <Select
+                          size="sm"
+                          label="گروه"
+                          selectedKeys={
+                            selectedGroupIndex !== null && selectedGroupIndex !== undefined
+                              ? [String(selectedGroupIndex)]
+                              : []
+                          }
+                          onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
+                          isDisabled={!groups.length}
+                        >
+                          {groups.length === 0 ? (
+                            <SelectItem key="__ng" isReadOnly>
+                              گروهی ندارید
+                            </SelectItem>
+                          ) : (
+                            groups.map((g, idx) => (
+                              <SelectItem key={idx} value={String(idx)}>
+                                {g.getAttr("groupName") || `Group ${idx + 1}`}
+                              </SelectItem>
+                            ))
+                          )}
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* === Place panel === */}
+                    <div className={activeTab === "place" ? "grid grid-cols-12 gap-2" : "hidden"}>
+                      <div className="col-span-12 md:col-span-6">
+                        <Select
+                          size="sm"
+                          label="منبع"
+                          selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
+                          onChange={(e) => setSelectedAssetKey(e.target.value)}
+                        >
+                          {inputs.length > 0 && (
+                            <SelectItem key="__group_inputs" isReadOnly>
+                              — ورودی‌ها —
+                            </SelectItem>
+                          )}
+                          {inputs.map((i) => (
+                            <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
+                              [INPUT] {i.name}
+                            </SelectItem>
+                          ))}
+                          {resources.length > 0 && (
+                            <SelectItem key="__group_files" isReadOnly>
+                              — فایل‌ها —
+                            </SelectItem>
+                          )}
+                          {resources.map((r) => (
+                            <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
+                              [{r.type}] {r.name}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </div>
+                      <div className="col-span-6 md:col-span-3 flex items-end">
+                        <Button
+                          size="sm"
+                          color="success"
+                          className="w-full"
+                          onPress={handlePlace}
+                          isDisabled={!selectedCellIndex || !selectedAssetKey}
+                        >
+                          قرار بده (سلول)
+                        </Button>
+                      </div>
+                      <div className="col-span-6 md:col-span-3 flex items-end">
+                        <Button
+                          size="sm"
+                          color="success"
+                          className="w-full"
+                          onPress={handlePlaceIntoGroup}
+                          isDisabled={
+                            !selectedAssetKey ||
+                            selectedGroupIndex === null ||
+                            selectedGroupIndex === undefined ||
+                            !groups.length
+                          }
+                        >
+                          قرار بده (گروه)
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

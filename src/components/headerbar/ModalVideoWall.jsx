@@ -24,12 +24,13 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
       <Tooltip content="جزئیات ویدئووال">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
-          size="lg"
+          size="sm"
           variant="solid"
           color="default"
           onPress={onOpen}
         >
           <BsGrid3X3 size={20} />
+          مانیتورها
         </Button>
       </Tooltip>
       <Modal

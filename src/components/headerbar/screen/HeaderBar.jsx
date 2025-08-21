@@ -355,498 +355,268 @@ const HeaderBar = ({ toggleLayout }) => {
   };
 
   return (
-    <>
-      <div
-        id="setting"
-        className={` ${isToggleLayout ? "w-[100%]" : "w-[59%]"} ${
-          darkMode ? "text-white bg-gray-800" : "text-black bg-gray-100"
-        } flex items-center z-[10] mb-2 p-2 rounded-xl  h-full justify-center left-0 right-0 mx-auto `}
+    <div
+      id="setting"
+      className={`${isToggleLayout ? "w-[100%]" : "w-[59%]"} ${
+        darkMode ? "text-white bg-gray-800" : "text-black bg-gray-100"
+      } flex items-center justify-center mx-auto gap-3 z-[10] mb-2 p-2 rounded-xl`}
+    >
+      {/* خروج */}
+      <Button
+        size="sm"
+        color="danger"
+        variant="flat"
+        className="flex items-center gap-1 rounded-lg"
+        onPress={() => {
+          Swal.fire({
+            title: "آیا مطمئن هستید؟",
+            showDenyButton: true,
+            confirmButtonText: "بله",
+            denyButtonText: "خیر",
+            confirmButtonColor: "green",
+            denyButtonColor: "gray",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              localStorage.setItem("isLoggedIn", "false");
+              location.reload();
+            }
+          });
+        }}
       >
-        <div className="flex gap-2">
-          <Tooltip content={"خروج از اکانت"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="flat"
-              color={"danger"}
-              onPress={() => {
-                Swal.fire({
-                  title: "آیا مطمئن هستید؟",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    localStorage.setItem("isLoggedIn", "false");
-                    location.reload();
-                  }
-                });
-              }}
-            >
-              <MdLogout size={20} />
-            </Button>
-          </Tooltip>
-          <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
+        <MdLogout size={18} /> <span>خروج</span>
+      </Button>
 
-          <ModalInfo darkMode={darkMode} />
+      {/* دارک مود */}
+      <SwitchCustom setDarkMode={setDarkMode} darkMode={darkMode} />
 
-          {/* <Tooltip content={"آپدیت نرم‌افزار"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color={"default"}
-              onPress={() => {
-                Swal.fire({
-                  title: "آپدیت انجام شود؟",
-                  text: "! نیازمند اینترنت ",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    handleUpdate();
-                  }
-                });
-              }}
-            >
-              <MdSystemUpdateAlt size={20} />
-            </Button>
-          </Tooltip> */}
+      {/* راهنما */}
+      <ModalInfo darkMode={darkMode} />
 
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-                size="lg"
-                variant="solid"
-                color={"default"}
-              >
-                <AiOutlinePoweroff size={20} />
-              </Button>
-            </DropdownTrigger>
-
-            <DropdownMenu
-              onAction={(e) => {
-                if (e == "reset") {
-                  Swal.fire({
-                    title: "آیا سیستم ری‌استارت شود؟",
-                    showDenyButton: true,
-                    showCancelButton: false,
-                    confirmButtonText: "بله",
-                    denyButtonText: `خیر`,
-                    confirmButtonColor: "green",
-                    denyButtonColor: "gray",
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      socket.emit("shell", "shutdown.exe /r /f /t 0");
-                    }
-                  });
-                } else if (e == "off") {
-                  Swal.fire({
-                    title: "آیا سیستم خاموش شود؟",
-                    showDenyButton: true,
-                    showCancelButton: false,
-                    confirmButtonText: "بله",
-                    denyButtonText: `خیر`,
-                    confirmButtonColor: "green",
-                    denyButtonColor: "gray",
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      socket.emit("shell", "shutdown.exe /s /f /t 0");
-                    }
-                  });
+      {/* پاور */}
+      <Dropdown>
+        <DropdownTrigger>
+          <Button
+            size="sm"
+            color="default"
+            variant="solid"
+            className="flex items-center gap-1 rounded-lg"
+          >
+            <AiOutlinePoweroff size={18} /> <span>پاور</span>
+          </Button>
+        </DropdownTrigger>
+        <DropdownMenu
+          dir="rtl"
+          onAction={(key) => {
+            if (key === "reset") {
+              Swal.fire({
+                title: "سیستم ری‌استارت شود؟",
+                showDenyButton: true,
+                confirmButtonText: "بله",
+                denyButtonText: "خیر",
+              }).then((res) => {
+                if (res.isConfirmed) {
+                  socket.emit("shell", "shutdown.exe /r /f /t 0");
                 }
-              }}
-              dir="rtl"
-            >
-              <DropdownItem key="reset">ریست کردن</DropdownItem>
-              <DropdownItem key="off">خاموش کردن</DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+              });
+            } else if (key === "off") {
+              Swal.fire({
+                title: "سیستم خاموش شود؟",
+                showDenyButton: true,
+                confirmButtonText: "بله",
+                denyButtonText: "خیر",
+              }).then((res) => {
+                if (res.isConfirmed) {
+                  socket.emit("shell", "shutdown.exe /s /f /t 0");
+                }
+              });
+            }
+          }}
+        >
+          <DropdownItem key="reset">ریست کردن</DropdownItem>
+          <DropdownItem key="off">خاموش کردن</DropdownItem>
+        </DropdownMenu>
+      </Dropdown>
 
-          {/* <Tooltip content={"تازه‌سازی کامل ویدئووال و کنترلر"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color={"default"}
-              onPress={() => {
-                Swal.fire({
-                  title: "نرم‌افزار کامل تازه‌سازی شود؟",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    socket.emit("recreate-window", true);
-                    socket.emit("run-batch", true);
-                    location.reload();
-                  }
-                });
-              }}
-            >
-              <MdRefresh size={20} />
-            </Button>
-          </Tooltip> */}
-
-          {/* <Tooltip content={"تازه‌سازی کنترلر"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color={"default"}
-              onPress={() => {
-                Swal.fire({
-                  title: "کنترلر تازه‌سازی شود؟",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) location.reload();
-                });
-              }}
-            >
-              <TfiPanel size={20} />
-            </Button>
-          </Tooltip> */}
-
-          {/* <Tooltip content={"تازه‌سازی نمایشگر"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color={"default"}
-              onPress={() => {
-                Swal.fire({
-                  title: "نمایشگر تازه‌سازی شود؟",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    socket.emit("recreate-window", true);
-                  }
-                });
-              }}
-            >
-              <MdOutlineResetTv size={20} />
-            </Button>
-          </Tooltip>
-
-          <Tooltip content={"تازه‌سازی چیدمان"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color={"default"}
-              onPress={() => {
-                Swal.fire({
-                  title: "چیدمان تازه‌سازی شود؟",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    socket.emit("run-batch", true);
-                  }
-                });
-              }}
-            >
-              <CgArrangeBack size={20} />
-            </Button>
-          </Tooltip> */}
-
-          <Tooltip content={connecting ? "تنظیمات شبکه(متصل)" : "تنظیمات شبکه(اشکال در اتصال)"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
-              size="lg"
-              variant="solid"
-              color={connecting ? "default" : "danger"}
-              onPress={async () => {
-                const defaultStaticIP = localStorage.getItem("host") ?? "192.168.1.101";
-                const defaultSubnetMask = "255.255.255.0";
-                const defaultGateway = "192.168.1.1";
-                const defaultDNS = "8.8.8.8";
-                let flagDHCP = false;
-                const { value: formValues } = await Swal.fire({
-                  confirmButtonColor: "gray",
-                  title: "تنظیمات شبکه",
-                  html: `
+      {/* تنظیمات شبکه */}
+      <Button
+        size="sm"
+        color={connecting ? "success" : "danger"}
+        variant="solid"
+        className="flex items-center gap-1 rounded-lg"
+        onPress={async () => {
+          const defaultStaticIP = localStorage.getItem("host") ?? "192.168.1.101";
+          const defaultSubnetMask = "255.255.255.0";
+          const defaultGateway = "192.168.1.1";
+          const defaultDNS = "8.8.8.8";
+          let flagDHCP = false;
+          const { value: formValues } = await Swal.fire({
+            confirmButtonColor: "gray",
+            title: "تنظیمات شبکه",
+            html: `
                     <label>Static IP</label>
                     <input type="text" value="${defaultStaticIP}" id="swal-input1" class="swal2-input">
                     
                    `,
-                  didOpen: () => {
-                    // const ipTypeSelect = document.getElementById("swal-ip-type");
-                    const staticFields = [document.getElementById("swal-input1")];
+            didOpen: () => {
+              // const ipTypeSelect = document.getElementById("swal-ip-type");
+              const staticFields = [document.getElementById("swal-input1")];
 
-                    ipTypeSelect.addEventListener("change", (e) => {
-                      const isStatic = e.target.value === "static";
-                      staticFields.forEach((field) => {
-                        field.disabled = !isStatic;
-                        if (!isStatic) field.value = "";
-                      });
-                    });
-                  },
-                  focusConfirm: false,
-                  preConfirm: () => {
-                    // const ipType = document.getElementById("swal-ip-type").value;
-                    const staticIP = document.getElementById("swal-input1").value.trim();
-                    // const subnetMask = document.getElementById("swal-input2").value.trim();
-                    // const gateway = document.getElementById("swal-input3").value.trim();
-                    // const dns = document.getElementById("swal-input4").value.trim();
-
-                    if (true) {
-                      const ipRegex =
-                        /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$/;
-                      const subnetMaskRegex =
-                        /^(128|192|224|240|248|252|254|255)\.0\.0\.0$|^255\.(0|128|192|224|240|248|252|254)\.0\.0$|^255\.255\.(0|128|192|224|240|248|252|254)\.0$|^255\.255\.255\.(0|128|192|224|240|248|252|254|255)$/;
-
-                      if (!ipRegex.test(staticIP)) {
-                        Swal.showValidationMessage(
-                          "لطفاً یک Static IP معتبر وارد کنید (مثال: 192.168.1.101)"
-                        );
-                        return false;
-                      }
-                      // if (!subnetMaskRegex.test(subnetMask)) {
-                      //   Swal.showValidationMessage(
-                      //     "لطفاً یک Subnet Mask معتبر وارد کنید (مثال: 255.255.255.0)"
-                      //   );
-                      //   return false;
-                      // }
-                      // if (!ipRegex.test(gateway)) {
-                      //   Swal.showValidationMessage(
-                      //     "لطفاً یک Gateway معتبر وارد کنید (مثال: 192.168.1.1)"
-                      //   );
-                      //   return false;
-                      // }
-                      // if (!ipRegex.test(dns)) {
-                      //   Swal.showValidationMessage("لطفاً یک DNS معتبر وارد کنید (مثال: 8.8.8.8)");
-                      //   return false;
-                      // }
-                      localStorage.setItem("host", staticIP);
-                      return { staticIP };
-                    }
-                    flagDHCP = true;
-                    return { ipType };
-                  },
+              ipTypeSelect.addEventListener("change", (e) => {
+                const isStatic = e.target.value === "static";
+                staticFields.forEach((field) => {
+                  field.disabled = !isStatic;
+                  if (!isStatic) field.value = "";
                 });
+              });
+            },
+            focusConfirm: false,
+            preConfirm: () => {
+              // const ipType = document.getElementById("swal-ip-type").value;
+              const staticIP = document.getElementById("swal-input1").value.trim();
+              // const subnetMask = document.getElementById("swal-input2").value.trim();
+              // const gateway = document.getElementById("swal-input3").value.trim();
+              // const dns = document.getElementById("swal-input4").value.trim();
 
-                if (flagDHCP) {
-                  const newIp = prompt("لطفا آی‌ پی جدید را از درایور خوانده و وارد کنید");
-                  localStorage.setItem("host", newIp);
-                  location.reload();
-                  flagDHCP = false;
+              if (true) {
+                const ipRegex =
+                  /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$/;
+                const subnetMaskRegex =
+                  /^(128|192|224|240|248|252|254|255)\.0\.0\.0$|^255\.(0|128|192|224|240|248|252|254)\.0\.0$|^255\.255\.(0|128|192|224|240|248|252|254)\.0$|^255\.255\.255\.(0|128|192|224|240|248|252|254|255)$/;
+
+                if (!ipRegex.test(staticIP)) {
+                  Swal.showValidationMessage(
+                    "لطفاً یک Static IP معتبر وارد کنید (مثال: 192.168.1.101)"
+                  );
+                  return false;
                 }
+                // if (!subnetMaskRegex.test(subnetMask)) {
+                //   Swal.showValidationMessage(
+                //     "لطفاً یک Subnet Mask معتبر وارد کنید (مثال: 255.255.255.0)"
+                //   );
+                //   return false;
+                // }
+                // if (!ipRegex.test(gateway)) {
+                //   Swal.showValidationMessage(
+                //     "لطفاً یک Gateway معتبر وارد کنید (مثال: 192.168.1.1)"
+                //   );
+                //   return false;
+                // }
+                // if (!ipRegex.test(dns)) {
+                //   Swal.showValidationMessage("لطفاً یک DNS معتبر وارد کنید (مثال: 8.8.8.8)");
+                //   return false;
+                // }
+                localStorage.setItem("host", staticIP);
+                return { staticIP };
+              }
+              flagDHCP = true;
+              return { ipType };
+            },
+          });
 
-                if (formValues) {
-                  if (true) {
-                    socket.emit("state", {
-                      ipType: formValues.ipType,
-                      staticIP: formValues.staticIP,
-                      subnetMask: formValues.subnetMask,
-                      gateway: formValues.gateway,
-                      dns: formValues.dns,
-                    });
-                  } else {
-                    // localStorage.setItem('host',dhcp)
-                    socket.emit("state", { ipType: "dhcp" });
-                  }
+          if (flagDHCP) {
+            const newIp = prompt("لطفا آی‌ پی جدید را از درایور خوانده و وارد کنید");
+            localStorage.setItem("host", newIp);
+            location.reload();
+            flagDHCP = false;
+          }
 
-                  Swal.fire({
-                    icon: "success",
-                    title: "تنظیمات با موفقیت اعمال شد!",
-                    text:
-                      formValues.ipType === "static"
-                        ? `Static IP: ${formValues.staticIP}\nSubnet Mask: ${formValues.subnetMask}\nGateway: ${formValues.gateway}\nDNS: ${formValues.dns}`
-                        : "تنظیمات برای IP Dynamic اعمال شد!",
-                  });
-                  location.reload();
-                }
-              }}
-            >
-              <PiNetwork size={25} />
-            </Button>
-          </Tooltip>
-
-          {/* <Tooltip content="وارد کردن فایل کانفیگ">
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color="default"
-              onPress={handleFileUpload}
-            >
-              <MdDownload size={20} />
-            </Button>
-          </Tooltip>
-
-          <Tooltip content="خروجی گرفتن از کانفیگ ویدئووال">
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color="default"
-              onPress={handleExportProject}
-            >
-              <MdUpload size={20} />
-            </Button>
-          </Tooltip> */}
-          <Tooltip content="پنهان کردن منوها">
-            <Button
-              className={`${darkMode ? "dark" : "light"} ${
-                isToggleLayout ? "bg-blue-500 " : ""
-              } min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color="default"
-              onPress={toggleLayout}
-            >
-              <BsEyeSlash size={25} />
-            </Button>
-          </Tooltip>
-
-          {/* <Tooltip content="معرفی و راهنمای نرم افزار">
-            <Link href="/doc">لینک</Link>
-          </Tooltip> */}
-
-          <ModalVideoWall darkMode={darkMode} videoWall={videoWalls} />
-
-          <Tooltip content={connectionMode ? "حالت آنلاین فعال است" : "حالت آفلاین فعال است"}>
-            <Button
-              className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-              size="lg"
-              variant="solid"
-              color={connectionMode ? "success" : "warning"}
-              onPress={() => {
-                Swal.fire({
-                  title: connectionMode ? "حالت آفلاین فعال شود؟" : "حالت آنلاین فعال شود؟",
-                  showDenyButton: true,
-                  showCancelButton: false,
-                  confirmButtonText: "بله",
-                  denyButtonText: `خیر`,
-                  confirmButtonColor: "green",
-                  denyButtonColor: "gray",
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    localStorage.setItem("onlineMode", !connectionMode);
-                    setConnectionMode(!connectionMode);
-                  }
-                });
-              }}
-            >
-              <FaPlug size={20} />
-            </Button>
-          </Tooltip>
-
-          <Tooltip content="نمایش تمام صفحه">
-            <Button
-              className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
-              size="lg"
-              variant="solid"
-              color="default"
-              onPress={() => {
-                handleFullscreen();
-                const scn = getSelectedScene();
-                if (!scn?.stageData) return;
-                if (!videoWalls?.length) return;
-                fitStageToMonitors({
-                  stage: scn.stageData,
-                  monitors: videoWalls,
-                });
-              }}
-            >
-              <FaExpand size={20} />
-            </Button>
-          </Tooltip>
-
-          <SettingsModal isOpen={openSettings} onClose={() => setOpenSettings(false)} />
-
-          {/* <Tooltip
-            content={
-              isToggleVideoWall ? "حالت تغییر چیدمان فعال است" : "حالت تغییر چیدمان غیرفعال است"
+          if (formValues) {
+            if (true) {
+              socket.emit("state", {
+                ipType: formValues.ipType,
+                staticIP: formValues.staticIP,
+                subnetMask: formValues.subnetMask,
+                gateway: formValues.gateway,
+                dns: formValues.dns,
+              });
+            } else {
+              // localStorage.setItem('host',dhcp)
+              socket.emit("state", { ipType: "dhcp" });
             }
-          >
-            {isToggleVideoWall ? (
-              <Button
-                className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-                size="lg"
-                variant="solid"
-                color={"default"}
-                onPress={() => {
-                  Swal.fire({
-                    title: "چیدمان مانیتورها فریز شود؟",
-                    showDenyButton: true,
-                    showCancelButton: false,
-                    confirmButtonText: "بله",
-                    denyButtonText: `خیر`,
-                    confirmButtonColor: "green",
-                    denyButtonColor: "gray",
-                  }).then((result) => {
-                    if (result.isConfirmed) setIsToggleVideoWall(false);
-                  });
-                }}
-              >
-                <TbLayout size={20} />
-              </Button>
-            ) : (
-              <Button
-                className={`${darkMode ? "dark" : "light"}  min-w-[35px] h-[33px] rounded-lg  p-1`}
-                size="lg"
-                variant="solid"
-                color={"default"}
-                onPress={() => {
-                  Swal.fire({
-                    title: "فعال کردن حالت تغییر چیدمان؟",
-                    showDenyButton: true,
-                    showCancelButton: false,
-                    confirmButtonText: "بله",
-                    denyButtonText: `خیر`,
-                    confirmButtonColor: "green",
-                    denyButtonColor: "gray",
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      if (videoWalls.length <= 0) {
-                        Swal.fire({
-                          title: "!مانیتوری وجود ندارد",
-                          icon: "warning",
-                          confirmButtonText: "باشه",
-                          confirmButtonColor: "gray",
-                        });
-                        return;
-                      } else {
-                        setIsToggleVideoWall(true);
-                      }
-                    }
-                  });
-                }}
-              >
-                <TbLayoutOff size={20} />
-              </Button>
-            )}
-          </Tooltip> */}
-        </div>
-      </div>
-    </>
+
+            Swal.fire({
+              icon: "success",
+              title: "تنظیمات با موفقیت اعمال شد!",
+              text:
+                formValues.ipType === "static"
+                  ? `Static IP: ${formValues.staticIP}\nSubnet Mask: ${formValues.subnetMask}\nGateway: ${formValues.gateway}\nDNS: ${formValues.dns}`
+                  : "تنظیمات برای IP Dynamic اعمال شد!",
+            });
+            location.reload();
+          }
+        }}
+      >
+        <PiNetwork size={18} /> <span>شبکه</span>
+      </Button>
+
+      {/* پنهان‌سازی */}
+      <Button
+        size="sm"
+        color="default"
+        variant="solid"
+        className={`flex items-center gap-1 rounded-lg ${isToggleLayout ? "bg-blue-500" : ""}`}
+        onPress={toggleLayout}
+      >
+        <BsEyeSlash size={18} /> <span>پنهان</span>
+      </Button>
+
+      {/* ویدئووال */}
+      <ModalVideoWall darkMode={darkMode} videoWall={videoWalls} />
+
+      {/* حالت اتصال */}
+      <Button
+        size="sm"
+        color={connectionMode ? "success" : "warning"}
+        variant="solid"
+        className="flex items-center gap-1 rounded-lg"
+        onPress={() => {
+          Swal.fire({
+            title: connectionMode ? "حالت آفلاین فعال شود؟" : "حالت آنلاین فعال شود؟",
+            showDenyButton: true,
+            confirmButtonText: "بله",
+            confirmButtonColor: "green",
+            denyButtonColor: "red",
+            denyButtonText: "خیر",
+          }).then((res) => {
+            if (res.isConfirmed) {
+              localStorage.setItem("onlineMode", !connectionMode);
+              setConnectionMode(!connectionMode);
+            }
+          });
+        }}
+      >
+        <FaPlug size={18} /> <span>{connectionMode ? "حالت آنلاین" : "حالت آفلاین"}</span>
+      </Button>
+
+      {/* تمام صفحه */}
+      <Button
+        size="sm"
+        color="default"
+        variant="solid"
+        className="flex items-center gap-1 rounded-lg"
+        onPress={() => {
+          handleFullscreen();
+          const scn = getSelectedScene();
+          if (scn?.stageData && videoWalls?.length) {
+            fitStageToMonitors({ stage: scn.stageData, monitors: videoWalls });
+          }
+        }}
+      >
+        <FaExpand size={18} /> <span>تمام صفحه</span>
+      </Button>
+
+      {/* تنظیمات
+      <Button
+        size="sm"
+        color="default"
+        variant="solid"
+        className="flex items-center gap-1 rounded-lg"
+        onPress={() => setOpenSettings(true)}
+      >
+        <MdSettings size={18} /> <span>تنظیمات</span>
+      </Button> */}
+      <SettingsModal isOpen={openSettings} onClose={() => setOpenSettings(false)} />
+    </div>
   );
 };
 

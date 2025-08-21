@@ -142,13 +142,14 @@ export default function SecuritySettingsModal({ darkMode }) {
       <Tooltip content="تنظیمات امنیتی و دسترسی‌ها">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
-          size="lg"
+          size="sm"
           variant="solid"
           color="default"
           onPress={onOpen}
           aria-label="security-settings"
         >
           <FiShield size={20} />
+          تنظیمات
         </Button>
       </Tooltip>
 

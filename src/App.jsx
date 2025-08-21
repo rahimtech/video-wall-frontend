@@ -553,7 +553,7 @@ function App() {
               </Tabs>
 
               {/* Tabs Content */}
-              <div className="flex-1 p-3">
+              <div className="flex-1 p-1">
                 {leftTab === "resources" && (
                   <div
                     className={`${
@@ -654,7 +654,7 @@ function App() {
         </>
       )}
 
-      <div className=" overflow-auto h-[7%] scrollbar-hide flex top-0 absolute left-0  right-0 m-auto flex-col p-3 space-y-4">
+      <div className=" overflow-auto h-[6%] scrollbar-hide flex top-0 absolute left-0  right-0 m-auto flex-col p-3 space-y-4">
         {/* Header */}
         <HeaderBar
           toggleLayout={() => {
@@ -700,14 +700,14 @@ function App() {
         connecting && connectionMode
           ? darkMode
             ? "bg-green-600/20 border-green-500 text-green-400"
-            : " border-green-500 text-green-400"
+            : " border-green-500 bg-green-100 text-green-400"
           : !connectionMode
           ? darkMode
             ? "bg-orange-600/20 border-orange-500 text-orange-400"
-            : " border-orange-500 text-orange-400"
+            : " border-orange-500 bg-orange-100 text-orange-400"
           : darkMode
           ? "bg-red-600/20 border-red-500 text-red-400"
-          : " border-red-500 text-red-400"
+          : " border-red-500 bg-red-100 text-red-400"
       }`}
           >
             <FaServer className="text-lg" />
@@ -727,14 +727,14 @@ function App() {
         monitorConnection && connectionMode
           ? darkMode
             ? "bg-green-600/20 border-green-500 text-green-400"
-            : " border-green-500 text-green-400"
+            : " border-green-500 bg-green-100 text-green-400"
           : !connectionMode
           ? darkMode
             ? "bg-orange-600/20 border-orange-500 text-orange-400"
-            : " border-orange-500 text-orange-400"
+            : " border-orange-500 bg-orange-100 text-orange-400"
           : darkMode
           ? "bg-red-600/20 border-red-500 text-red-400"
-          : " border-red-500 text-red-400"
+          : " border-red-500 bg-red-100 text-red-400"
       }`}
           >
             <FaDesktop className="text-lg" />

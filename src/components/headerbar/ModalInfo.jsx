@@ -19,12 +19,13 @@ const ModalInfo = ({ darkMode }) => {
       <Tooltip content={"درباره نرم‌افزار"}>
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg  p-1`}
-          size="lg"
+          size="sm"
           variant="solid"
           color={"default"}
           onPress={onOpen}
         >
           <MdInfo size={17} />
+          درباره ما
         </Button>
       </Tooltip>
 

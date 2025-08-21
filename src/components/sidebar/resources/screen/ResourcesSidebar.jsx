@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Button,
   Chip,
@@ -18,6 +18,7 @@ import axios from "axios";
 import api from "@/api/api";
 import { Tabs, Tab, Card, CardBody } from "@heroui/react";
 import { addText } from "../../../konva/items/text/TextKonva";
+import { FaImage, FaVideo, FaGlobe, FaFont } from "react-icons/fa";
 
 const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -49,6 +50,49 @@ const ResourcesSidebar = () => {
     dataDrag,
     setDataDrag,
   } = useMyContext();
+
+  const TYPE_META = {
+    IMAGE: { label: "تصاویر", icon: FaImage, badge: "success" },
+    VIDEO: { label: "ویدیوها", icon: FaVideo, badge: "primary" },
+    IFRAME: { label: "صفحات وب", icon: FaGlobe, badge: "warning" },
+    TEXT: { label: "متن‌ها", icon: FaFont, badge: "secondary" },
+  };
+
+  const groupedResources = useMemo(() => {
+    const g = { IMAGE: [], VIDEO: [], IFRAME: [], TEXT: [] };
+    for (const r of resources || []) if (g[r.type]) g[r.type].push(r);
+    return g;
+  }, [resources]);
+
+  const addResourceToScene = (r) => {
+    if (r.type === "IMAGE") {
+      return addImage({
+        img: r,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+        generateBlobImageURL,
+      });
+    }
+    if (r.type === "VIDEO") {
+      return addVideo({
+        videoItem: r,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+        loopVideos,
+      });
+    }
+    if (r.type === "IFRAME") {
+      return addWeb({ webResource: r, getSelectedScene, setSources, sendOperation, url });
+    }
+    if (r.type === "TEXT") {
+      return addText({ textItem: r, getSelectedScene, setSources, sendOperation, url });
+    }
+  };
+
   const uploadMedia = async (file, videoName) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -402,6 +446,11 @@ const ResourcesSidebar = () => {
   //   }
   // };
 
+  const handleNameCancel = () => {
+    setEditingResourceId(null);
+    setNewName("");
+  };
+
   return (
     <div
       dir="rtl"
@@ -433,6 +482,7 @@ const ResourcesSidebar = () => {
             classNames={{ base: "sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit" }}
             aria-label="Options"
             defaultSelectedKey={"resources"}
+            className={`${darkMode ? "dark" : "light"}`}
           >
             <Tab key="inputs" title={`ورودی‌ها: ${inputs.length}`}>
               {/* Scrollable content INPUT */}
@@ -512,294 +562,140 @@ const ResourcesSidebar = () => {
               </div>
             </Tab>
             <Tab key="resources" title={`فایل‌ها: ${resources.length}`}>
-              {/* Scrollable content resources */}
-              <div className="flex-1 overflow-y-auto scrollbar-hide">
-                <ul className="flex flex-col gap-2">
-                  {resources?.map((resource) => (
-                    <li
-                      key={resource.id}
-                      draggable={true}
-                      onDragStart={(e) => handleDragDropItems(resource)}
-                      className={`text-sm flex flex-wrap items-center justify-between ${
-                        darkMode ? "bg-gray-700" : "bg-gray-200"
-                      } p-2 rounded-md shadow-sm flex-wrap`}
-                    >
-                      <div className="flex items-center w-[50%]">
-                        <Chip
-                          className="flex text-[10px] p-0 items-center justify-center"
-                          color="warning"
-                          size="sm"
-                          variant="solid"
-                        >
-                          {resource.type}
-                        </Chip>
+              <div className="flex flex-col gap-3 px-1 pb-2">
+                {["IMAGE", "VIDEO", "IFRAME", "TEXT"].map((t) => {
+                  const Icon = TYPE_META[t].icon;
+                  const items = groupedResources[t];
 
-                        {editingResourceId === resource.id ? (
-                          <input
-                            type="text"
-                            value={newName}
-                            onChange={handleNameChange}
-                            onBlur={() => handleNameSave(resource.id)}
-                            className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
-                            autoFocus
-                          />
-                        ) : (
-                          <span
-                            className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
-                            onDoubleClick={() => handleDoubleClick(resource)}
-                          >
-                            {resource.name}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 w-[50%] justify-end">
-                        <Button
-                          className={`${
-                            darkMode ? "text-white" : "text-black"
-                          } min-w-fit h-fit p-1`}
-                          size="sm"
-                          variant="light"
-                          color="default"
-                          onPress={() => deleteResource(resource.id)}
-                        >
-                          <FaTrashAlt />
-                        </Button>
-                        <Tooltip content="افزودن به صحنه">
-                          {resource.type == "IMAGE" ? (
-                            <>
-                              <Button
-                                className={`${
-                                  darkMode ? "text-white" : "text-black"
-                                } min-w-fit h-fit p-1`}
-                                size="sm"
-                                variant="light"
-                                color="default"
-                                onPress={() => {
-                                  videoWalls.length > 0
-                                    ? addImage({
-                                        img: resource,
-                                        getSelectedScene,
-                                        setSources,
-                                        sendOperation,
-                                        url,
-                                        generateBlobImageURL,
-                                      })
-                                    : Swal.fire({
-                                        title: "!مانیتوری در صحنه وجود ندارد",
-                                        icon: "warning",
-                                        confirmButtonText: "باشه",
-                                        confirmButtonColor: "gray",
-                                      });
-                                }}
-                              >
-                                <MdAddBox />
-                              </Button>
-                            </>
-                          ) : resource.type == "VIDEO" ? (
-                            <>
-                              <Button
-                                className={`${
-                                  darkMode ? "text-white" : "text-black"
-                                } min-w-fit h-fit p-1`}
-                                size="sm"
-                                variant="light"
-                                color="default"
-                                onPress={() => {
-                                  videoWalls.length > 0
-                                    ? addVideo({
-                                        videoItem: resource,
-                                        getSelectedScene,
-                                        setSources,
-                                        sendOperation,
-                                        url,
-                                        loopVideos,
-                                      })
-                                    : Swal.fire({
-                                        title: "!مانیتوری در صحنه وجود ندارد",
-                                        icon: "warning",
-                                        confirmButtonText: "باشه",
-                                        confirmButtonColor: "gray",
-                                      });
-                                }}
-                              >
-                                <MdAddBox />
-                              </Button>
-                            </>
-                          ) : resource.type == "IFRAME" ? (
-                            <>
-                              <Button
-                                className={`${
-                                  darkMode ? "text-white" : "text-black"
-                                } min-w-fit h-fit p-1`}
-                                size="sm"
-                                variant="light"
-                                color="default"
-                                onPress={() => {
-                                  videoWalls.length > 0
-                                    ? addWeb({
-                                        webResource: resource,
-                                        getSelectedScene,
-                                        setSources,
-                                        sendOperation,
-                                        url,
-                                      })
-                                    : Swal.fire({
-                                        title: "!مانیتوری در صحنه وجود ندارد",
-                                        icon: "warning",
-                                        confirmButtonText: "باشه",
-                                        confirmButtonColor: "gray",
-                                      });
-                                }}
-                              >
-                                <MdAddBox />
-                              </Button>
-                            </>
-                          ) : resource.type == "TEXT" ? (
-                            <>
-                              <Button
-                                className={`${
-                                  darkMode ? "text-white" : "text-black"
-                                } min-w-fit h-fit p-1`}
-                                size="sm"
-                                variant="light"
-                                color="default"
-                                onPress={() => {
-                                  videoWalls.length > 0
-                                    ? addText({
-                                        textItem: resource,
-                                        getSelectedScene,
-                                        setSources,
-                                        sendOperation,
-                                        url,
-                                      })
-                                    : Swal.fire({
-                                        title: "!مانیتوری در صحنه وجود ندارد",
-                                        icon: "warning",
-                                        confirmButtonText: "باشه",
-                                        confirmButtonColor: "gray",
-                                      });
-                                }}
-                              >
-                                <MdAddBox />
-                              </Button>
-                            </>
-                          ) : (
-                            <></>
-                          )}
-                        </Tooltip>
-                        {/* <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
+                  return (
+                    <Card
+                      key={t}
+                      shadow="sm"
+                      className={`${darkMode ? "bg-gray-800 border border-white/10" : "bg-white"}`}
                     >
-                      <FaCog />
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu aria-label="More Actions">
-                    <DropdownItem key="moveUp" onPress={() => moveSource(resource.id, -1)}>
-                      بالا
-                    </DropdownItem>
-                    <DropdownItem key="moveDown" onPress={() => moveSource(resource.id, 1)}>
-                      پایین
-                    </DropdownItem>
-                    {resource.type === "video" ? (
-                      <DropdownItem
-                        key="add-video"
-                        onPress={() => {
-                          videoWalls.length > 0
-                            ? addVideo(resource)
-                            : Swal.fire({
-                                title: "!مانیتوری در صحنه وجود ندارد",
-                                icon: "warning",
-                                confirmButtonText: "باشه",
-                                confirmButtonColor: "gray",
-                              });
-                        }}
-                      >
-                        افزودن به صحنه
-                      </DropdownItem>
-                    ) : resource.type === "image" ? (
-                      <DropdownItem
-                        key="add-image"
-                        onPress={() => {
-                          videoWalls.length > 0
-                            ? addImage(resource)
-                            : Swal.fire({
-                                title: "!مانیتوری در صحنه وجود ندارد",
-                                icon: "warning",
-                                confirmButtonText: "باشه",
-                                confirmButtonColor: "gray",
-                              });
-                        }}
-                      >
-                        افزودن به صحنه
-                      </DropdownItem>
-                    ) : resource.type === "text" ? (
-                      [
-                        <DropdownItem
-                          key="add-text"
-                          onPress={() => {
-                            videoWalls.length > 0
-                              ? addText(resource)
-                              : Swal.fire({
-                                  title: "!مانیتوری در صحنه وجود ندارد",
-                                  icon: "warning",
-                                  confirmButtonText: "باشه",
-                                  confirmButtonColor: "gray",
-                                });
-                          }}
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`${darkMode ? "text-white/90" : "text-black/80"}`} />
+                          <span
+                            className={`text-sm font-medium ${
+                              darkMode ? "text-white" : "text-black"
+                            }`}
+                          >
+                            {TYPE_META[t].label}
+                          </span>
+                          <Chip size="sm" variant="flat">
+                            {items.length}
+                          </Chip>
+                        </div>
+                        {/* دکمه‌ی افزودن مستقیم همان نوع */}
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          className="min-w-fit"
+                          onPress={() => addResource(t)}
                         >
-                          افزودن به صحنه
-                        </DropdownItem>,
-                        <DropdownItem key="edit-text" onPress={() => editText(resource)}>
-                          ویرایش متن اصلی
-                        </DropdownItem>,
-                        <DropdownItem
-                          key="edit-color"
-                          onPress={() => {
-                            setColorPickerVisible(!colorPickerVisible);
-                            setColorPickerResourceId(resource.id);
-                          }}
-                        >
-                          انتخاب رنگ متن
-                        </DropdownItem>,
-                      ]
-                    ) : resource.type === "web" ? (
-                      [
-                        <DropdownItem
-                          key="add-web"
-                          onPress={() => {
-                            videoWalls.length > 0
-                              ? addWeb(resource)
-                              : Swal.fire({
-                                  title: "!مانیتوری در صحنه وجود ندارد",
-                                  icon: "warning",
-                                  confirmButtonText: "باشه",
-                                  confirmButtonColor: "gray",
-                                });
-                          }}
-                        >
-                          افزودن به صحنه
-                        </DropdownItem>,
-                        <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
-                          ویرایش URL
-                        </DropdownItem>,
-                      ]
-                    ) : (
-                      <></>
-                    )}
-                    <DropdownItem key="loop" onPress={() => toggleLoopVideo(resource.id)}>
-                      {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown> */}
+                          افزودن {TYPE_META[t].label}
+                        </Button>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+
+                      <CardBody className="pt-0">
+                        {items.length === 0 ? (
+                          <div
+                            className={`text-xs px-3 pb-3 ${
+                              darkMode ? "text-white/60" : "text-black/60"
+                            }`}
+                          >
+                            موردی موجود نیست.
+                          </div>
+                        ) : (
+                          <ul className="flex flex-col gap-2 max-h-64 overflow-auto pr-1">
+                            {items.map((r) => (
+                              <li
+                                key={r.id}
+                                // وقتی در حالت ادیت هستیم، درگ را خاموش کنیم تا input درست کار کند
+                                draggable={editingResourceId !== r.id}
+                                onDragStart={(e) => {
+                                  handleDragDropItems(r);
+                                }}
+                                className={`flex items-center justify-between p-1 rounded-md cursor-grab active:cursor-grabbing select-none ${
+                                  darkMode ? "bg-gray-700 text-white" : "bg-gray-100 text-black"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 w-[70%]">
+                                  <Chip
+                                    size="sm"
+                                    className="text-[10px] p-0"
+                                    variant="solid"
+                                    color={TYPE_META[r.type]?.badge || "default"}
+                                  >
+                                    {r.type}
+                                  </Chip>
+
+                                  {editingResourceId === r.id ? (
+                                    <input
+                                      value={newName}
+                                      onChange={handleNameChange}
+                                      onBlur={() => handleNameSave(r.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleNameSave(r.id);
+                                        if (e.key === "Escape") handleNameCancel();
+                                      }}
+                                      className="px-2 py-1 rounded bg-white text-black w-[180px]"
+                                      autoFocus
+                                      // جلوگیری از شروع درگ وقتی داخل input کلیک می‌کنیم
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <span
+                                      className="truncate max-w-[180px] text-sm"
+                                      onDoubleClick={() => {
+                                        setEditingResourceId(r.id);
+                                        setNewName(r.name);
+                                      }}
+                                      title="برای تغییر نام دوبار کلیک کنید"
+                                    >
+                                      {r.name}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    className={`${
+                                      darkMode ? "text-white" : "text-black"
+                                    } min-w-fit h-fit p-1`}
+                                    draggable={false}
+                                    // جلوگیری از شروع درگ روی دکمه‌ها
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onPress={() => addResourceToScene(r)}
+                                  >
+                                    <MdAddBox />
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    className={`${
+                                      darkMode ? "text-white" : "text-black"
+                                    } min-w-fit h-fit p-1`}
+                                    draggable={false}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onPress={() => deleteResource(r.id)}
+                                  >
+                                    <FaTrashAlt />
+                                  </Button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </CardBody>
+                    </Card>
+                  );
+                })}
               </div>
             </Tab>
           </Tabs>

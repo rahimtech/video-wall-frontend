@@ -14,7 +14,15 @@ export default function SwitchCustom({ setDarkMode, darkMode }) {
         setDarkMode(!darkMode);
       }}
     >
-      {darkMode ? <BsMoon size={16} /> : <BsSun size={16} />}
+      {darkMode ? (
+        <>
+          <BsMoon size={16} /> حالت تاریک
+        </>
+      ) : (
+        <>
+          <BsSun size={16} /> حالت روشن
+        </>
+      )}
     </Button>
   );
 }

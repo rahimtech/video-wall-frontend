@@ -1,27 +1,38 @@
-import React, { useState } from "react";
-import { Button, Tooltip } from "@nextui-org/react";
+import React, { useState, useMemo } from "react";
+import { Button, Chip, Tooltip } from "@nextui-org/react";
 import {
-  FaPlay,
-  FaPause,
   FaTrashAlt,
   FaCog,
-  FaRemoveFormat,
   FaArrowDown,
   FaArrowUp,
+  FaFont,
+  FaGlobe,
+  FaImage,
+  FaVideo,
+  FaPen,
 } from "react-icons/fa";
-import ModalMonitorSelection from "../scenes/screen/ModalMonitorSelection";
-import { MdAddBox, MdDelete, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
-import { SketchPicker } from "react-color";
-import { BsArrowDown } from "react-icons/bs";
+import { MdDelete } from "react-icons/md";
 import { useMyContext } from "@/context/MyContext";
+import ModalMonitorSelection from "../scenes/screen/ModalMonitorSelection";
 import { openTextContextMenuById } from "@/components/konva/items/text/TextKonva";
+
+const TYPE_ICON = {
+  IMAGE: FaImage,
+  VIDEO: FaVideo,
+  IFRAME: FaGlobe,
+  TEXT: FaFont,
+};
+const TYPE_COLOR = {
+  IMAGE: "success",
+  VIDEO: "primary",
+  IFRAME: "warning",
+  TEXT: "secondary",
+};
 
 const UsageSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
-  const [colorPickerVisible, setColorPickerVisible] = useState(false);
-  const [selectedColor, setSelectedColor] = useState("#000000");
-  const [colorPickerResourceId, setColorPickerResourceId] = useState(null);
+
   const {
     darkMode,
     setScenes,
@@ -37,267 +48,220 @@ const UsageSidebar = () => {
     setSelectedSource,
   } = useMyContext();
 
-  let usageSources = null;
-  usageSources = sources.filter((item) => item.sceneId === getSelectedScene()?.id) ?? [];
+  // فقط منابعِ صحنهٔ انتخاب‌شده
+  const usageSources = useMemo(
+    () => sources.filter((s) => s.sceneId === getSelectedScene()?.id) ?? [],
+    [sources, selectedScene]
+  );
 
-  const updateSourceName = (resourceId, newName, isSource = true) => {
-    setSources((prev) =>
-      prev.map((item) => (item.externalId === resourceId ? { ...item, name: newName } : item))
-    );
+  // --- helpers: انتخاب و هایلایت
+  const isSelectedRow = (res) =>
+    res.type === "INPUT" ? selectedSource === res.uniqId : selectedSource === res.externalId;
+
+  // --- update name
+  const updateSourceName = (resourceId, name, isSource = true) => {
+    setSources((prev) => prev.map((it) => (it.externalId === resourceId ? { ...it, name } : it)));
     if (isSource) {
       sendOperation("source", {
         action: "resize",
         id: resourceId,
-        payload: {
-          name: newName,
-        },
+        payload: { name },
       });
-    }
-    if (isSource == false) {
+    } else {
       setScenes((prevScenes) =>
-        prevScenes.map((scene) => {
-          if (scene.id === selectedScene) {
-            const updatedResources = scene.usageSources.map((resource) => {
-              return resource.externalId === resourceId
-                ? { ...resource, name: newName, content: newName }
-                : resource;
-            });
-            return { ...scene, usageSources: updatedResources };
-          }
-          return scene;
+        prevScenes.map((sc) => {
+          if (sc.id !== selectedScene) return sc;
+          const updated = sc.usageSources.map((r) =>
+            r.externalId === resourceId ? { ...r, name, content: name } : r
+          );
+          return { ...sc, usageSources: updated };
         })
       );
     }
   };
 
-  const updateSourceColor = (resourceId, color) => {
-    setScenes((prevScenes) =>
-      prevScenes.map((scene) =>
-        scene.id === selectedScene
-          ? {
-              ...scene,
-              usageSources: scene.usageSources.map((resource) =>
-                resource.externalId === resourceId ? { ...resource, color } : resource
-              ),
-            }
-          : scene
-      )
-    );
-
-    const textNode = getSelectedScene()?.layer.findOne(`#${resourceId}`);
-    if (textNode) {
-      textNode.fill(color);
-      getSelectedScene()?.layer.draw();
-    }
-  };
-
   const handleDoubleClick = (resource) => {
     setEditingResourceId(resource.externalId);
-    setNewName(resource.name);
+    setNewName(resource.name || "");
   };
-
-  const handleNameChange = (e) => {
-    setNewName(e.target.value);
-  };
-
   const handleNameSave = (resourceId) => {
     updateSourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
   };
-
-  const handleColorChange = (color) => {
-    setSelectedColor(color.hex);
-    if (colorPickerResourceId) {
-      updateSourceColor(colorPickerResourceId, color.hex);
+  const handleKeyDownEdit = (e, id) => {
+    if (e.key === "Enter") handleNameSave(id);
+    if (e.key === "Escape") {
+      setEditingResourceId(null);
+      setNewName("");
     }
   };
 
+  // --- ترتیب Z
   const moveSource = (id, direction) => {
-    const resources = [...sources];
-    const index = resources.findIndex((res) => res.externalId === id);
-    if (index === -1) return;
+    const arr = [...sources];
+    const idx = arr.findIndex((x) => x.externalId === id);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= arr.length) return;
 
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= resources.length) return;
+    const [moved] = arr.splice(idx, 1);
+    arr.splice(newIdx, 0, moved);
+    setSources(arr);
 
-    const updatedResources = [...sources];
-    const [movedResource] = updatedResources.splice(index, 1);
-    updatedResources.splice(newIndex, 0, movedResource);
-    setSources(updatedResources);
-
-    const resourceNode = getSelectedScene()?.layer.findOne(`#${id}`);
-    if (resourceNode) {
-      if (direction > 0) {
-        resourceNode.moveDown();
-        sendOperation("source", {
-          action: "move",
-          id,
-          payload: { z: resourceNode.index },
-        });
-      } else {
-        resourceNode.moveUp();
-
-        sendOperation("source", {
-          action: "move",
-          id,
-          payload: { z: resourceNode.index },
-        });
-      }
+    const node = getSelectedScene()?.layer.findOne(`#${id}`);
+    if (node) {
+      if (direction > 0) node.moveDown();
+      else node.moveUp();
+      sendOperation("source", { action: "move", id, payload: { z: node.index } });
       getSelectedScene()?.layer.draw();
     }
   };
 
+  // --- رندر
   return (
     <div
       dir="rtl"
-      className="p-2 rounded-lg h-full overflow-auto  flex flex-col"
-      style={{
-        color: darkMode ? "#ffffff" : "#000000",
-      }}
+      className="p-2 rounded-lg h-full overflow-auto flex flex-col"
+      style={{ color: darkMode ? "#ffffff" : "#000000" }}
     >
-      {colorPickerVisible && (
-        <div className="absolute left-0 right-0 top-0 bottom-0 m-auto z-[100] w-fit h-fit">
-          <SketchPicker color={selectedColor} onChange={handleColorChange} />
-          <Button
-            className="w-full my-2"
-            onPress={() => {
-              setColorPickerVisible(false);
-            }}
-            color="primary"
-            variant="solid"
-          >
-            انجام شد
-          </Button>
-        </div>
-      )}
-
-      {/* Fixed Header */}
-      <div className="sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-md font-semibold">
-            ورودی و فایل‌های استفاده شده {`(${usageSources.length})`}
+      {/* Header */}
+      <div className="sticky top-[-10px] z-[50] px-3 py-[6px] bg-inherit">
+        <div className="flex items-center justify-between">
+          <h2 className="text-md font-semibold flex items-center gap-2">
+            منابع استفاده‌شده
+            <Chip size="sm" color="primary" variant="flat">
+              {usageSources.length}
+            </Chip>
           </h2>
         </div>
       </div>
 
-      {/* Scrollable content */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <ul className="flex flex-col gap-2">
-          {usageSources?.map((resource) => {
+          {usageSources.map((resource) => {
+            const type = resource.media?.type || resource.type || "TEXT";
+            const Icon = TYPE_ICON[type] || FaFont;
+
+            const rowSelected = isSelectedRow(resource);
+            const rowBase = darkMode ? "" : "";
+            const rowSelectedCls = rowSelected
+              ? darkMode
+                ? " bg-blue-700 "
+                : " bg-blue-300 "
+              : "  ";
+
             return (
               <li
-                key={`${resource.externalId}-${Math.random()}`}
+                key={resource.externalId}
+                className={`flex items-center cursor-pointer justify-between rounded-md ${
+                  darkMode ? "bg-gray-900" : "bg-gray-200"
+                } px-1 py-[10px] transition-all ${rowBase} ${rowSelectedCls}`}
                 onClick={() => {
-                  const selectedSceneLayer = getSelectedScene()?.layer;
-                  selectedSceneLayer.find("Transformer").forEach((tr) => {
-                    if (tr.attrs.id != resource.externalId) {
-                      tr.detach();
-                    }
+                  const layer = getSelectedScene()?.layer;
+                  if (!layer) return;
+
+                  // پاک کردن ترنسفورمرهای دیگر + غیرفعال‌سازی درگ بقیه
+                  layer.find("Transformer").forEach((tr) => {
+                    if (tr.attrs.id !== resource.externalId) tr.detach();
                   });
-
-                  selectedSceneLayer.find("Group").forEach((group) => {
-                    if (group.attrs.id != resource.externalId) {
-                      group.draggable(false);
-                    }
+                  layer.find("Group").forEach((g) => {
+                    if (g.attrs.id !== resource.externalId) g.draggable(false);
                   });
+                  layer.draw();
 
-                  selectedSceneLayer.draw();
-                  const targetGroup = selectedSceneLayer.findOne(`#${resource.externalId}`);
-                  if (!targetGroup) return;
+                  const group = layer.findOne(`#${resource.externalId}`);
+                  if (!group) return;
 
-                  const transformer = selectedSceneLayer.findOne("Transformer");
-
-                  if (transformer) {
-                    transformer.nodes([targetGroup]);
-                    transformer.getLayer().batchDraw();
-                  }
-
-                  // فعال کردن درگ
-                  targetGroup.draggable(true);
+                  let transformer = layer.findOne("Transformer");
+                  if (transformer) transformer.nodes([group]);
+                  group.draggable(true);
+                  layer.batchDraw();
 
                   setSelectedSource(resource.externalId);
                 }}
-                className={`text-sm flex flex-wrap items-center justify-between  ${
-                  resource.type == "INPUT"
-                    ? selectedSource == resource.uniqId
-                      ? "bg-blue-500"
-                      : darkMode
-                      ? "bg-gray-700"
-                      : "bg-gray-300"
-                    : selectedSource == resource.externalId
-                    ? "bg-blue-500"
-                    : darkMode
-                    ? "bg-gray-700"
-                    : "bg-gray-300"
-                } p-2 rounded-md shadow-sm`}
               >
-                <div className="flex items-center w-[50%]">
+                {/* Left: type + name + inline rename + z-order */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <Chip
+                    size="sm"
+                    color={TYPE_COLOR[type] || "default"}
+                    variant="solid"
+                    className="min-w-[56px] justify-center p-0"
+                  >
+                    <div className="flex items-center gap-1">
+                      <Icon size={12} />
+                      <span className="text-[10px]">{type}</span>
+                    </div>
+                  </Chip>
+
+                  {/* نام + ادیت */}
                   {editingResourceId === resource.externalId ? (
                     <input
-                      type="text"
+                      className="px-2 py-[2px] rounded bg-white text-black text-sm w-[180px] outline-none"
                       value={newName}
-                      onChange={handleNameChange}
+                      onChange={(e) => setNewName(e.target.value)}
                       onBlur={() => handleNameSave(resource.externalId)}
-                      className={` ${darkMode ? "text-black" : "text-black"} p-1 rounded-sm`}
+                      onKeyDown={(e) => handleKeyDownEdit(e, resource.externalId)}
                       autoFocus
                     />
                   ) : (
-                    <span
-                      className={` ${darkMode ? "text-white" : "text-black"} mr-2 truncate`}
-                      onDoubleClick={() => handleDoubleClick(resource)}
-                    >
-                      {resource.name}
-                    </span>
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span
+                        className={`truncate max-w-[180px] text-sm ${
+                          darkMode ? "text-white" : "text-black"
+                        }`}
+                        title={resource.name}
+                        onDoubleClick={() => handleDoubleClick(resource)}
+                      >
+                        {resource.name}
+                      </span>
+                      <Tooltip content="تغییر نام">
+                        <button
+                          className="p-1 rounded hover:bg-black/10"
+                          onClick={(e) => {
+                            handleDoubleClick(resource);
+                          }}
+                          aria-label="rename"
+                        >
+                          <FaPen size={12} />
+                        </button>
+                      </Tooltip>
+                    </div>
                   )}
+
+                  {/* Z-order controls */}
+                  <div className="flex items-center gap-1 ml-2">
+                    <Tooltip content="اولویت بالا">
+                      <Button
+                        size="sm"
+                        variant="light"
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        onPress={(e) => {
+                          moveSource(resource.externalId, -1);
+                        }}
+                      >
+                        <FaArrowUp size={14} />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content="اولویت پایین">
+                      <Button
+                        size="sm"
+                        variant="light"
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        onPress={(e) => {
+                          moveSource(resource.externalId, 1);
+                        }}
+                      >
+                        <FaArrowDown size={14} />
+                      </Button>
+                    </Tooltip>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 w-[50%] justify-end">
-                  {/* {resource.type === "video" && (
-                    <>
-                      <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                        size="sm"
-                        variant="light"
-                        color="default"
-                        onPress={() => playVideo(resource.id)}
-                      >
-                        <FaPlay />
-                      </Button>
-                      <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                        size="sm"
-                        variant="light"
-                        color="default"
-                        onPress={() => pauseVideo(resource.id)}
-                      >
-                        <FaPause />
-                      </Button>
-                    </>
-                  )} */}
 
-                  <Tooltip content="اولویت بالا">
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                      onPress={() => moveSource(resource.externalId, -1)}
-                    >
-                      <FaArrowUp size={15} />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip content="اولویت پایین">
-                    <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                      size="sm"
-                      variant="light"
-                      color="default"
-                      onPress={() => moveSource(resource.externalId, 1)}
-                    >
-                      <FaArrowDown size={15} />
-                    </Button>
-                  </Tooltip>
-
+                {/* Right: fit, text settings, delete */}
+                <div className="flex items-center gap-1">
                   <ModalMonitorSelection
                     item={resource}
                     darkMode={darkMode}
@@ -306,34 +270,32 @@ const UsageSidebar = () => {
                     monitors={allDataMonitors}
                     fitToMonitors={fitToMonitors}
                   />
+
                   {resource.type === "TEXT" && (
                     <Tooltip content="تنظیمات متن">
                       <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                         size="sm"
                         variant="light"
-                        color="default"
-                        onPress={() =>
+                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                        onPress={(e) => {
                           openTextContextMenuById(resource.externalId, {
                             getSelectedScene,
                             setSources,
                             sendOperation,
-                          })
-                        }
+                          });
+                        }}
                       >
                         <FaCog size={15} />
                       </Button>
                     </Tooltip>
                   )}
 
-                  {/* حذف از صحنه */}
                   <Tooltip content="حذف از صحنه">
                     <Button
-                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                       size="sm"
                       variant="light"
-                      color="default"
-                      onPress={() => {
+                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                      onPress={(e) => {
                         deleteSourceFromScene({
                           id: resource.externalId,
                           getSelectedScene,
@@ -342,55 +304,9 @@ const UsageSidebar = () => {
                         });
                       }}
                     >
-                      <MdDelete size={15} />
+                      <MdDelete size={16} />
                     </Button>
                   </Tooltip>
-
-                  {/* <Dropdown>
-                    <DropdownTrigger>
-                      <Button
-                        className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
-                        size="sm"
-                        variant="light"
-                        color="default"
-                      >
-                        <FaCog />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu dir="rtl" aria-label="More Actions">
-                      <DropdownItem key="moveUp" onPress={() => moveSource(resource.id, -1)}>
-                        بالا
-                      </DropdownItem>
-                      <DropdownItem key="moveDown" onPress={() => moveSource(resource.id, 1)}>
-                        پایین
-                      </DropdownItem>
-                      {resource.type === "text"
-                        ? [
-                            <DropdownItem key="edit-text" onPress={() => editText(resource)}>
-                              ویرایش متن اصلی
-                            </DropdownItem>,
-                            <DropdownItem
-                              key="edit-color"
-                              onPress={() => {
-                                setColorPickerVisible(!colorPickerVisible);
-                                setColorPickerResourceId(resource.id);
-                              }}
-                            >
-                              انتخاب رنگ متن
-                            </DropdownItem>,
-                          ]
-                        : resource.type === "web"
-                        ? [
-                            <DropdownItem key="edit-web" onPress={() => editWeb(resource)}>
-                              ویرایش URL
-                            </DropdownItem>,
-                          ]
-                        : null}
-                      <DropdownItem key="loop" onPress={() => toggleLoopVideo(resource.id)}>
-                        {loopVideos[resource.id] ? "لوپ فعال" : "لوپ غیرفعال"}
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown> */}
                 </div>
               </li>
             );
