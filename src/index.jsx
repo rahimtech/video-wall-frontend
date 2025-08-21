@@ -20,7 +20,7 @@ const Login = ({ setCheckLogin }) => {
       localStorage.setItem("isLoggedIn", "true");
       setCheckLogin(true);
     } else {
-      alert("یوزرنیم یا پسوورد اشتباه است!");
+      alert("نام کاربری یا رمزعبور اشتباه است!");
     }
   };
 
@@ -31,7 +31,7 @@ const Login = ({ setCheckLogin }) => {
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600" htmlFor="name">
-              یوزرنیم
+              نام کاربری
             </label>
             <input
               dir="ltr"
@@ -43,7 +43,7 @@ const Login = ({ setCheckLogin }) => {
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600" htmlFor="password">
-              پسوورد
+              رمز عبور
             </label>
             <input
               dir="ltr"

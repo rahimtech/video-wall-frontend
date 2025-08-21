@@ -86,13 +86,22 @@ export const MyContextProvider = ({ children }) => {
       monitorUniqId: 103,
       monitorNumber: 3,
     },
-
-    // --- Row 2 ---
+    {
+      id: 4,
+      name: "TV4",
+      x: 4320,
+      y: 0,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 104,
+      monitorNumber: 4,
+    },
     {
       id: 5,
       name: "TV5",
-      x: 0,
-      y: 900,
+      x: 5760,
+      y: 0,
       width: 1440,
       height: 900,
       connected: false,
@@ -102,8 +111,8 @@ export const MyContextProvider = ({ children }) => {
     {
       id: 6,
       name: "TV6",
-      x: 1440,
-      y: 900,
+      x: 7200,
+      y: 0,
       width: 1440,
       height: 900,
       connected: false,
@@ -113,21 +122,32 @@ export const MyContextProvider = ({ children }) => {
     {
       id: 7,
       name: "TV7",
-      x: 2880,
-      y: 900,
+      x: 8640,
+      y: 0,
       width: 1440,
       height: 900,
       connected: false,
       monitorUniqId: 107,
       monitorNumber: 7,
     },
+    {
+      id: 8,
+      name: "TV8",
+      x: 10080,
+      y: 0,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 108,
+      monitorNumber: 8,
+    },
 
-    // --- Row 3 ---
+    // --- Row 2 ---
     {
       id: 9,
       name: "TV9",
       x: 0,
-      y: 1800,
+      y: 900,
       width: 1440,
       height: 900,
       connected: false,
@@ -138,7 +158,7 @@ export const MyContextProvider = ({ children }) => {
       id: 10,
       name: "TV10",
       x: 1440,
-      y: 1800,
+      y: 900,
       width: 1440,
       height: 900,
       connected: false,
@@ -149,12 +169,247 @@ export const MyContextProvider = ({ children }) => {
       id: 11,
       name: "TV11",
       x: 2880,
-      y: 1800,
+      y: 900,
       width: 1440,
       height: 900,
       connected: false,
       monitorUniqId: 111,
       monitorNumber: 11,
+    },
+    {
+      id: 12,
+      name: "TV12",
+      x: 4320,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 112,
+      monitorNumber: 12,
+    },
+    {
+      id: 13,
+      name: "TV13",
+      x: 5760,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 113,
+      monitorNumber: 13,
+    },
+    {
+      id: 14,
+      name: "TV14",
+      x: 7200,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 114,
+      monitorNumber: 14,
+    },
+    {
+      id: 15,
+      name: "TV15",
+      x: 8640,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 115,
+      monitorNumber: 15,
+    },
+    {
+      id: 16,
+      name: "TV16",
+      x: 10080,
+      y: 900,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 116,
+      monitorNumber: 16,
+    },
+
+    // --- Row 3 ---
+    {
+      id: 17,
+      name: "TV17",
+      x: 0,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 117,
+      monitorNumber: 17,
+    },
+    {
+      id: 18,
+      name: "TV18",
+      x: 1440,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 118,
+      monitorNumber: 18,
+    },
+    {
+      id: 19,
+      name: "TV19",
+      x: 2880,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 119,
+      monitorNumber: 19,
+    },
+    {
+      id: 20,
+      name: "TV20",
+      x: 4320,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 120,
+      monitorNumber: 20,
+    },
+    {
+      id: 21,
+      name: "TV21",
+      x: 5760,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 121,
+      monitorNumber: 21,
+    },
+    {
+      id: 22,
+      name: "TV22",
+      x: 7200,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 122,
+      monitorNumber: 22,
+    },
+    {
+      id: 23,
+      name: "TV23",
+      x: 8640,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 123,
+      monitorNumber: 23,
+    },
+    {
+      id: 24,
+      name: "TV24",
+      x: 10080,
+      y: 1800,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 124,
+      monitorNumber: 24,
+    },
+
+    // --- Row 4 ---
+    {
+      id: 25,
+      name: "TV25",
+      x: 0,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 125,
+      monitorNumber: 25,
+    },
+    {
+      id: 26,
+      name: "TV26",
+      x: 1440,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 126,
+      monitorNumber: 26,
+    },
+    {
+      id: 27,
+      name: "TV27",
+      x: 2880,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 127,
+      monitorNumber: 27,
+    },
+    {
+      id: 28,
+      name: "TV28",
+      x: 4320,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 128,
+      monitorNumber: 28,
+    },
+    {
+      id: 29,
+      name: "TV29",
+      x: 5760,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 129,
+      monitorNumber: 29,
+    },
+    {
+      id: 30,
+      name: "TV30",
+      x: 7200,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 130,
+      monitorNumber: 30,
+    },
+    {
+      id: 31,
+      name: "TV31",
+      x: 8640,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 131,
+      monitorNumber: 31,
+    },
+    {
+      id: 32,
+      name: "TV32",
+      x: 10080,
+      y: 2700,
+      width: 1440,
+      height: 900,
+      connected: false,
+      monitorUniqId: 132,
+      monitorNumber: 32,
     },
   ]);
 
@@ -215,6 +470,10 @@ export const MyContextProvider = ({ children }) => {
   const [flagReset, setFlagReset] = useState(false);
   const [dataDrag, setDataDrag] = useState({});
   const [filteredScenes, setFilteredScenes] = useState([]);
+  const [isChangeRealTime, setIsChangeRealTime] = useState("Cancle");
+  const [dataChangeRealTime, setDataChangeRealTime] = useState([]);
+  const [isRealTime, setIsRealTime] = useState(true);
+  const isRealTimeRef = useRef(isRealTime);
 
   const [isRunFitStage, setIsRunFitStage] = useState(false);
 
@@ -475,91 +734,195 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const handleSourceEvent = useCallback(({ action, payload, id }) => {
-    console.log("id::: ", id);
-    const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
-    const scene = getScene();
-    if (!scene || !scene.layer) return;
-    switch (action) {
-      case "add": {
-        const { endObj, type } = contentGenerator(payload.type, payload);
-        console.log("endObj123::: ", endObj);
-        const getSelected = () => getScene();
-        if (type === "VIDEO") {
-          addVideo({
-            videoItem: endObj,
-            mode: false,
-            getSelectedScene: getSelected,
-            setSources,
-            sendOperation,
-            url: urlRef.current,
-            loopVideos,
-          });
-        } else if (type === "IMAGE") {
-          addImage({
-            img: endObj,
-            mode: false,
-            getSelectedScene: getSelected,
-            setSources,
-            sendOperation,
-            url: urlRef.current,
-            generateBlobImageURL,
-          });
-        } else if (type === "INPUT") {
-          addInput({
-            input: endObj,
-            mode: false,
-            getSelectedScene: getSelected,
-            setSources,
-            sendOperation,
-          });
-        } else if (type === "IFRAME") {
-          addWeb({
-            webResource: endObj,
-            mode: false,
-            getSelectedScene: getSelected,
-            setSources,
-            sendOperation,
-          });
+    if (isRealTimeRef.current) {
+      const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
+      const scene = getScene();
+      if (!scene || !scene.layer) return;
+      switch (action) {
+        case "add": {
+          const { endObj, type } = contentGenerator(payload.type, payload);
+          console.log("endObj123::: ", endObj);
+          const getSelected = () => getScene();
+          if (type === "VIDEO") {
+            addVideo({
+              videoItem: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+              url: urlRef.current,
+              loopVideos,
+            });
+          } else if (type === "IMAGE") {
+            addImage({
+              img: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+              url: urlRef.current,
+              generateBlobImageURL,
+            });
+          } else if (type === "INPUT") {
+            addInput({
+              input: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+            });
+          } else if (type === "IFRAME") {
+            addWeb({
+              webResource: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+            });
+          }
+          break;
         }
-        break;
+        case "remove":
+          removeSource(id);
+          break;
+        case "update":
+        case "move":
+        case "resize":
+          updateSourceRealTime(id, payload);
+        case "rotate":
+          updateSourceRealTime(id, payload);
+          break;
+        case "play":
+          playVideo(id);
+          break;
+        case "pause":
+          pauseVideo(id);
+          break;
+        case "loop":
+          toggleLoopVideo(id);
+          break;
+        case "fit":
+          fitToMonitors({
+            uniqId: id,
+            selectedMonitors: payload?.selectedMonitors || [],
+            getSelectedScene: getScene,
+            allDataMonitors,
+            sendOperation,
+            id,
+          });
+          break;
+        case "reset":
+          console.log("Resetting all sources and the entire driver canvas");
+          break;
+        default:
+          console.log(`Unsupported action ${action}:${id}`, payload);
+          break;
       }
-      case "remove":
-        removeSource(id);
-        break;
-      case "update":
-      case "move":
-      case "resize":
-        updateSourceRealTime(id, payload);
-      case "rotate":
-        updateSourceRealTime(id, payload);
-        break;
-      case "play":
-        playVideo(id);
-        break;
-      case "pause":
-        pauseVideo(id);
-        break;
-      case "loop":
-        toggleLoopVideo(id);
-        break;
-      case "fit":
-        fitToMonitors({
-          uniqId: id,
-          selectedMonitors: payload?.selectedMonitors || [],
-          getSelectedScene: getScene,
-          allDataMonitors,
-          sendOperation,
-          id,
-        });
-        break;
-      case "reset":
-        console.log("Resetting all sources and the entire driver canvas");
-        break;
-      default:
-        console.log(`Unsupported action ${action}:${id}`, payload);
-        break;
+    } else {
+      setIsChangeRealTime("Yes");
+      setDataChangeRealTime((prev) => [...prev, { action, payload, id }]);
     }
   }, []);
+
+  useEffect(() => {
+    if (isRealTime) return;
+    if (isChangeRealTime === "Done" && dataChangeRealTime.length) {
+      const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
+      const scene = getScene();
+      if (!scene || !scene.layer) return;
+      for (const { action, payload, id } of dataChangeRealTime) {
+        switch (action) {
+          case "add": {
+            const { endObj, type } = contentGenerator(payload.type, payload);
+            const getSelected = () => getScene();
+            if (type === "VIDEO") {
+              addVideo({
+                videoItem: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+                url: urlRef.current,
+                loopVideos,
+              });
+            } else if (type === "IMAGE") {
+              addImage({
+                img: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+                url: urlRef.current,
+                generateBlobImageURL,
+              });
+            } else if (type === "INPUT") {
+              addInput({
+                input: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+              });
+            } else if (type === "IFRAME") {
+              addWeb({
+                webResource: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+              });
+            }
+            break;
+          }
+          case "remove":
+            removeSource(id);
+            break;
+          case "update":
+          case "move":
+          case "resize":
+            updateSourceRealTime(id, payload);
+            break;
+          case "rotate":
+            updateSourceRealTime(id, payload);
+            break;
+          case "play":
+            playVideo(id);
+            break;
+          case "pause":
+            pauseVideo(id);
+            break;
+          case "loop":
+            toggleLoopVideo(id);
+            break;
+          case "fit":
+            fitToMonitors({
+              uniqId: id,
+              selectedMonitors: payload?.selectedMonitors || [],
+              getSelectedScene: getScene,
+              allDataMonitors,
+              sendOperation,
+              id,
+            });
+            break;
+          case "reset":
+            console.log("Resetting all sources and the entire driver canvas");
+            break;
+          default:
+            console.log(`Unsupported action ${action}:${id}`, payload);
+            break;
+        }
+        setDataChangeRealTime([]);
+        setIsChangeRealTime("Cancle");
+      }
+    } else if (isChangeRealTime === "Cancle") {
+      // رد کردن تغییرات
+      setDataChangeRealTime([]);
+    }
+  }, [isChangeRealTime, dataChangeRealTime, isRealTime]);
+
+  useEffect(() => {
+    isRealTimeRef.current = isRealTime;
+  }, [isRealTime]);
 
   function generateScene(data, sceneData) {
     data.forEach((item) => {
@@ -609,10 +972,21 @@ export const MyContextProvider = ({ children }) => {
     });
   }
 
-  function fitStageToMonitors({ stage, monitors, padding = 40 }) {
+  function fitStageToMonitors({ stage, monitors, padding = 40, clampTo1 = true }) {
     if (!stage || !monitors?.length) return;
 
-    // 1) bbox مانیتورها
+    // 0) اندازه‌ی واقعی استیج را از DOM بگیر (گاهی stage.width/height قدیمی است)
+    const rect = stage.container().getBoundingClientRect();
+    const viewW = Math.max(1, rect.width);
+    const viewH = Math.max(1, rect.height);
+    if (
+      Math.round(stage.width()) !== Math.round(viewW) ||
+      Math.round(stage.height()) !== Math.round(viewH)
+    ) {
+      stage.size({ width: viewW, height: viewH });
+    }
+
+    // 1) BBox کل مانیتورها
     let minX = Infinity,
       minY = Infinity,
       maxX = -Infinity,
@@ -626,21 +1000,21 @@ export const MyContextProvider = ({ children }) => {
     const contentW = Math.max(1, maxX - minX);
     const contentH = Math.max(1, maxY - minY);
 
-    // 2) ابعاد واقعی دید از روی DOM (دقیق‌تر از stage.width/height در بعضی حالت‌ها)
-    const rect = stage.container().getBoundingClientRect();
-    const viewW = Math.max(1, rect.width || stage.width());
-    const viewH = Math.max(1, rect.height || stage.height());
+    // 2) مقیاس لازم برای جا شدن داخل "inner view" با درنظر گرفتن padding از هر طرف
+    const innerW = Math.max(1, viewW - 2 * padding);
+    const innerH = Math.max(1, viewH - 2 * padding);
+    let scale = Math.min(innerW / contentW, innerH / contentH);
+    if (clampTo1) scale = Math.min(scale, 1); // بزرگ‌نمایی بیش از ۱ نکن
 
-    // 3) اسکیلِ لازم برای فیت شدن (با پدینگ) و کَلمپ به 1
-    const scaleX = (viewW - padding * 2) / contentW;
-    const scaleY = (viewH - padding * 2) / contentH;
-    const scale = Math.min(scaleX, scaleY, 1); // مهم: هرگز > 1 نشود
+    // 3) مرکز محتوا و مرکز ویو
+    const contentCenter = { x: (minX + contentW / 2) * scale, y: (minY + contentH / 2) * scale };
+    const viewCenter = { x: viewW / 2, y: viewH / 2 };
 
-    // 4) مبدأ نگاه (0,0) + جبرانِ offset محتوا و padding
+    // 4) اعمال اسکیل و جابه‌جایی برای هم‌مرکز کردن
     stage.scale({ x: scale, y: scale });
     stage.position({
-      x: -minX * scale + padding,
-      y: -minY * scale + padding,
+      x: viewCenter.x - contentCenter.x,
+      y: viewCenter.y - contentCenter.y,
     });
 
     stage.batchDraw();
@@ -1317,6 +1691,30 @@ export const MyContextProvider = ({ children }) => {
     });
   }, [selectedScene, videoWalls, scenes]);
 
+  useEffect(() => {
+    const scn = getSelectedScene();
+    if (!scn?.stageData) return;
+
+    const onResize = () => {
+      fitStageToMonitors({
+        stage: scn.stageData,
+        monitors: videoWalls,
+      });
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [selectedScene, videoWalls]);
+
+  useEffect(() => {
+    const scn = getSelectedScene();
+    if (!scn?.stageData) return;
+
+    fitStageToMonitors({
+      stage: scn.stageData,
+      monitors: videoWalls,
+    });
+  }, [selectedSceneRef.current]);
   return (
     <MyContext.Provider
       value={{
@@ -1443,6 +1841,11 @@ export const MyContextProvider = ({ children }) => {
 
         fitStageToMonitors,
         selectedSceneRef,
+
+        isChangeRealTime,
+        setIsChangeRealTime,
+        isRealTime,
+        setIsRealTime,
       }}
     >
       {children}

@@ -333,14 +333,14 @@ const UsageSidebar = () => {
                       size="sm"
                       variant="light"
                       color="default"
-                      onPress={() =>
+                      onPress={() => {
                         deleteSourceFromScene({
                           id: resource.externalId,
                           getSelectedScene,
                           setSources,
                           sendOperation,
-                        })
-                      }
+                        });
+                      }}
                     >
                       <MdDelete size={15} />
                     </Button>

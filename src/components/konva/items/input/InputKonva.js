@@ -46,7 +46,10 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
   group.add(text);
 
   if (mode) {
-    setSources((prev) => [...prev, { ...input, uniqId, sceneId: getSelectedScene().id }]);
+    setSources((prev) => [
+      ...prev,
+      { ...input, externalId: uniqId, sceneId: getSelectedScene().id },
+    ]);
     sendOperation("source", {
       action: "add",
       id: uniqId,

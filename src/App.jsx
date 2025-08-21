@@ -42,7 +42,14 @@ import HeaderBar from "./components/headerbar/screen/HeaderBar";
 import Konva from "konva";
 import CollectionsSidebar from "./components/sidebar/program/CollectionsSidebar";
 import UsageSidebar from "./components/sidebar/sources/UsageSidebar";
-import { MdCollections, MdCollectionsBookmark, MdOutlineDataUsage } from "react-icons/md";
+import {
+  MdCancel,
+  MdCollections,
+  MdCollectionsBookmark,
+  MdDone,
+  MdOutlineDataUsage,
+  MdUpgrade,
+} from "react-icons/md";
 import { CircularProgress, heroui } from "@heroui/react";
 import { MonitorLayoutModal } from "./components/konva/items/monitor/position/MonitorPosition";
 import MosaicSetupModal from "./components/konva/items/monitor/position/MosaicSetupModal";
@@ -106,6 +113,8 @@ function App() {
     handleDrop,
     fitStageToMonitors,
     selectedSceneRef,
+    isChangeRealTime,
+    setIsChangeRealTime,
   } = useMyContext();
 
   const [leftTab, setLeftTab] = useState("Sources");
@@ -481,8 +490,6 @@ function App() {
           const scn = getSelectedScene();
           if (!scn?.stageData) return;
           if (!videoWalls?.length) return;
-          if (isRunFitStage) return;
-          setIsRunFitStage(true);
           fitStageToMonitors({
             stage: scn.stageData,
             monitors: videoWalls,
@@ -653,6 +660,16 @@ function App() {
           toggleLayout={() => {
             localStorage.setItem("layout", !isToggleLayout);
             setIsToggleLayout(!isToggleLayout);
+            const scn = getSelectedScene();
+            if (!scn?.stageData) return;
+            if (!videoWalls?.length) return;
+            setTimeout(() => {
+              console.log("test");
+              fitStageToMonitors({
+                stage: scn.stageData,
+                monitors: videoWalls,
+              });
+            }, [10]);
           }}
         />
 
@@ -730,6 +747,17 @@ function App() {
                 : "منتظر اتصال مانیتورها"}
             </span>
           </div>
+          {isChangeRealTime === "Yes" && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border">
+              <span className="text-sm font-medium">تغییرات جدید</span>
+              <Button onPress={() => setIsChangeRealTime("Done")} size="sm" variant="flat">
+                تایید
+              </Button>
+              <Button onPress={() => setIsChangeRealTime("Cancle")} size="sm" variant="flat">
+                انصراف
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       <Modal scrollBehavior="outside" isOpen={activeModal === "resources"} onClose={closeModal}>

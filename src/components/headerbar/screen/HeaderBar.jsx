@@ -77,6 +77,7 @@ const HeaderBar = ({ toggleLayout }) => {
     generateBlobImageURL,
     trimPrefix,
     socket,
+    fitStageToMonitors,
     monitorConnection,
   } = useMyContext();
   const [openSettings, setOpenSettings] = useState(false);
@@ -765,6 +766,13 @@ const HeaderBar = ({ toggleLayout }) => {
               color="default"
               onPress={() => {
                 handleFullscreen();
+                const scn = getSelectedScene();
+                if (!scn?.stageData) return;
+                if (!videoWalls?.length) return;
+                fitStageToMonitors({
+                  stage: scn.stageData,
+                  monitors: videoWalls,
+                });
               }}
             >
               <FaExpand size={20} />

@@ -284,10 +284,10 @@ function startMarquee(group, textNode, cfg) {
       width: cfg.width,
       height: cfg.height,
       fill: hexToRgba(cfg.bg, 0.65),
-      cornerRadius: 6,
+      cornerRadius: 3,
       stroke: "white",
       strokeWidth: 1,
-      listening: false,
+      listening: true,
     });
     group.add(bg);
     bg.moveToBottom(); // بک‌گراند زیر همه

@@ -288,7 +288,11 @@ function placeResourceInCell({
   }
 }
 
-export default function Canvas({ title = "بوم نمایش", subtitle = "Drag & Drop منابع روی صحنه" }) {
+export default function Canvas({
+  title = "بوم نمایش",
+  subtitle = "Drag & Drop منابع روی صحنه",
+  onFit,
+}) {
   const {
     darkMode,
     scenes,
@@ -309,6 +313,8 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
     loopVideos,
     generateBlobImageURL,
     isToggleLayout,
+    isRealTime,
+    setIsRealTime,
   } = useMyContext();
 
   const [selectedCellIndex, setSelectedCellIndex] = useState(null);
@@ -512,28 +518,67 @@ export default function Canvas({ title = "بوم نمایش", subtitle = "Drag &
           <Switch
             classNames={{ label: `${darkMode ? "dark" : "light"}` }}
             size="sm"
+            isSelected={isRealTime}
+            onValueChange={() => setIsRealTime(!isRealTime)}
+            className="ml-1"
+          >
+            RealTime
+          </Switch>
+          <Switch
+            classNames={{ label: `${darkMode ? "dark" : "light"}` }}
+            size="sm"
             isSelected={dragEnabled}
             onValueChange={toggleDrag}
             className="ml-1"
           >
             درگ کردن
           </Switch>
-          <Button size="sm" variant="flat" onPress={doFit} startContent={<TbMaximize />}>
-            فیت
+          <Button
+            size="sm"
+            variant="flat"
+            className={`${darkMode ? "dark" : "light"}`}
+            onPress={onFit}
+            startContent={<TbMaximize />}
+          >
+            کالیبره
           </Button>
-          <Button size="sm" variant="flat" onPress={doCenter} startContent={<TbFocusCentered />}>
-            سنتر
+          <Button
+            size="sm"
+            className={`${darkMode ? "dark" : "light"}`}
+            variant="flat"
+            onPress={doCenter}
+            startContent={<TbFocusCentered />}
+          >
+            مرکز صفحه
           </Button>
-          <Button size="sm" variant="flat" onPress={doReset} startContent={<TbZoomReset />}>
+          <Button
+            size="sm"
+            variant="flat"
+            className={`${darkMode ? "dark" : "light"}`}
+            onPress={doReset}
+            startContent={<TbZoomReset />}
+          >
             100%
           </Button>
 
           <div className="h-6 w-px bg-gray-300/30 mx-1" />
 
-          <Button size="sm" variant="flat" onPress={doZoomOut} startContent={<TbZoomOut />}>
+          <Button
+            size="sm"
+            variant="flat"
+            className={`${darkMode ? "dark" : "light"}`}
+            onPress={doZoomOut}
+            startContent={<TbZoomOut />}
+          >
             Zoom-
           </Button>
-          <Button size="sm" variant="flat" onPress={doZoomIn} startContent={<TbZoomIn />}>
+          <Button
+            size="sm"
+            variant="flat"
+            className={`${darkMode ? "dark" : "light"}`}
+            onPress={doZoomIn}
+            startContent={<TbZoomIn />}
+          >
             Zoom+
           </Button>
         </div>
