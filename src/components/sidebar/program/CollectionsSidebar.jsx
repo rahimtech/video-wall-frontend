@@ -10,7 +10,7 @@ import {
   useDisclosure,
 } from "@nextui-org/react";
 import { FaTrashAlt } from "react-icons/fa";
-import { MdAddBox, MdEdit } from "react-icons/md";
+import { MdAdd, MdAddBox, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
 import ModalTimeLine from "./ModalTimeLine";
 import api from "@/api/api";
@@ -308,6 +308,33 @@ const CollectionsSidebar = () => {
                       <GoBroadcast size={15} />
                     </Button>
                   </Tooltip>
+                  {/* <Tooltip content="افزودن صحنه">
+                    <Button
+                      className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
+                      size="sm"
+                      variant="flat"
+                      color="default"
+                      onPress={() =>
+                        addScene({
+                          collections,
+                          setIsLoading,
+                          scenes,
+                          setScenes,
+                          setSelectedScene,
+                          setCollections,
+                          selectedCollection,
+                          url,
+                          videoWalls,
+                          createNewStage,
+                          // selectedScene,
+                          // generateMonitorsForLayer,
+                          // getSelectedScene,
+                        })
+                      }
+                    >
+                      <MdAdd />
+                    </Button>
+                  </Tooltip> */}
                 </div>
               </div>
             }

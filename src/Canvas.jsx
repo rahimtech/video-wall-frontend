@@ -184,7 +184,7 @@ function drawVirtualGridOnMonitor(layer, monitorId, rows, cols, startIndex = 1) 
   layer.batchDraw();
 }
 
-function getGridCells(layer, monitorId) {
+function getGridCells(layer, monitorId, { debug = false, clearPrev = true } = {}) {
   const group = layer.findOne(`#monitor-group-${monitorId}`);
   if (!group) return [];
   const gridMeta = group.getAttr("gridMeta");
@@ -193,51 +193,76 @@ function getGridCells(layer, monitorId) {
   const rect = group.findOne("Rect");
   if (!rect) return [];
 
-  const abs = group.getAbsoluteTransform().copy();
-  const rows = gridMeta.rows;
-  const cols = gridMeta.cols;
-  const cellW = rect.width() / cols;
-  const cellH = rect.height() / rows;
+  const rows = Number(gridMeta.rows);
+  const cols = Number(gridMeta.cols);
+
+  // باکس مطلق رکت نسبت به لِیِر (همه‌ی ترنسفورم‌ها لحاظ می‌شود)
+  const absBox = rect.getClientRect({ relativeTo: layer }); // {x,y,width,height}
+
+  const cellW = absBox.width / cols;
+  const cellH = absBox.height / rows;
+
+  if (clearPrev) {
+    const old = layer.findOne(`#grid-debug-${monitorId}`);
+    if (old) old.destroy();
+  }
+  const dbg = debug
+    ? new Konva.Group({ id: `grid-debug-${monitorId}`, name: "grid-debug", listening: false })
+    : null;
 
   const cells = [];
   let idx = 1;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      // گوشه‌های سلول در مختصات local مانیتور
-      const tlLocal = { x: c * cellW, y: r * cellH };
-      const brLocal = { x: (c + 1) * cellW, y: (r + 1) * cellH };
+      const x = absBox.x + c * cellW;
+      const y = absBox.y + r * cellH;
+      const cell = { index: idx++, row: r, col: c, rect: { x, y, width: cellW, height: cellH } };
+      cells.push(cell);
 
-      // تبدیل به مختصات لایه/استیج
-      const tlAbs = abs.point(tlLocal);
-      const brAbs = abs.point(brLocal);
-
-      cells.push({
-        index: idx++,
-        row: r,
-        col: c,
-        rect: {
-          x: tlAbs.x,
-          y: tlAbs.y,
-          width: brAbs.x - tlAbs.x,
-          height: brAbs.y - tlAbs.y,
-        },
-      });
+      if (dbg) {
+        dbg.add(
+          new Konva.Rect({
+            x,
+            y,
+            width: cellW,
+            height: cellH,
+            stroke: "rgba(255,0,0,0.8)",
+            dash: [8, 6],
+            strokeWidth: 1,
+            fill: "rgba(255,0,0,0.08)",
+          })
+        );
+        dbg.add(
+          new Konva.Text({
+            x,
+            y: y + cellH / 2 - 10,
+            width: cellW,
+            height: 20,
+            align: "center",
+            text: String(cell.index),
+            fontSize: Math.max(12, Math.min(cellW, cellH) * 0.22),
+            fontStyle: "bold",
+            fill: "rgba(255,0,0,0.9)",
+          })
+        );
+      }
     }
+  }
+
+  if (dbg) {
+    layer.add(dbg);
+    layer.batchDraw();
   }
   return cells;
 }
 
-function placeResourceInCell({
-  type, // "IMAGE" | "VIDEO" | "IFRAME" | "INPUT"
-  resource, // آبجکت منبع انتخاب‌شده
-  cellRect, // {x,y,width,height}
-  ctx, // useMyContext() => { addImage, addVideo, ... , getSelectedScene, ... }
-}) {
+function placeResourceInCell({ type, resource, cellRect, ctx }) {
   const {
     addImage,
     addVideo,
     addWeb,
     addInput,
+    addText,
     getSelectedScene,
     setSources,
     sendOperation,
@@ -245,46 +270,95 @@ function placeResourceInCell({
     loopVideos,
     generateBlobImageURL,
   } = ctx;
+
   const scn = getSelectedScene();
   if (!scn) return;
 
   const base = {
     x: cellRect.x,
     y: cellRect.y,
-    width: cellRect.width,
-    height: cellRect.height,
     sceneId: scn.id,
   };
 
-  if (type === "IMAGE") {
-    // addImage انتظار دارد: { img, getSelectedScene, ... }
+  if (type === "IMAGE" && resource) {
+    const imgObj = { ...resource, ...base };
+    if (imgObj.imageElement) {
+      imgObj.imageElement.width = cellRect.width;
+      imgObj.imageElement.height = cellRect.height;
+    }
+    // برای اینکه addImage هم بدونه اندازه هدف چنده
+    imgObj.width = cellRect.width;
+    imgObj.height = cellRect.height;
+
     addImage({
-      img: { ...resource, ...base },
+      img: imgObj,
       getSelectedScene,
       setSources,
       sendOperation,
       url,
       generateBlobImageURL,
     });
-  } else if (type === "VIDEO") {
+  } else if (type === "VIDEO" && resource) {
+    const vidObj = { ...resource, ...base, width: cellRect.width, height: cellRect.height };
+    if (vidObj.videoElement) {
+      vidObj.videoElement.width = cellRect.width;
+      vidObj.videoElement.height = cellRect.height;
+    }
+
     addVideo({
-      videoItem: { ...resource, ...base },
+      videoItem: vidObj,
       getSelectedScene,
       setSources,
       sendOperation,
       url,
       loopVideos,
     });
-  } else if (type === "IFRAME") {
+  } else if (type === "IFRAME" && resource) {
+    const webObj = { ...resource, ...base };
+    if (webObj.iframeElement) {
+      webObj.iframeElement.width = cellRect.width;
+      webObj.iframeElement.height = cellRect.height;
+      if (webObj.iframeElement.style) {
+        webObj.iframeElement.style.width = `${cellRect.width}px`;
+        webObj.iframeElement.style.height = `${cellRect.height}px`;
+      }
+    }
+    // همچنین روی خود آبجکت:
+    webObj.width = cellRect.width;
+    webObj.height = cellRect.height;
+
     addWeb({
-      webResource: { ...resource, ...base },
+      webResource: webObj,
       getSelectedScene,
       setSources,
       sendOperation,
       url,
     });
-  } else if (type === "INPUT") {
-    addInput({ input: { ...resource, ...base }, getSelectedScene, setSources, sendOperation });
+  } else if (type === "INPUT" && resource) {
+    const inpObj = { ...resource, ...base };
+    if (inpObj.imageElement) {
+      inpObj.imageElement.width = cellRect.width;
+      inpObj.imageElement.height = cellRect.height;
+    }
+    if (inpObj.inputElement) {
+      if (inpObj.inputElement.style) {
+        inpObj.inputElement.style.width = `${cellRect.width}px`;
+        inpObj.inputElement.style.height = `${cellRect.height}px`;
+      }
+      inpObj.inputElement.width = cellRect.width;
+      inpObj.inputElement.height = cellRect.height;
+    }
+    inpObj.width = cellRect.width;
+    inpObj.height = cellRect.height;
+
+    addInput({
+      input: inpObj,
+      getSelectedScene,
+      setSources,
+      sendOperation,
+    });
+  } else {
+    console.warn("placeResourceInCell: unsupported type or empty resource", { type, resource });
   }
 }
 
@@ -315,6 +389,7 @@ export default function Canvas({
     isToggleLayout,
     isRealTime,
     setIsRealTime,
+    contentGenerator,
   } = useMyContext();
 
   const [selectedCellIndex, setSelectedCellIndex] = useState(null);
@@ -329,6 +404,234 @@ export default function Canvas({
   const [isActiveGrid, setIsActiveGrid] = useState(false);
 
   const [cellOptions, setCellOptions] = useState([]); // [{key,value,label}]
+  const [monitorGroups, setMonitorGroups] = useState([]);
+  const [selectedMonitors, setSelectedMonitors] = useState([]);
+  const [groupCounter, setGroupCounter] = useState(1);
+  const [groups, setGroups] = useState([]); // آرایه‌ای از Konva.Group ها
+  const [selectedGroupIndex, setSelectedGroupIndex] = useState(null);
+
+  const handlePlaceIntoGroup = () => {
+    const { layer } = getStageAndLayer(getSelectedScene);
+    if (!layer) return;
+    if (selectedGroupIndex === null || selectedGroupIndex === undefined) return;
+    if (!selectedAssetKey) return;
+
+    const targetGroup = groups[selectedGroupIndex];
+    if (!targetGroup) return;
+
+    // مستطیل گروه
+    const rectNode = targetGroup.findOne("Rect");
+    console.log("rectNode::: ", rectNode);
+    if (!rectNode) return;
+
+    // مختصات مطلق با درنظر گرفتن ترنسفورم
+    const abs = targetGroup.getAbsoluteTransform().copy();
+    const topLeft = abs.point({ x: rectNode.x(), y: rectNode.y() });
+    const bottomRight = abs.point({
+      x: rectNode.x() + rectNode.width(),
+      y: rectNode.y() + rectNode.height(),
+    });
+
+    const cellRect = {
+      x: rectNode.x(),
+      y: rectNode.y(),
+      width: rectNode.width(),
+      height: rectNode.height(),
+    };
+
+    const [type, id] = selectedAssetKey.split(":");
+    let resource = null;
+    if (type === "IMAGE" || type === "VIDEO" || type === "IFRAME") {
+      resource = resources.find((r) => String(r.id) === id);
+    } else if (type === "INPUT") {
+      resource = inputs.find((r) => String(r.id) === id);
+    }
+    if (!resource) return;
+
+    placeResourceInCell({
+      type,
+      resource,
+      cellRect,
+      ctx: {
+        addImage,
+        contentGenerator,
+        addVideo,
+        addWeb,
+        addInput,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+        loopVideos,
+        generateBlobImageURL,
+      },
+    });
+  };
+
+  const handleCreateGroup = () => {
+    const { layer } = getStageAndLayer(getSelectedScene);
+    if (!layer || !selectedMonitors.length) return;
+
+    const groupName = `Group ${groupCounter}`;
+
+    // محاسبه‌ی باکس احاطه‌ای مانیتورهای انتخابی
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    selectedMonitors.forEach((mId) => {
+      const m = videoWalls.find((v) => Number(v.id) === Number(mId));
+      if (!m) return;
+      const x2 = m.x + m.width;
+      const y2 = m.y + m.height;
+      if (m.x < minX) minX = m.x;
+      if (m.y < minY) minY = m.y;
+      if (x2 > maxX) maxX = x2;
+      if (y2 > maxY) maxY = y2;
+    });
+
+    if (
+      !Number.isFinite(minX) ||
+      !Number.isFinite(minY) ||
+      !Number.isFinite(maxX) ||
+      !Number.isFinite(maxY)
+    )
+      return;
+
+    // ساخت اوورلی
+    const group = new Konva.Group({ name: "monitor-grouping", listening: false });
+
+    const rect = new Konva.Rect({
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      stroke: "red",
+      strokeWidth: 2,
+      dash: [10, 6],
+      listening: false,
+    });
+
+    const label = new Konva.Text({
+      x: minX,
+      y: minY + (maxY - minY) / 2 - 30,
+      width: maxX - minX,
+      align: "center",
+      text: groupName,
+      fontSize: 70,
+      fontStyle: "bold",
+      fill: "white",
+      listening: false,
+    });
+
+    group.add(rect);
+    group.add(label);
+    group.setAttr("groupName", groupName); // برای نمایش در لیست
+    group.setAttr("kind", "monitor-grouping"); // برای شناسایی نوع
+
+    layer.add(group);
+    layer.batchDraw();
+
+    // به آرایهٔ گروپ‌ها اضافه کن
+    setGroups((prev) => [...prev, group]);
+    setGroupCounter((c) => c + 1);
+    setSelectedMonitors([]);
+  };
+
+  const handleCancelGroup = () => {
+    const { layer } = getStageAndLayer(getSelectedScene);
+    if (!groups.length || !layer) return;
+
+    const last = groups[groups.length - 1];
+    if (last && last.destroy) last.destroy();
+
+    setGroups((prev) => prev.slice(0, -1));
+    layer.batchDraw();
+  };
+
+  function createMonitorGroup(layer, videoWalls, selectedIds, groupName) {
+    if (!layer || !selectedIds?.length) return null;
+
+    // اطمینان از تبدیل به عدد
+    const normalizedIds = selectedIds.map((id) => Number(id));
+
+    // فیلتر مانیتورهای معتبر
+    const mons = videoWalls.filter((m) => normalizedIds.includes(Number(m.id)));
+
+    if (!mons.length) {
+      console.warn("❌ هیچ مانیتور معتبری برای گروه پیدا نشد!", { selectedIds, videoWalls });
+      return null;
+    }
+
+    // فقط مانیتورهای سالم رو نگه دار
+    const safeMons = mons.filter((m) => m && typeof m.x === "number" && typeof m.y === "number");
+    if (!safeMons.length) {
+      console.warn("❌ همه مانیتورهای انتخابی نال یا خراب هستند:", mons);
+      return null;
+    }
+
+    let minX = Math.min(...safeMons.map((m) => m.x));
+    let minY = Math.min(...safeMons.map((m) => m.y));
+    let maxX = Math.max(...safeMons.map((m) => m.x + m.width));
+    let maxY = Math.max(...safeMons.map((m) => m.y + m.height));
+
+    const groupRect = new Konva.Rect({
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      stroke: "red",
+      dash: [6, 4],
+      strokeWidth: 2,
+      listening: false,
+    });
+
+    const label = new Konva.Text({
+      x: minX + 4,
+      y: minY + 4,
+      text: groupName,
+      fontSize: 16,
+      fontStyle: "bold",
+      fill: "red",
+      listening: false,
+    });
+
+    const group = new Konva.Group({ name: "monitor-group-overlay" });
+    group.add(groupRect);
+    group.add(label);
+
+    layer.add(group);
+    layer.batchDraw();
+
+    return { id: Date.now(), name: groupName, rect: groupRect };
+  }
+
+  useEffect(() => {
+    const { layer } = getStageAndLayer(getSelectedScene);
+    if (!layer) return;
+
+    monitorGroups.forEach((g) => {
+      // پاک‌سازی قدیمی
+      let existing = layer.findOne(`#monitor-group-box-${g.id}`);
+      if (existing) existing.destroy();
+
+      const rect = new Konva.Rect({
+        id: `monitor-group-box-${g.id}`,
+        x: g.rect.x,
+        y: g.rect.y,
+        width: g.rect.width,
+        height: g.rect.height,
+        stroke: "red",
+        dash: [10, 5],
+        strokeWidth: 2,
+        listening: false,
+      });
+
+      layer.add(rect);
+    });
+
+    layer.batchDraw();
+  }, [monitorGroups, selectedScene, scenes]);
 
   useEffect(() => {
     const { layer } = getStageAndLayer(getSelectedScene);
@@ -353,7 +656,9 @@ export default function Canvas({
     if (!layer || !gridMonitorId || !selectedCellIndex || !selectedAssetKey) return;
 
     const cells = getGridCells(layer, gridMonitorId);
+    console.log("cells::: ", cells);
     const cell = cells.find((c) => String(c.index) === String(selectedCellIndex));
+
     if (!cell) return;
 
     const [type, id] = selectedAssetKey.split(":"); // مثلا "IMAGE:42"
@@ -371,6 +676,7 @@ export default function Canvas({
       resource,
       cellRect: cell.rect,
       ctx: {
+        contentGenerator,
         addImage,
         addVideo,
         addWeb,
@@ -491,7 +797,7 @@ export default function Canvas({
     <Card
       radius="lg"
       shadow="lg"
-      className={`my-auto ${isToggleLayout ? " w-[98%]" : " w-[58%]"} py-2 bottom-0 top-5 
+      className={`my-auto ${isToggleLayout ? " w-[98%]" : " w-[58%]"} py-2 h-[85%] bottom-0 top-5 
         ${darkMode ? "bg-[#171b22] border border-[#2a2f36]" : "bg-white border border-gray-200"}
       `}
     >
@@ -631,100 +937,167 @@ export default function Canvas({
 
           {/* Footer bar: Virtual Grid Builder */}
           {isActiveGrid && (
-            <div className="absolute left-3 right-3 bottom-1 flex items-center gap-2 rounded-xl px-3 py-2 backdrop-blur-sm bg-black/10 dark:bg-white/10 shadow-sm">
-              <TbGridDots className="opacity-80" />
-              <Select
-                size="sm"
-                label="مانیتور"
-                selectedKeys={gridMonitorId ? [String(gridMonitorId)] : []}
-                className="w-44"
-                onChange={(e) => setGridMonitorId(Number(e.target.value))}
-              >
-                {videoWalls.map((m) => (
-                  <SelectItem key={m.id} value={String(m.id)}>
-                    {m.name ?? `Monitor ${m.id}`}
-                  </SelectItem>
-                ))}
-              </Select>
-              <Input
-                size="sm"
-                type="number"
-                min={1}
-                label="سطر"
-                className="w-24"
-                value={String(gridRows)}
-                onChange={(e) => setGridRows(e.target.value)}
-              />
-              <Input
-                size="sm"
-                type="number"
-                min={1}
-                label="ستون"
-                className="w-24"
-                value={String(gridCols)}
-                onChange={(e) => setGridCols(e.target.value)}
-              />
-              <Button size="sm" color="primary" onPress={applyGrid}>
-                اعمال گرید
-              </Button>
+            <div className="absolute left-3 right-3 bottom-1 flex-col items-center  rounded-xl px-3 py-2 backdrop-blur-sm bg-black/10 dark:bg-white/10 shadow-sm">
+              <div className="w-full flex items-center gap-2">
+                <TbGridDots className="opacity-80" />
+                <Select
+                  size="sm"
+                  label="مانیتور"
+                  selectedKeys={gridMonitorId ? [String(gridMonitorId)] : []}
+                  className="w-44"
+                  onChange={(e) => setGridMonitorId(Number(e.target.value))}
+                >
+                  {videoWalls.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name ?? `Monitor ${m.id}`}
+                    </SelectItem>
+                  ))}
+                </Select>
+                <Input
+                  size="sm"
+                  type="number"
+                  min={1}
+                  label="سطر"
+                  className="w-24"
+                  value={String(gridRows)}
+                  onChange={(e) => setGridRows(e.target.value)}
+                />
+                <Input
+                  size="sm"
+                  type="number"
+                  min={1}
+                  label="ستون"
+                  className="w-24"
+                  value={String(gridCols)}
+                  onChange={(e) => setGridCols(e.target.value)}
+                />
+                <Button size="sm" color="primary" onPress={applyGrid}>
+                  اعمال گرید
+                </Button>
 
-              <div className="h-6 w-px bg-gray-300/30 mx-1" />
+                <div className="h-6 w-px bg-gray-300/30 mx-1" />
 
-              <Select
-                size="sm"
-                label="سلول"
-                selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
-                className="w-36"
-                onChange={(e) => setSelectedCellIndex(e.target.value)}
-                isDisabled={!cellOptions.length}
-              >
-                {cellOptions.map((c) => (
-                  <SelectItem key={c.key} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </Select>
+                <Select
+                  size="sm"
+                  label="سلول"
+                  selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
+                  className="w-36"
+                  onChange={(e) => setSelectedCellIndex(e.target.value)}
+                  isDisabled={!cellOptions.length}
+                >
+                  {cellOptions.map((c) => (
+                    <SelectItem key={c.key} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </Select>
 
-              <Select
-                size="sm"
-                label="منبع"
-                selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
-                className="w-60"
-                onChange={(e) => setSelectedAssetKey(e.target.value)}
-              >
-                {/* Inputs */}
-                {inputs.length > 0 && (
-                  <SelectItem key="__group_inputs" isReadOnly>
-                    — ورودی‌ها —
-                  </SelectItem>
-                )}
-                {inputs.map((i) => (
-                  <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
-                    [INPUT] {i.name}
-                  </SelectItem>
-                ))}
+                <Select
+                  size="sm"
+                  label="منبع"
+                  selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
+                  className="w-60"
+                  onChange={(e) => setSelectedAssetKey(e.target.value)}
+                >
+                  {/* Inputs */}
+                  {inputs.length > 0 && (
+                    <SelectItem key="__group_inputs" isReadOnly>
+                      — ورودی‌ها —
+                    </SelectItem>
+                  )}
+                  {inputs.map((i) => (
+                    <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
+                      [INPUT] {i.name}
+                    </SelectItem>
+                  ))}
 
-                {/* Resources */}
-                {resources.length > 0 && (
-                  <SelectItem key="__group_files" isReadOnly>
-                    — فایل‌ها —
-                  </SelectItem>
-                )}
-                {resources.map((r) => (
-                  <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
-                    [{r.type}] {r.name}
-                  </SelectItem>
-                ))}
-              </Select>
+                  {/* Resources */}
+                  {resources.length > 0 && (
+                    <SelectItem key="__group_files" isReadOnly>
+                      — فایل‌ها —
+                    </SelectItem>
+                  )}
+                  {resources.map((r) => (
+                    <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
+                      [{r.type}] {r.name}
+                    </SelectItem>
+                  ))}
+                </Select>
 
-              <Button
-                size="sm"
-                color="success"
-                onPress={handlePlace}
-                isDisabled={!selectedCellIndex || !selectedAssetKey}
-              >
-                قرار بده
-              </Button>
+                <Button
+                  size="sm"
+                  color="success"
+                  onPress={handlePlace}
+                  isDisabled={!selectedCellIndex || !selectedAssetKey}
+                >
+                  قرار بده
+                </Button>
+              </div>
+              <div className="w-full flex mt-3 items-center gap-2">
+                <Select
+                  size="sm"
+                  selectionMode="multiple"
+                  label="انتخاب مانیتورها"
+                  selectedKeys={selectedMonitors.map(String)}
+                  onSelectionChange={(keys) => setSelectedMonitors([...keys].map(Number))}
+                >
+                  {videoWalls.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name ?? `Monitor ${m.id}`}
+                    </SelectItem>
+                  ))}
+                </Select>
+
+                <Button
+                  size="sm"
+                  color="danger"
+                  isDisabled={!selectedMonitors.length} // فقط وقتی انتخابی نیست، غیرفعاله
+                  onPress={handleCreateGroup}
+                >
+                  ایجاد گروه
+                </Button>
+
+                <Button
+                  size="sm"
+                  color="warning"
+                  isDisabled={!groups.length} // اگر هیچ گروهی نیست، غیرفعاله
+                  onPress={handleCancelGroup}
+                >
+                  لغو گروه
+                </Button>
+                <Select
+                  size="sm"
+                  label="گروه"
+                  selectedKeys={
+                    selectedGroupIndex !== null && selectedGroupIndex !== undefined
+                      ? [String(selectedGroupIndex)]
+                      : []
+                  }
+                  className="w-40"
+                  onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
+                  isDisabled={!groups.length}
+                >
+                  {groups.map((g, idx) => (
+                    <SelectItem key={idx} value={String(idx)}>
+                      {g.getAttr("groupName") || `Group ${idx + 1}`}
+                    </SelectItem>
+                  ))}
+                </Select>
+
+                <Button
+                  size="sm"
+                  color="success"
+                  onPress={handlePlaceIntoGroup}
+                  isDisabled={
+                    !selectedAssetKey ||
+                    selectedGroupIndex === null ||
+                    selectedGroupIndex === undefined ||
+                    !groups.length
+                  }
+                >
+                  قرار بده در گروه
+                </Button>
+              </div>
             </div>
           )}
         </div>

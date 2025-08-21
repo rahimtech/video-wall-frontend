@@ -546,17 +546,14 @@ export const MyContextProvider = ({ children }) => {
     const layer = scn?.layer;
     if (!stage || !layer) return;
 
-    // مختصات موس را به Konva بده
     if (e.nativeEvent) stage.setPointersPositions(e.nativeEvent);
 
-    // مختصات در فضای کانتینر (اسکرین)
     let screenPt = stage.getPointerPosition();
     if (!screenPt) {
       const rect = stage.container().getBoundingClientRect();
       screenPt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
-    // تبدیل به مختصات محتوا (با درنظر گرفتن scale/position)
     const inv = stage.getAbsoluteTransform().copy().invert();
     const contentPt = inv.point(screenPt);
     const baseSceneId = scn.id;
@@ -741,7 +738,6 @@ export const MyContextProvider = ({ children }) => {
       switch (action) {
         case "add": {
           const { endObj, type } = contentGenerator(payload.type, payload);
-          console.log("endObj123::: ", endObj);
           const getSelected = () => getScene();
           if (type === "VIDEO") {
             addVideo({
@@ -1846,6 +1842,7 @@ export const MyContextProvider = ({ children }) => {
         setIsChangeRealTime,
         isRealTime,
         setIsRealTime,
+        contentGenerator,
       }}
     >
       {children}

@@ -21,7 +21,6 @@ export const addVideo = ({
     selectedStage = getSelectedScene()?.stageData;
   }
 
-  console.log("selectedSceneLayer::: ", selectedSceneLayer);
   if (!selectedSceneLayer) return;
 
   const modifiedVideoURL = mode ? `video:${url}/${videoItem.content}` : videoItem.videoElement.src;
@@ -36,8 +35,8 @@ export const addVideo = ({
         source: modifiedVideoURL,
         x: targetX,
         y: targetY,
-        width: videoItem.videoElement.videoWidth || videoItem.width,
-        height: videoItem.videoElement.videoHeight || videoItem.height,
+        width: videoItem.videoElement.width || videoItem.videoElement.videoWidth,
+        height: videoItem.videoElement.height || videoItem.videoElement.videoHeight,
         name: videoItem.name,
         type: "VIDEO",
         sceneId: getSelectedScene().id,
@@ -76,8 +75,8 @@ export const addVideo = ({
 
     const image = new Konva.Image({
       image: videoItem.videoElement,
-      width: videoItem.videoElement.videoWidth,
-      height: videoItem.videoElement.videoHeight,
+      width: videoItem.videoElement.width || videoItem.videoElement.videoWidth,
+      height: videoItem.videoElement.height || videoItem.videoElement.videoHeight,
       name: "object",
       fill: "gray",
       id: String(videoItem.id),
@@ -174,7 +173,9 @@ export const addVideo = ({
 
     videoItem.loop = loopVideos[videoItem.name] || false;
   } else {
+    console.log("videoItem.videoElement::: ", videoItem.videoElement);
     videoItem.videoElement.onloadeddata = async () => {
+      console.log("TEST");
       const text = new Konva.Text({
         x: 0,
         y: 0,

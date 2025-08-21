@@ -654,7 +654,7 @@ function App() {
         </>
       )}
 
-      <div className=" overflow-auto scrollbar-hide flex top-0 absolute left-0  right-0 m-auto flex-col p-3 space-y-4">
+      <div className=" overflow-auto h-[7%] scrollbar-hide flex top-0 absolute left-0  right-0 m-auto flex-col p-3 space-y-4">
         {/* Header */}
         <HeaderBar
           toggleLayout={() => {
@@ -664,7 +664,6 @@ function App() {
             if (!scn?.stageData) return;
             if (!videoWalls?.length) return;
             setTimeout(() => {
-              console.log("test");
               fitStageToMonitors({
                 stage: scn.stageData,
                 monitors: videoWalls,
@@ -689,9 +688,9 @@ function App() {
       </div>
 
       <div
-        className={`${isToggleLayout ? "w-[98%] flex" : "w-[59%]"} ${
+        className={`${isToggleLayout ? "w-[98%]  justify-center" : "w-[59%] justify-end"} ${
           darkMode ? "text-white bg-gray-800" : "text-black bg-gray-100"
-        } z-[10] bottom-3 relative p-2 rounded-xl  justify-center left-0 right-0  `}
+        } z-[10] bottom-3 relative p-2 rounded-xl h-[5%] items-center flex left-0 right-0  `}
       >
         <div dir="rtl" className="flex gap-4">
           {/* Driver Status */}
