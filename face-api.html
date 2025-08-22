@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ترددشمار مدرسه با تشخیص چهره و احساسات (face-api.js)</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      canvas#overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .scroll-smooth::-webkit-scrollbar {
+        height: 6px;
+        width: 6px;
+      }
+      .scroll-smooth::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-800 min-h-screen">
+    <header class="max-w-6xl mx-auto p-4 md:p-6">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold">
+            سامانهٔ <span class="text-indigo-600">ترددشمار ورودی مدرسه</span>
+          </h1>
+          <p class="text-slate-600 mt-1">
+            هر فردی که وارد می‌شود، چهره‌اش گرفته می‌شود، احساس غالبش تشخیص داده می‌شود و یک مورد در
+            لیست ثبت می‌گردد.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <div class="bg-white rounded-2xl shadow p-3 text-center">
+            <div class="text-slate-500 text-sm">تعداد عبورها</div>
+            <div id="passesCount" class="text-2xl font-bold">0</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow p-3 text-center">
+            <div class="text-slate-500 text-sm">افراد یکتا</div>
+            <div id="uniqueCount" class="text-2xl font-bold">0</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow p-3 text-center">
+            <div class="text-slate-500 text-sm">FPS</div>
+            <div id="fps" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 md:px-6 pb-10">
+      <!-- Controls -->
+      <section class="mb-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div class="flex items-center gap-2 bg-white rounded-2xl shadow p-3">
+          <label class="text-sm text-slate-600">مدل تشخیص</label>
+          <select id="detector" class="w-full grow rounded-xl border p-2">
+            <option value="tiny" selected>TinyFaceDetector (سریع)</option>
+            <option value="ssd">SSD Mobilenet (دقیق‌تر)</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2 bg-white rounded-2xl shadow p-3">
+          <label class="text-sm text-slate-600">حاشیهٔ کراپ</label>
+          <input
+            id="padding"
+            type="range"
+            min="0"
+            max="0.5"
+            step="0.05"
+            value="0.2"
+            class="w-full"
+          />
+          <span id="paddingVal" class="text-sm text-slate-500 w-10 text-center">0.20</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white rounded-2xl shadow p-3">
+          <label class="text-sm text-slate-600">فرمت ذخیره</label>
+          <select id="quality" class="w-full grow rounded-xl border p-2">
+            <option value="png" selected>PNG</option>
+            <option value="jpeg">JPEG</option>
+          </select>
+          <button
+            id="btnSaveAll"
+            class="px-4 py-2 rounded-xl bg-slate-800 text-white shadow hover:bg-slate-900"
+          >
+            ذخیره همه چهره‌ها (Zip)
+          </button>
+        </div>
+      </section>
+
+      <!-- Video Area -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="relative bg-white rounded-2xl shadow overflow-hidden">
+          <video
+            id="video"
+            width="720"
+            height="560"
+            autoplay
+            muted
+            playsinline
+            class="block w-full h-auto select-none"
+          ></video>
+          <canvas id="overlay" width="720" height="560"></canvas>
+          <div class="absolute top-3 left-3 text-xs bg-white/80 rounded-xl px-3 py-1 shadow">
+            <span id="presenceTag">در حال پردازش…</span>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="bg-white rounded-2xl shadow p-3 flex flex-col min-h-[560px]">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="font-semibold">گزارش عبورها</h2>
+            <div class="flex gap-2">
+              <button
+                id="btnReset"
+                class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100"
+              >
+                پاک‌سازی
+              </button>
+            </div>
+          </div>
+          <div id="log" class="scroll-smooth grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-auto">
+            <!-- items appended here -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- deps -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.0"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+    ></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"
+    ></script>
+
+    <script>
+      // ======== Global State ========
+      const cfg = {
+        matchThreshold: 0.5, // آستانهٔ تشخیص یکسان بودن افراد (۰.۶ رایج است)
+        cooldownSec: 5, // اگر همان شخص در این بازه دوباره دیده شد، دوباره عبور ثبت نشود
+      };
+
+      const state = {
+        identities: [], // [{id, centroid: Float32Array, descriptors:[], lastSeen, present, lastLogged, name}]
+        nextId: 1,
+        passes: 0,
+        entries: [], // برای ذخیرهٔ تصاویر ثبت‌شده
+        lastTick: performance.now(),
+      };
+
+      const ui = {
+        video: document.getElementById("video"),
+        canvas: document.getElementById("overlay"),
+        ctx: document.getElementById("overlay").getContext("2d"),
+        fps: document.getElementById("fps"),
+        passesCount: document.getElementById("passesCount"),
+        uniqueCount: document.getElementById("uniqueCount"),
+        presenceTag: document.getElementById("presenceTag"),
+        log: document.getElementById("log"),
+        padding: document.getElementById("padding"),
+        paddingVal: document.getElementById("paddingVal"),
+        detector: document.getElementById("detector"),
+        quality: document.getElementById("quality"),
+        btnSaveAll: document.getElementById("btnSaveAll"),
+        btnReset: document.getElementById("btnReset"),
+      };
+
+      ui.padding.addEventListener(
+        "input",
+        () => (ui.paddingVal.textContent = Number(ui.padding.value).toFixed(2))
+      );
+
+      async function setupCamera() {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
+        });
+        ui.video.srcObject = stream;
+        await new Promise((res) => (ui.video.onloadedmetadata = res));
+        await ui.video.play();
+        ui.canvas.width = ui.video.videoWidth || 720;
+        ui.canvas.height = ui.video.videoHeight || 560;
+      }
+
+      async function loadModels() {
+        const MODEL_URL =
+          "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights";
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+      }
+
+      function getOptions() {
+        if (ui.detector.value === "ssd")
+          return new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
+        return new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 });
+      }
+
+      function euclidean(a, b) {
+        return faceapi.euclideanDistance(Array.from(a), Array.from(b));
+      }
+
+      function updateCentroid(identity, newDesc) {
+        // میانگین سادهٔ descriptorها
+        identity.descriptors.push(newDesc);
+        const n = identity.descriptors.length;
+        identity.centroid = new Float32Array(
+          identity.centroid.map((v, i) => (v * (n - 1) + newDesc[i]) / n)
+        );
+      }
+
+      function matchOrCreate(descriptor) {
+        if (!descriptor) return null;
+        let bestIdx = -1,
+          bestDist = Infinity;
+        state.identities.forEach((id, idx) => {
+          const d = euclidean(id.centroid, descriptor);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = idx;
+          }
+        });
+        if (bestDist <= cfg.matchThreshold) {
+          const identity = state.identities[bestIdx];
+          updateCentroid(identity, descriptor);
+          return identity;
+        }
+        // create new
+        const ident = {
+          id: state.nextId++,
+          name: `نفر ${state.nextId - 1}`,
+          centroid: new Float32Array(descriptor),
+          descriptors: [descriptor],
+          lastSeen: 0,
+          present: false,
+          lastLogged: 0,
+        };
+        state.identities.push(ident);
+        ui.uniqueCount.textContent = state.identities.length;
+        return ident;
+      }
+
+      function cropFace(box, padRatio = 0.2) {
+        const pad = Math.max(box.width, box.height) * padRatio;
+        const sx = Math.max(0, box.x - pad);
+        const sy = Math.max(0, box.y - pad);
+        const sw = Math.min(ui.canvas.width - sx, box.width + 2 * pad);
+        const sh = Math.min(ui.canvas.height - sy, box.height + 2 * pad);
+        const off = document.createElement("canvas");
+        off.width = sw;
+        off.height = sh;
+        const octx = off.getContext("2d");
+        octx.drawImage(ui.video, sx, sy, sw, sh, 0, 0, sw, sh);
+        return off;
+      }
+
+      function addLogEntry(identity, expression, faceCanvas) {
+        const time = new Date();
+        state.passes += 1;
+        ui.passesCount.textContent = state.passes;
+
+        // save entry for export
+        state.entries.push({
+          id: identity.id,
+          name: identity.name,
+          expression,
+          time: time.toLocaleTimeString(),
+          dataURL: faceCanvas.toDataURL("image/png"),
+        });
+
+        // DOM card
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-slate-200 overflow-hidden shadow-sm";
+        card.innerHTML = `
+          <img src="${faceCanvas.toDataURL(
+            "image/png"
+          )}" alt="face" class="w-full h-36 object-cover"/>
+          <div class="p-3 flex items-center justify-between">
+            <div>
+              <div class="font-semibold">${identity.name}</div>
+              <div class="text-xs text-slate-500 mt-0.5">${time.toLocaleDateString()} • ${time.toLocaleTimeString()}</div>
+            </div>
+            <span class="text-xs px-2 py-1 rounded-full bg-slate-100">${expression}</span>
+          </div>`;
+        ui.log.prepend(card);
+      }
+
+      function chooseColorForExpression(exp) {
+        switch (exp) {
+          case "happy":
+            return "green";
+          case "angry":
+            return "red";
+          case "sad":
+            return "blue";
+          case "surprised":
+            return "orange";
+          case "fearful":
+            return "purple";
+          case "disgusted":
+            return "brown";
+          default:
+            return "pink";
+        }
+      }
+
+      async function detectLoop() {
+        const options = getOptions();
+        const results = await faceapi
+          .detectAllFaces(ui.video, options)
+          .withFaceLandmarks()
+          .withFaceExpressions()
+          .withFaceDescriptors();
+
+        const now = performance.now();
+        const displaySize = { width: ui.canvas.width, height: ui.canvas.height };
+        ui.ctx.clearRect(0, 0, ui.canvas.width, ui.canvas.height);
+
+        // mark all as not present; will flip to true when matched this frame
+        state.identities.forEach((id) => (id.present = false));
+
+        results.forEach((det) => {
+          const rr = faceapi.resizeResults(det, displaySize);
+          const { box } = rr.detection;
+          const expressions = rr.expressions || {};
+          const dominant = Object.keys(expressions).length
+            ? Object.keys(expressions).reduce((a, b) => (expressions[a] > expressions[b] ? a : b))
+            : "neutral";
+
+          const identity = matchOrCreate(det.descriptor);
+          if (!identity) return;
+
+          identity.present = true;
+          identity.lastSeen = now;
+
+          // ثبت عبور فقط اگر از آخرین ثبت بیشتر از cooldown گذشته باشد
+          if (now - identity.lastLogged > cfg.cooldownSec * 1000) {
+            const faceCan = cropFace(box, Number(ui.padding.value));
+            addLogEntry(identity, dominant, faceCan);
+            identity.lastLogged = now;
+          }
+
+          // Draw box + label
+          const color = chooseColorForExpression(dominant);
+          ui.ctx.lineWidth = 3;
+          ui.ctx.strokeStyle = color;
+          ui.ctx.strokeRect(box.x, box.y, box.width, box.height);
+          ui.ctx.font = "14px sans-serif";
+          const label = `${identity.name} • ${dominant}`;
+          const pad = 4;
+          const textW = ui.ctx.measureText(label).width;
+          ui.ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ui.ctx.fillRect(box.x, box.y - 20, textW + 2 * pad, 20);
+          ui.ctx.fillStyle = "white";
+          ui.ctx.fillText(label, box.x + pad, box.y - 5);
+        });
+
+        // Update presence tag
+        const presentCount = state.identities.filter((i) => i.present).length;
+        ui.presenceTag.textContent =
+          presentCount > 0 ? `${presentCount} نفر در کادر` : "کسی در کادر نیست";
+
+        // FPS
+        const fps = (1000 / (now - state.lastTick)).toFixed(1);
+        state.lastTick = now;
+        ui.fps.textContent = fps;
+
+        requestAnimationFrame(detectLoop);
+      }
+
+      function dataURLtoBlob(dataURL) {
+        const arr = dataURL.split(","),
+          mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) u8arr[n] = bstr.charCodeAt(n);
+        return new Blob([u8arr], { type: mime });
+      }
+
+      // ======== Events ========
+      ui.btnSaveAll.addEventListener("click", async () => {
+        if (state.entries.length === 0) return alert("هنوز موردی ثبت نشده.");
+        const zip = new JSZip();
+        const folder = zip.folder("faces");
+        state.entries.forEach((e, idx) => {
+          const fname = `${String(idx + 1).padStart(3, "0")}-${e.name}-${
+            e.expression
+          }-${e.time.replace(/[: ]/g, "_")}.png`;
+          folder.file(fname, dataURLtoBlob(e.dataURL));
+        });
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `faces-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`);
+      });
+
+      ui.btnReset.addEventListener("click", () => {
+        if (!confirm("پاک‌سازی شمارنده‌ها و لیست؟")) return;
+        state.identities = [];
+        state.nextId = 1;
+        state.passes = 0;
+        state.entries = [];
+        ui.uniqueCount.textContent = "0";
+        ui.passesCount.textContent = "0";
+        ui.log.innerHTML = "";
+      });
+
+      // ======== Bootstrap ========
+      async function run() {
+        await loadModels();
+        await setupCamera();
+        detectLoop();
+      }
+
+      window.addEventListener("load", () => {
+        run().catch((err) => {
+          console.error(err);
+          alert("خطای راه‌اندازی: دسترسی دوربین/اینترنت مدل‌ها را بررسی کنید.");
+        });
+      });
+    </script>
+  </body>
+</html>

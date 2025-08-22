@@ -11,7 +11,7 @@ import {
   FaVideo,
   FaPen,
 } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdInput } from "react-icons/md";
 import { useMyContext } from "@/context/MyContext";
 import ModalMonitorSelection from "../scenes/screen/ModalMonitorSelection";
 import { openTextContextMenuById } from "@/components/konva/items/text/TextKonva";
@@ -21,7 +21,9 @@ const TYPE_ICON = {
   VIDEO: FaVideo,
   IFRAME: FaGlobe,
   TEXT: FaFont,
+  INPUT: MdInput,
 };
+
 const TYPE_COLOR = {
   IMAGE: "success",
   VIDEO: "primary",
