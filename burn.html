@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>تشخیص آتش‌سوزی — نسخهٔ مرورگر با OpenCV.js</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      canvas#view {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .tag {
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-800 min-h-screen">
+    <header class="max-w-6xl mx-auto p-4 md:p-6">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold">
+            سامانهٔ <span class="text-orange-600">تشخیص آتش‌سوزی</span> با وب‌کم
+          </h1>
+          <p class="text-slate-600 mt-1 text-sm">
+            نکتهٔ مهم: این یک ابزار کمکی/دموی نرم‌افزاری است و جایگزین سنسور و سامانه‌های اطفاء حریق
+            استاندارد نیست.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <div class="bg-white rounded-2xl shadow p-3 text-center">
+            <div class="text-slate-500 text-sm">رویدادها</div>
+            <div id="eventCount" class="text-2xl font-bold">0</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow p-3 text-center">
+            <div class="text-slate-500 text-sm">وضعیت</div>
+            <div id="statusTag" class="tag bg-emerald-100 text-emerald-700">ایمن</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow p-3 text-center">
+            <div class="text-slate-500 text-sm">FPS</div>
+            <div id="fps" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 md:px-6 pb-10">
+      <!-- Controls -->
+      <section class="mb-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div class="bg-white rounded-2xl shadow p-3 flex items-center gap-2">
+          <label class="text-sm text-slate-600">حساسیت (مساحت آتش %)</label>
+          <input
+            id="areaThresh"
+            type="range"
+            min="0.01"
+            max="0.5"
+            step="0.01"
+            value="0.03"
+            class="w-full"
+          />
+          <span id="areaVal" class="text-sm text-slate-500 w-12 text-center">3%</span>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-3 flex items-center gap-2">
+          <label class="text-sm text-slate-600">آستانهٔ فریم‌ها</label>
+          <input
+            id="frameConfirm"
+            type="range"
+            min="2"
+            max="20"
+            step="1"
+            value="4"
+            class="w-full"
+          />
+          <span id="frameVal" class="text-sm text-slate-500 w-10 text-center">4</span>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-3 flex items-center gap-3">
+          <label class="text-sm text-slate-600">نمایش ماسک</label>
+          <input id="showMask" type="checkbox" class="scale-125" />
+          <label class="text-sm text-slate-600">حرکت لازم باشد</label>
+          <input id="requireMotion" type="checkbox" class="scale-125" checked />
+          <label class="text-sm text-slate-600 ml-auto">حداقل پیکسل</label>
+          <input
+            id="minPixels"
+            type="number"
+            min="0"
+            value="1200"
+            class="w-24 rounded border p-1 text-sm"
+          />
+          <button
+            id="btnExportZip"
+            class="ml-2 px-4 py-2 rounded-xl bg-slate-800 text-white shadow hover:bg-slate-900"
+          >
+            دانلود تصاویر (Zip)
+          </button>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Video Panel -->
+        <div class="relative bg-white rounded-2xl shadow overflow-hidden min-h-[420px]">
+          <video id="video" autoplay muted playsinline class="hidden"></video>
+          <canvas id="frame" class="hidden"></canvas>
+          <canvas id="view"></canvas>
+          <div class="absolute top-3 left-3 text-xs bg-white/80 rounded-xl px-3 py-1 shadow">
+            <span id="presentTxt">در حال راه‌اندازی…</span>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="bg-white rounded-2xl shadow p-3 flex flex-col min-h-[420px]">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="font-semibold">گزارش رویدادها</h2>
+            <div class="flex gap-2">
+              <button
+                id="btnExportCSV"
+                class="px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                خروجی CSV
+              </button>
+              <button
+                id="btnReset"
+                class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100"
+              >
+                پاک‌سازی
+              </button>
+            </div>
+          </div>
+          <div id="log" class="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-auto">
+            <!-- items appended here -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- deps -->
+    <script defer src="https://docs.opencv.org/4.x/opencv.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"
+    ></script>
+
+    <script>
+      // ========= Utilities =========
+      const $ = (id) => document.getElementById(id);
+      const fmt = (d) => new Date(d).toLocaleString("fa-IR");
+      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+      // ========= State =========
+      const state = {
+        fireActive: false,
+        fireStartedAt: null,
+        framesOn: 0,
+        framesOff: 0,
+        lastTick: performance.now(),
+        events: [], // { start, stop, startImg, stopImg, durationMs }
+        snapshots: [], // array of { name, dataURL }
+      };
+
+      // ========= UI Elements =========
+      const ui = {
+        video: $("video"),
+        frame: $("frame"), // offscreen draw
+        view: $("view"), // display
+        presentTxt: $("presentTxt"),
+        statusTag: $("statusTag"),
+        eventCount: $("eventCount"),
+        fps: $("fps"),
+        areaThresh: $("areaThresh"),
+        areaVal: $("areaVal"),
+        frameConfirm: $("frameConfirm"),
+        frameVal: $("frameVal"),
+        showMask: $("showMask"),
+        log: $("log"),
+        btnReset: $("btnReset"),
+        btnExportCSV: $("btnExportCSV"),
+        btnExportZip: $("btnExportZip"),
+      };
+
+      ui.areaThresh.addEventListener(
+        "input",
+        () => (ui.areaVal.textContent = Math.round(ui.areaThresh.value * 100) + "%")
+      );
+      ui.frameConfirm.addEventListener(
+        "input",
+        () => (ui.frameVal.textContent = ui.frameConfirm.value)
+      );
+      ui.frameConfirm.addEventListener(
+        "input",
+        () => (ui.frameVal.textContent = ui.frameConfirm.value)
+      );
+
+      // ========= Camera =========
+      async function setupCamera() {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 360 } },
+          audio: false,
+        });
+        ui.video.srcObject = stream;
+        await new Promise((res) => (ui.video.onloadedmetadata = res));
+        await ui.video.play();
+        ui.frame.width = ui.video.videoWidth;
+        ui.frame.height = ui.video.videoHeight;
+        ui.view.width = ui.video.videoWidth;
+        ui.view.height = ui.video.videoHeight;
+      }
+
+      // ========= OpenCV Helpers =========
+      function drawFrameToMat() {
+        const ctx = ui.frame.getContext("2d");
+        ctx.drawImage(ui.video, 0, 0, ui.frame.width, ui.frame.height);
+        return cv.imread(ui.frame); // RGBA
+      }
+
+      function paintDisplay(srcRGBA, maskBinary) {
+        const ctx = ui.view.getContext("2d");
+        // draw video
+        cv.imshow(ui.view, srcRGBA);
+        if (ui.showMask.checked && maskBinary) {
+          // draw mask overlay in red
+          const overlay = new cv.Mat();
+          cv.cvtColor(maskBinary, overlay, cv.COLOR_GRAY2RGBA);
+          const rgbaRed = new cv.Mat(overlay.rows, overlay.cols, overlay.type(), [255, 0, 0, 120]);
+          cv.bitwise_and(rgbaRed, overlay, overlay);
+
+          // read current canvas to mat and blend
+          const current = cv.imread(ui.view);
+          cv.addWeighted(current, 1.0, overlay, 0.7, 0.0, current);
+          cv.imshow(ui.view, current);
+          current.delete();
+          overlay.delete();
+          rgbaRed.delete();
+        }
+      }
+
+      function capturePNG(namePrefix) {
+        const dataURL = ui.view.toDataURL("image/png");
+        const name = `${namePrefix}-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+        state.snapshots.push({ name, dataURL });
+        return { name, dataURL };
+      }
+
+      function addLogCard(ev) {
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-slate-200 overflow-hidden shadow-sm";
+        card.innerHTML = `
+          <div class="p-3">
+            <div class="flex items-center justify-between">
+              <div class="font-semibold">رویداد #${state.events.length}</div>
+              <span class="tag ${
+                ev.stop ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
+              }">${ev.stop ? "خاموش شد" : "شعله‌ور"}</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-1">شروع: ${fmt(ev.start)} ${
+          ev.stop ? "• پایان: " + fmt(ev.stop) : ""
+        }</div>
+            ${
+              ev.stop
+                ? `<div class="text-xs text-slate-500">مدت: ${Math.round(
+                    ev.durationMs / 1000
+                  )} ثانیه</div>`
+                : ""
+            }
+          </div>
+          <div class="grid grid-cols-2 gap-2 p-3 pt-0">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">لحظهٔ شروع</div>
+              <img src="${
+                ev.startImg.dataURL
+              }" alt="start" class="w-full h-28 object-cover rounded-lg"/>
+            </div>
+            ${
+              ev.stopImg
+                ? `<div><div class="text-xs text-slate-500 mb-1">لحظهٔ پایان</div><img src="${ev.stopImg.dataURL}" alt="stop" class="w-full h-28 object-cover rounded-lg"/></div>`
+                : '<div class="text-xs text-slate-400">—</div>'
+            }
+          </div>`;
+        ui.log.prepend(card);
+      }
+
+      function exportCSV() {
+        const rows = [["index", "start", "stop", "duration_seconds"]];
+        state.events.forEach((e, i) =>
+          rows.push([
+            i + 1,
+            new Date(e.start).toISOString(),
+            e.stop ? new Date(e.stop).toISOString() : "",
+            e.stop ? (e.durationMs / 1000).toFixed(1) : "",
+          ])
+        );
+        const csv = rows
+          .map((r) => r.map((v) => '"' + String(v).replaceAll('"', '""') + '"').join(","))
+          .join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        saveAs(blob, `fire-events-${new Date().toISOString().replace(/[:.]/g, "-")}.csv`);
+      }
+
+      async function exportZip() {
+        if (state.snapshots.length === 0) return alert("تصویری برای دانلود وجود ندارد.");
+        const zip = new JSZip();
+        const folder = zip.folder("snapshots");
+        state.snapshots.forEach((s) => folder.file(s.name, dataURLtoBlob(s.dataURL)));
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `fire-snapshots-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`);
+      }
+
+      function dataURLtoBlob(dataURL) {
+        const arr = dataURL.split(","),
+          mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8 = new Uint8Array(n);
+        while (n--) u8[n] = bstr.charCodeAt(n);
+        return new Blob([u8], { type: mime });
+      }
+
+      // ========= Fire Detection =========
+      function detectFireMask(srcRGBA, prevGray) {
+        // Convert
+        const rgb = new cv.Mat();
+        cv.cvtColor(srcRGBA, rgb, cv.COLOR_RGBA2RGB);
+        const hsv = new cv.Mat();
+        cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
+
+        // HSV mask for fire-like colors (two ranges: 0-25 and 160-180)
+        const low1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 80, 120, 0]);
+        const high1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [25, 255, 255, 255]);
+        const low2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [160, 80, 120, 0]);
+        const high2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [179, 255, 255, 255]);
+        const mask1 = new cv.Mat(),
+          mask2 = new cv.Mat(),
+          maskHSV = new cv.Mat();
+        cv.inRange(hsv, low1, high1, mask1);
+        cv.inRange(hsv, low2, high2, mask2);
+        cv.bitwise_or(mask1, mask2, maskHSV);
+
+        // YCrCb refinement (Cr high, Cb low)
+        const ycc = new cv.Mat();
+        cv.cvtColor(rgb, ycc, cv.COLOR_RGB2YCrCb);
+        const channels = new cv.MatVector();
+        cv.split(ycc, channels);
+        const Cr = channels.get(1),
+          Cb = channels.get(2);
+        const crMask = new cv.Mat(),
+          cbMask = new cv.Mat(),
+          yMask = new cv.Mat();
+        cv.threshold(Cr, crMask, 140, 255, cv.THRESH_BINARY);
+        cv.threshold(Cb, cbMask, 120, 255, cv.THRESH_BINARY_INV);
+        cv.bitwise_and(crMask, cbMask, yMask);
+
+        const fireMask = new cv.Mat();
+        cv.bitwise_and(maskHSV, yMask, fireMask);
+
+        // optional Motion gating
+        let motionMask = null;
+        if (document.getElementById("requireMotion").checked) {
+          const gray = new cv.Mat();
+          cv.cvtColor(rgb, gray, cv.COLOR_RGB2GRAY);
+          const blur = new cv.Mat();
+          cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+          if (prevGray) {
+            const diff = new cv.Mat();
+            cv.absdiff(blur, prevGray, diff);
+            motionMask = new cv.Mat();
+            cv.threshold(diff, motionMask, 12, 255, cv.THRESH_BINARY); // حساس‌تر
+            cv.medianBlur(motionMask, motionMask, 3);
+            diff.delete();
+          }
+          gray.delete();
+          blur.delete();
+        }
+
+        // Morphology
+        const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
+        cv.morphologyEx(fireMask, fireMask, cv.MORPH_OPEN, kernel);
+        cv.morphologyEx(fireMask, fireMask, cv.MORPH_DILATE, kernel);
+
+        // Combine
+        const finalMask = new cv.Mat();
+        if (motionMask) {
+          cv.bitwise_and(fireMask, motionMask, finalMask);
+          motionMask.delete();
+        } else {
+          fireMask.copyTo(finalMask);
+        }
+
+        // Cleanup
+        low1.delete();
+        high1.delete();
+        low2.delete();
+        high2.delete();
+        mask1.delete();
+        mask2.delete();
+        hsv.delete();
+        rgb.delete();
+        ycc.delete();
+        channels.delete();
+        Cr.delete();
+        Cb.delete();
+        crMask.delete();
+        cbMask.delete();
+        yMask.delete();
+        fireMask.delete();
+        kernel.delete();
+
+        return finalMask;
+      }
+
+      function maskAreaFraction(mask) {
+        const nonZero = cv.countNonZero(mask);
+        return nonZero / (mask.rows * mask.cols);
+      }
+
+      async function mainLoop() {
+        const src = drawFrameToMat();
+        if (!mainLoop.prevGray) mainLoop.prevGray = null;
+        const mask = detectFireMask(src, mainLoop.prevGray);
+
+        // show frame + optional mask overlay
+        paintDisplay(src, mask);
+
+        // compute area fraction and decision
+        let frac = maskAreaFraction(mask);
+        const minPix = parseInt(document.getElementById("minPixels").value, 10) || 0;
+        // تضمین حداقل پیکسل مستقل از رزولوشن
+        const minFrac = minPix / (ui.view.width * ui.view.height);
+        frac = Math.max(frac, frac > 0 ? Math.min(frac, 1) : 0);
+        const thresh = Math.max(parseFloat(ui.areaThresh.value), minFrac);
+
+        if (frac >= thresh) {
+          state.framesOn++;
+          state.framesOff = 0;
+        } else {
+          state.framesOff++;
+          state.framesOn = 0;
+        }
+
+        const confirmFrames = parseInt(ui.frameConfirm.value, 10);
+
+        if (!state.fireActive && state.framesOn >= confirmFrames) {
+          // transition to ACTIVE
+          state.fireActive = true;
+          state.fireStartedAt = Date.now();
+          const startImg = capturePNG("fire-start");
+          const ev = {
+            start: state.fireStartedAt,
+            stop: null,
+            startImg,
+            stopImg: null,
+            durationMs: 0,
+          };
+          state.events.push(ev);
+          ui.eventCount.textContent = state.events.length;
+          ui.statusTag.textContent = "آتش شناسایی شد";
+          ui.statusTag.className = "tag bg-orange-100 text-orange-700";
+          ui.presentTxt.textContent = `مساحت آتش: ${(frac * 100).toFixed(1)}%`;
+          addLogCard(ev);
+        }
+        if (state.fireActive && state.framesOff >= confirmFrames) {
+          // transition to SAFE
+          state.fireActive = false;
+          const stopTime = Date.now();
+          const stopImg = capturePNG("fire-stop");
+          const ev = state.events[state.events.length - 1];
+          ev.stop = stopTime;
+          ev.stopImg = stopImg;
+          ev.durationMs = stopTime - ev.start;
+          ui.statusTag.textContent = "ایمن";
+          ui.statusTag.className = "tag bg-emerald-100 text-emerald-700";
+          ui.presentTxt.textContent = "ایمن";
+          addLogCard(ev); // add a new card state reflecting stop
+        }
+
+        // FPS
+        const now = performance.now();
+        const fps = (1000 / (now - state.lastTick)).toFixed(1);
+        state.lastTick = now;
+        ui.fps.textContent = fps;
+
+        // store blurred gray for next iteration
+        const gray = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        const blur = new cv.Mat();
+        cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+        if (mainLoop.prevGray) mainLoop.prevGray.delete();
+        mainLoop.prevGray = blur; // keep blurred gray
+        gray.delete();
+
+        src.delete();
+        mask.delete();
+        requestAnimationFrame(mainLoop);
+      }
+
+      // ========= Bootstrap =========
+      async function run() {
+        await setupCamera();
+        // اگر OpenCV همین حالا آماده است، مستقیم شروع کن؛ وگرنه Module.onRuntimeInitialized هندل می‌کند
+        if (window.cv && cv.Mat) {
+          document.getElementById("presentTxt").textContent = "آماده";
+          requestAnimationFrame(mainLoop);
+        } else {
+          document.getElementById("presentTxt").textContent = "در حال بارگذاری OpenCV…";
+        }
+        if (typeof cv === "undefined") throw new Error("OpenCV.js بارگذاری نشد");
+        if (cv.getBuildInformation) {
+          // wait until runtime ready
+          cv["onRuntimeInitialized"] = () => {
+            ui.presentTxt.textContent = "آماده";
+            requestAnimationFrame(mainLoop);
+          };
+        } else {
+          // some builds are eager
+          requestAnimationFrame(mainLoop);
+        }
+      }
+
+      window.addEventListener("load", () => {
+        run().catch((err) => {
+          console.error(err);
+          alert("خطای راه‌اندازی: دسترسی دوربین یا بارگذاری کتابخانه‌ها را بررسی کنید.");
+        });
+      });
+
+      // ========= Actions =========
+      ui.btnReset.addEventListener("click", () => {
+        if (!confirm("پاک‌سازی رویدادها و تصاویر ذخیره‌شده؟")) return;
+        state.fireActive = false;
+        state.fireStartedAt = null;
+        state.framesOn = 0;
+        state.framesOff = 0;
+        state.events = [];
+        state.snapshots = [];
+        ui.eventCount.textContent = "0";
+        ui.log.innerHTML = "";
+        ui.statusTag.textContent = "ایمن";
+        ui.statusTag.className = "tag bg-emerald-100 text-emerald-700";
+      });
+
+      ui.btnExportCSV.addEventListener("click", exportCSV);
+      ui.btnExportZip.addEventListener("click", exportZip);
+    </script>
+  </body>
+</html>
