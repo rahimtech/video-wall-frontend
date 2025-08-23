@@ -26,6 +26,7 @@
     "child_process": "^1.0.2",
     "electron": "^31.1.0",
     "framer-motion": "^11.15.0",
+    "hls.js": "^1.6.10",
     "interactjs": "^1.10.27",
     "jszip": "^3.10.1",
     "konva": "^9.3.6",

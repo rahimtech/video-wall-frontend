@@ -10,6 +10,7 @@ import {
   FaImage,
   FaVideo,
   FaPen,
+  FaStream,
 } from "react-icons/fa";
 import { MdDelete, MdInput } from "react-icons/md";
 import { useMyContext } from "@/context/MyContext";
@@ -22,6 +23,7 @@ const TYPE_ICON = {
   IFRAME: FaGlobe,
   TEXT: FaFont,
   INPUT: MdInput,
+  STREAM: FaStream,
 };
 
 const TYPE_COLOR = {
@@ -29,6 +31,7 @@ const TYPE_COLOR = {
   VIDEO: "primary",
   IFRAME: "warning",
   TEXT: "secondary",
+  STREAM: "danger",
 };
 
 const UsageSidebar = () => {
@@ -86,11 +89,13 @@ const UsageSidebar = () => {
     setEditingResourceId(resource.externalId);
     setNewName(resource.name || "");
   };
+
   const handleNameSave = (resourceId) => {
     updateSourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
   };
+
   const handleKeyDownEdit = (e, id) => {
     if (e.key === "Enter") handleNameSave(id);
     if (e.key === "Escape") {
@@ -147,6 +152,7 @@ const UsageSidebar = () => {
             const Icon = TYPE_ICON[type] || FaFont;
 
             const rowSelected = isSelectedRow(resource);
+            console.log("rowSelected::: ", rowSelected);
             const rowBase = darkMode ? "" : "";
             const rowSelectedCls = rowSelected
               ? darkMode
@@ -157,14 +163,14 @@ const UsageSidebar = () => {
             return (
               <li
                 key={resource.externalId}
-                className={`flex items-center cursor-pointer justify-between rounded-md ${
-                  darkMode ? "bg-gray-900" : "bg-gray-200"
-                } px-1 py-[10px] transition-all ${rowBase} ${rowSelectedCls}`}
+                // className={`flex items-center cursor-pointer justify-between rounded-md ${
+                //   darkMode ? "bg-gray-900" : "bg-gray-100"
+                // } px-1 py-[10px] transition-all ${rowBase} ${rowSelectedCls}`}
                 onClick={() => {
                   const layer = getSelectedScene()?.layer;
                   if (!layer) return;
 
-                  // پاک کردن ترنسفورمرهای دیگر + غیرفعال‌سازی درگ بقیه
+                  // پاک‌کردن Transformerهای قدیمی
                   layer.find("Transformer").forEach((tr) => {
                     if (tr.attrs.id !== resource.externalId) tr.detach();
                   });
@@ -176,13 +182,37 @@ const UsageSidebar = () => {
                   const group = layer.findOne(`#${resource.externalId}`);
                   if (!group) return;
 
+                  // اگر Transformer پیدا نشد، بساز
                   let transformer = layer.findOne("Transformer");
-                  if (transformer) transformer.nodes([group]);
+                  if (!transformer) {
+                    transformer = new Konva.Transformer({
+                      nodes: [group],
+                      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+                      rotateEnabled: true,
+                    });
+                    layer.add(transformer);
+                  } else {
+                    transformer.nodes([group]);
+                  }
+
                   group.draggable(true);
                   layer.batchDraw();
 
                   setSelectedSource(resource.externalId);
                 }}
+                className={`text-sm  cursor-pointer flex flex-wrap items-center justify-between  ${
+                  resource.type == "INPUT"
+                    ? selectedSource == resource.uniqId
+                      ? "bg-blue-500"
+                      : darkMode
+                      ? "bg-gray-700"
+                      : "bg-gray-300"
+                    : selectedSource == resource.externalId
+                    ? "bg-blue-500"
+                    : darkMode
+                    ? "bg-gray-700"
+                    : "bg-gray-300"
+                } p-2 rounded-md shadow-sm`}
               >
                 {/* Left: type + name + inline rename + z-order */}
                 <div className="flex items-center gap-2 min-w-0">
@@ -232,7 +262,10 @@ const UsageSidebar = () => {
                       </Tooltip>
                     </div>
                   )}
+                </div>
 
+                {/* Right: fit, text settings, delete */}
+                <div className="flex items-center gap-1">
                   {/* Z-order controls */}
                   <div className="flex items-center gap-1 ml-2">
                     <Tooltip content="اولویت بالا">
@@ -260,10 +293,6 @@ const UsageSidebar = () => {
                       </Button>
                     </Tooltip>
                   </div>
-                </div>
-
-                {/* Right: fit, text settings, delete */}
-                <div className="flex items-center gap-1">
                   <ModalMonitorSelection
                     item={resource}
                     darkMode={darkMode}

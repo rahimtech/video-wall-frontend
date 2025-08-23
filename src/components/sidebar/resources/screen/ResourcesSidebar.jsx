@@ -8,7 +8,7 @@ import {
   DropdownTrigger,
   Tooltip,
 } from "@nextui-org/react";
-import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat } from "react-icons/fa";
+import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat, FaNetworkWired } from "react-icons/fa";
 import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 import Swal from "sweetalert2";
@@ -19,6 +19,7 @@ import api from "@/api/api";
 import { Tabs, Tab, Card, CardBody } from "@heroui/react";
 import { addText } from "../../../konva/items/text/TextKonva";
 import { FaImage, FaVideo, FaGlobe, FaFont } from "react-icons/fa";
+import Hls from "hls.js";
 
 const ResourcesSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
@@ -56,10 +57,11 @@ const ResourcesSidebar = () => {
     VIDEO: { label: "ویدیوها", icon: FaVideo, badge: "primary" },
     IFRAME: { label: "صفحات وب", icon: FaGlobe, badge: "warning" },
     TEXT: { label: "متن‌ها", icon: FaFont, badge: "secondary" },
+    STREAM: { label: "استریم‌ها", icon: FaNetworkWired, badge: "danger" },
   };
 
   const groupedResources = useMemo(() => {
-    const g = { IMAGE: [], VIDEO: [], IFRAME: [], TEXT: [] };
+    const g = { IMAGE: [], VIDEO: [], IFRAME: [], TEXT: [], STREAM: [] };
     for (const r of resources || []) if (g[r.type]) g[r.type].push(r);
     return g;
   }, [resources]);
@@ -75,15 +77,82 @@ const ResourcesSidebar = () => {
         generateBlobImageURL,
       });
     }
-    if (r.type === "VIDEO") {
-      return addVideo({
-        videoItem: r,
-        getSelectedScene,
-        setSources,
-        sendOperation,
-        url,
-        loopVideos,
-      });
+    if (r.type === "VIDEO" || r.type === "STREAM") {
+      if (r.type === "STREAM") {
+        const video = document.createElement("video");
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.crossOrigin = "anonymous";
+
+        const src = r.content?.trim();
+
+        const isHls = /\.m3u8(\?|$)/i.test(src);
+        const isDash = /\.mpd(\?|$)/i.test(src);
+        const isRtsp = /^rtsp:\/\//i.test(src);
+
+        if (isRtsp) {
+          // RTSP را باید سمت سرور به HLS/DASH/WebRTC تبدیل کنید
+          Swal.fire({
+            icon: "error",
+            title: "RTSP در مرورگر پخش نمی‌شود",
+            text: "لطفاً لینک RTSP را به HLS/DASH/WebRTC تبدیل کنید (مثلاً با FFmpeg یا Nginx-rtmp).",
+          });
+          return;
+        }
+
+        if (isHls) {
+          if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = src; // Safari
+          } else if (Hls.isSupported()) {
+            const hls = new Hls({ lowLatencyMode: true });
+            hls.loadSource(src);
+            hls.attachMedia(video);
+            // خوب است برای cleanup، هلس را روی آبجکت ذخیره کنید تا بعداً destroy شود
+            video._hls = hls;
+          } else {
+            Swal.fire({ icon: "error", title: "HLS پشتیبانی نمی‌شود" });
+            return;
+          }
+        } else if (isDash) {
+          // اگر خواستید از dash.js استفاده کنید
+          // const player = dashjs.MediaPlayer().create();
+          // player.initialize(video, src, true);
+          video.src = src; // موقت؛ بهتر است dash.js را اضافه کنید
+        } else {
+          // mp4 یا progressive
+          video.src = src;
+        }
+
+        video.width = 800;
+        video.height = 450;
+
+        const obj = {
+          ...r,
+          videoElement: video,
+          type: "STREAM",
+          // بهتر است نام و اندازه را مشخص کنید
+          name: r.name || src,
+        };
+
+        return addVideo({
+          videoElement: obj,
+          getSelectedScene,
+          setSources,
+          sendOperation,
+          url,
+          loopVideos,
+        });
+      } else {
+        return addVideo({
+          videoElement: r,
+          getSelectedScene,
+          setSources,
+          sendOperation,
+          url,
+          loopVideos,
+        });
+      }
     }
     if (r.type === "IFRAME") {
       return addWeb({ webResource: r, getSelectedScene, setSources, sendOperation, url });
@@ -187,6 +256,31 @@ const ResourcesSidebar = () => {
           setResources((prev) => [newResource, ...prev]);
 
           // updateSceneResources([newResource, ...getSelectedScene().resources]);
+        }
+      });
+    } else if (type === "STREAM") {
+      Swal.fire({
+        title: "آدرس استریم را وارد کنید:",
+        input: "text",
+        inputPlaceholder: "rtsp://ip:port/stream یا https://...m3u8",
+        showCancelButton: true,
+        confirmButtonColor: "green",
+        cancelButtonColor: "gray",
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          const id = uuidv4();
+          let newResource = {
+            type: "STREAM",
+            id,
+            name: result.value,
+            content: result.value,
+            width: 640,
+            height: 360,
+            x: 0,
+            y: 0,
+            rotation: 0,
+          };
+          setResources((prev) => [newResource, ...prev]);
         }
       });
     }
@@ -409,7 +503,7 @@ const ResourcesSidebar = () => {
     } else if (resource.type == "VIDEO") {
       setDataDrag({
         type: "VIDEO",
-        videoItem: resource,
+        videoElement: resource,
         getSelectedScene,
         setSources,
         sendOperation,
@@ -436,6 +530,72 @@ const ResourcesSidebar = () => {
       });
     } else if (resource.type == "INPUT") {
       setDataDrag({ type: "INPUT", input: resource, getSelectedScene, setSources, sendOperation });
+    } else if (resource.type == "STREAM") {
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = "anonymous";
+
+      const src = resource.content?.trim();
+
+      const isHls = /\.m3u8(\?|$)/i.test(src);
+      const isDash = /\.mpd(\?|$)/i.test(src);
+      const isRtsp = /^rtsp:\/\//i.test(src);
+
+      if (isRtsp) {
+        // RTSP را باید سمت سرور به HLS/DASH/WebRTC تبدیل کنید
+        Swal.fire({
+          icon: "error",
+          title: "RTSP در مرورگر پخش نمی‌شود",
+          text: "لطفاً لینک RTSP را به HLS/DASH/WebRTC تبدیل کنید (مثلاً با FFmpeg یا Nginx-rtmp).",
+        });
+        return;
+      }
+
+      if (isHls) {
+        if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = src; // Safari
+        } else if (Hls.isSupported()) {
+          const hls = new Hls({ lowLatencyMode: true });
+          hls.loadSource(src);
+          hls.attachMedia(video);
+          // خوب است برای cleanup، هلس را روی آبجکت ذخیره کنید تا بعداً destroy شود
+          video._hls = hls;
+        } else {
+          Swal.fire({ icon: "error", title: "HLS پشتیبانی نمی‌شود" });
+          return;
+        }
+      } else if (isDash) {
+        // اگر خواستید از dash.js استفاده کنید
+        // const player = dashjs.MediaPlayer().create();
+        // player.initialize(video, src, true);
+        video.src = src; // موقت؛ بهتر است dash.js را اضافه کنید
+      } else {
+        // mp4 یا progressive
+        video.src = src;
+      }
+
+      video.width = 800;
+      video.height = 450;
+
+      const obj = {
+        ...resource,
+        videoElement: video,
+        type: "STREAM",
+        // بهتر است نام و اندازه را مشخص کنید
+        name: resource.name || src,
+      };
+
+      setDataDrag({
+        type: "STREAM",
+        videoElement: obj,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        url,
+        loopVideos,
+      });
     }
   };
 
@@ -563,7 +723,7 @@ const ResourcesSidebar = () => {
             </Tab>
             <Tab key="resources" title={`فایل‌ها: ${resources.length}`}>
               <div className="flex flex-col gap-3 px-1 pb-2">
-                {["IMAGE", "VIDEO", "IFRAME", "TEXT"].map((t) => {
+                {["IMAGE", "VIDEO", "IFRAME", "TEXT", "STREAM"].map((t) => {
                   const Icon = TYPE_META[t].icon;
                   const items = groupedResources[t];
 
@@ -728,6 +888,9 @@ const ResourcesSidebar = () => {
               </DropdownItem>
               <DropdownItem onPress={() => addResource("TEXT")} key="text">
                 افزودن متن
+              </DropdownItem>
+              <DropdownItem onPress={() => addResource("STREAM")} key="stream">
+                افزودن استریم
               </DropdownItem>
             </DropdownMenu>
           </Dropdown>

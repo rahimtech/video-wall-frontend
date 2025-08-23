@@ -266,7 +266,7 @@ const HeaderBar = ({ toggleLayout }) => {
                 });
               } else if (type === "video") {
                 addVideo({
-                  videoItem: endObj,
+                  videoElement: endObj,
                   mode: false,
                   getSelectedScene,
                   setSources,
@@ -384,6 +384,19 @@ const HeaderBar = ({ toggleLayout }) => {
         }}
       >
         <MdLogout size={18} /> <span>خروج</span>
+      </Button>
+
+      {/* Refresh */}
+      <Button
+        size="sm"
+        color="default"
+        variant="solid"
+        className="flex items-center gap-1 rounded-lg"
+        onPress={() => {
+          location.reload();
+        }}
+      >
+        <TbRefresh size={18} /> <span>تازه سازی</span>
       </Button>
 
       {/* دارک مود */}

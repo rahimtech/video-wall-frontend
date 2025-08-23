@@ -35,6 +35,7 @@ import {
 } from "../components/sidebar/scenes/ScenesCrud";
 import { io } from "socket.io-client";
 import axios from "axios";
+import Hls from "hls.js";
 
 const MyContext = createContext();
 
@@ -531,7 +532,7 @@ export const MyContextProvider = ({ children }) => {
       payload?.externalId ||
       payload?.id ||
       payload?.img?.externalId ||
-      payload?.videoItem?.externalId ||
+      payload?.videoElement?.externalId ||
       payload?.webResource?.externalId ||
       payload?.input?.externalId
     );
@@ -563,10 +564,15 @@ export const MyContextProvider = ({ children }) => {
         ...dataDrag,
         img: { ...dataDrag.img, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
       });
-    } else if (dataDrag.type === "VIDEO" && dataDrag.videoItem) {
+    } else if (dataDrag.type === "VIDEO" && dataDrag.videoElement) {
       addVideo({
         ...dataDrag,
-        videoItem: { ...dataDrag.videoItem, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
+        videoElement: {
+          ...dataDrag.videoElement,
+          x: contentPt.x,
+          y: contentPt.y,
+          sceneId: baseSceneId,
+        },
       });
     } else if (dataDrag.type === "IFRAME" && dataDrag.webResource) {
       addWeb({
@@ -587,6 +593,17 @@ export const MyContextProvider = ({ children }) => {
       addText({
         ...dataDrag,
         textItem: { ...dataDrag.textItem, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
+      });
+    } else if (dataDrag.type === "STREAM" && dataDrag.videoElement) {
+      console.log("dataDrag::: ", dataDrag);
+      addVideo({
+        ...dataDrag,
+        videoElement: {
+          ...dataDrag.videoElement,
+          x: contentPt.x,
+          y: contentPt.y,
+          sceneId: baseSceneId,
+        },
       });
     }
   };
@@ -741,7 +758,7 @@ export const MyContextProvider = ({ children }) => {
           const getSelected = () => getScene();
           if (type === "VIDEO") {
             addVideo({
-              videoItem: endObj,
+              videoElement: endObj,
               mode: false,
               getSelectedScene: getSelected,
               setSources,
@@ -833,7 +850,7 @@ export const MyContextProvider = ({ children }) => {
             const getSelected = () => getScene();
             if (type === "VIDEO") {
               addVideo({
-                videoItem: endObj,
+                videoElement: endObj,
                 mode: false,
                 getSelectedScene: getSelected,
                 setSources,
@@ -948,7 +965,7 @@ export const MyContextProvider = ({ children }) => {
         });
       } else if (type === "VIDEO") {
         addVideo({
-          videoItem: endObj,
+          videoElement: endObj,
           mode: false,
           getSelectedScene: convertToFunction,
           setSources,
@@ -1429,7 +1446,7 @@ export const MyContextProvider = ({ children }) => {
           //       });
           //     } else if (type === "video") {
           //       addVideo({
-          //         videoItem: endObj,
+          //         videoElement: endObj,
           //         mode: false,
           //         getSelectedScene,
           //         setSources,

@@ -148,10 +148,11 @@ export const addWeb = async ({
   group.add(webText);
   selectedSceneLayer.add(group);
 
-  setSources((prev) => [
-    ...prev,
-    { ...webResource, externalId: uniqId, sceneId: getSelectedScene().id },
-  ]);
+  if (mode)
+    setSources((prev) => [
+      ...prev,
+      { ...webResource, externalId: uniqId, sceneId: getSelectedScene().id },
+    ]);
   selectedSceneLayer.add(group);
   if (mode) selectedStage.add(selectedSceneLayer);
 

@@ -307,7 +307,7 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
     }
 
     addVideo({
-      videoItem: vidObj,
+      videoElement: vidObj,
       getSelectedScene,
       setSources,
       sendOperation,
@@ -1128,27 +1128,6 @@ export default function Canvas({
                           اعمال گرید
                         </Button>
                       </div>
-                      <div className="col-span-12 md:col-span-3">
-                        <Select
-                          size="sm"
-                          label="سلول"
-                          selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
-                          onChange={(e) => setSelectedCellIndex(e.target.value)}
-                          isDisabled={!cellOptions.length}
-                        >
-                          {cellOptions.length === 0 ? (
-                            <SelectItem key="__empty" isReadOnly>
-                              ابتدا گرید را اعمال کنید
-                            </SelectItem>
-                          ) : (
-                            cellOptions.map((c) => (
-                              <SelectItem key={c.key} value={c.value}>
-                                {c.label}
-                              </SelectItem>
-                            ))
-                          )}
-                        </Select>
-                      </div>
                     </div>
 
                     {/* === Groups panel === */}
@@ -1190,63 +1169,84 @@ export default function Canvas({
                           لغو گروه اخیر
                         </Button>
                       </div>
-                      <div className="col-span-12 md:col-span-3">
-                        <Select
-                          size="sm"
-                          label="گروه"
-                          selectedKeys={
-                            selectedGroupIndex !== null && selectedGroupIndex !== undefined
-                              ? [String(selectedGroupIndex)]
-                              : []
-                          }
-                          onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
-                          isDisabled={!groups.length}
-                        >
-                          {groups.length === 0 ? (
-                            <SelectItem key="__ng" isReadOnly>
-                              گروهی ندارید
-                            </SelectItem>
-                          ) : (
-                            groups.map((g, idx) => (
-                              <SelectItem key={idx} value={String(idx)}>
-                                {g.getAttr("groupName") || `Group ${idx + 1}`}
-                              </SelectItem>
-                            ))
-                          )}
-                        </Select>
-                      </div>
                     </div>
 
                     {/* === Place panel === */}
                     <div className={activeTab === "place" ? "grid grid-cols-12 gap-2" : "hidden"}>
                       <div className="col-span-12 md:col-span-6">
-                        <Select
-                          size="sm"
-                          label="منبع"
-                          selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
-                          onChange={(e) => setSelectedAssetKey(e.target.value)}
-                        >
-                          {inputs.length > 0 && (
-                            <SelectItem key="__group_inputs" isReadOnly>
-                              — ورودی‌ها —
-                            </SelectItem>
-                          )}
-                          {inputs.map((i) => (
-                            <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
-                              [INPUT] {i.name}
-                            </SelectItem>
-                          ))}
-                          {resources.length > 0 && (
-                            <SelectItem key="__group_files" isReadOnly>
-                              — فایل‌ها —
-                            </SelectItem>
-                          )}
-                          {resources.map((r) => (
-                            <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
-                              [{r.type}] {r.name}
-                            </SelectItem>
-                          ))}
-                        </Select>
+                        <div className="col-span-12 flex flex-col gap-2 md:col-span-3">
+                          <div className="w-full flex items-center justify-center mx-auto">
+                            <Select
+                              size="sm"
+                              label="گروه"
+                              selectedKeys={
+                                selectedGroupIndex !== null && selectedGroupIndex !== undefined
+                                  ? [String(selectedGroupIndex)]
+                                  : []
+                              }
+                              onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
+                              isDisabled={!groups.length}
+                            >
+                              {groups.length === 0 ? (
+                                <SelectItem key="__ng" isReadOnly>
+                                  گروهی ندارید
+                                </SelectItem>
+                              ) : (
+                                groups.map((g, idx) => (
+                                  <SelectItem key={idx} value={String(idx)}>
+                                    {g.getAttr("groupName") || `Group ${idx + 1}`}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </Select>
+                            <Select
+                              size="sm"
+                              label="سلول"
+                              selectedKeys={selectedCellIndex ? [String(selectedCellIndex)] : []}
+                              onChange={(e) => setSelectedCellIndex(e.target.value)}
+                              isDisabled={!cellOptions.length}
+                            >
+                              {cellOptions.length === 0 ? (
+                                <SelectItem key="__empty" isReadOnly>
+                                  ابتدا گرید را اعمال کنید
+                                </SelectItem>
+                              ) : (
+                                cellOptions.map((c) => (
+                                  <SelectItem key={c.key} value={c.value}>
+                                    {c.label}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </Select>
+                          </div>
+                          <Select
+                            size="sm"
+                            label="منبع"
+                            selectedKeys={selectedAssetKey ? [selectedAssetKey] : []}
+                            onChange={(e) => setSelectedAssetKey(e.target.value)}
+                          >
+                            {inputs.length > 0 && (
+                              <SelectItem key="__group_inputs" isReadOnly>
+                                — ورودی‌ها —
+                              </SelectItem>
+                            )}
+                            {inputs.map((i) => (
+                              <SelectItem key={`INPUT:${i.id}`} value={`INPUT:${i.id}`}>
+                                [INPUT] {i.name}
+                              </SelectItem>
+                            ))}
+                            {resources.length > 0 && (
+                              <SelectItem key="__group_files" isReadOnly>
+                                — فایل‌ها —
+                              </SelectItem>
+                            )}
+                            {resources.map((r) => (
+                              <SelectItem key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
+                                [{r.type}] {r.name}
+                              </SelectItem>
+                            ))}
+                          </Select>
+                        </div>
                       </div>
                       <div className="col-span-6 md:col-span-3 flex items-end">
                         <Button

@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import api from "../../../../api/api";
 
 export const addVideo = ({
-  videoItem,
+  videoElement,
   mode = true,
   getSelectedScene,
   setSources,
@@ -10,11 +10,11 @@ export const addVideo = ({
   url,
   loopVideos,
 }) => {
-  let uniqId = mode ? uuidv4() : videoItem.externalId;
-  // let uniqId = videoItem.externalId;
+  let uniqId = mode ? uuidv4() : videoElement.externalId;
+  // let uniqId = videoElement.externalId;
 
-  const targetX = Number.isFinite(videoItem?.x) ? videoItem.x : 0;
-  const targetY = Number.isFinite(videoItem?.y) ? videoItem.y : 0;
+  const targetX = Number.isFinite(videoElement?.x) ? videoElement.x : 0;
+  const targetY = Number.isFinite(videoElement?.y) ? videoElement.y : 0;
   const selectedSceneLayer = getSelectedScene()?.layer;
   let selectedStage = null;
   if (mode) {
@@ -22,10 +22,14 @@ export const addVideo = ({
   }
 
   if (!selectedSceneLayer) return;
+  const anim = new Konva.Animation(function () {
+    // do nothing, animation just needs to update the layer
+  }, selectedSceneLayer);
+  const modifiedVideoURL = mode
+    ? `video:${url}/${videoElement.content}`
+    : videoElement.videoElement.src;
 
-  const modifiedVideoURL = mode ? `video:${url}/${videoItem.content}` : videoItem.videoElement.src;
-
-  // videoItem.videoElement.src = `${url}/uploads/${videoItem.name}`;
+  // videoElement.videoElement.src = `${url}/uploads/${videoElement.name}`;
 
   if (mode) {
     sendOperation("source", {
@@ -35,13 +39,13 @@ export const addVideo = ({
         source: modifiedVideoURL,
         x: targetX,
         y: targetY,
-        width: videoItem.videoElement.width || videoItem.videoElement.videoWidth,
-        height: videoItem.videoElement.height || videoItem.videoElement.videoHeight,
-        name: videoItem.name,
+        width: videoElement.videoElement.width || videoElement.videoElement.videoWidth,
+        height: videoElement.videoElement.height || videoElement.videoElement.videoHeight,
+        name: videoElement.name,
         type: "VIDEO",
         sceneId: getSelectedScene().id,
-        content: videoItem.content,
-        mediaId: videoItem.id,
+        content: videoElement.content,
+        mediaId: videoElement.id,
         externalId: uniqId,
         metadata: { source: modifiedVideoURL },
       },
@@ -49,10 +53,12 @@ export const addVideo = ({
   }
 
   if (mode) {
+    console.log("videoElement::: ", videoElement);
+
     const text = new Konva.Text({
       x: 0,
       y: 0,
-      text: `${videoItem.name}\n(${videoItem.type})`,
+      text: `${videoElement.name}\n(${videoElement.type})`,
       fontSize: 30,
       fill: "black",
       fontFamily: "Arial",
@@ -60,32 +66,32 @@ export const addVideo = ({
       id: String(uniqId),
       uniqId,
       align: "center",
-      width: videoItem.videoElement.videoWidth,
+      width: videoElement.videoElement.videoWidth,
       ellipsis: true,
     });
 
     const group = new Konva.Group({
-      x: mode ? targetX : videoItem.x,
-      y: mode ? targetY : videoItem.y,
+      x: mode ? targetX : videoElement.x,
+      y: mode ? targetY : videoElement.y,
       draggable: false,
       id: String(uniqId),
       uniqId,
-      rotation: videoItem.rotation || 0,
+      rotation: videoElement.rotation || 0,
     });
 
     const image = new Konva.Image({
-      image: videoItem.videoElement,
-      width: videoItem.videoElement.width || videoItem.videoElement.videoWidth,
-      height: videoItem.videoElement.height || videoItem.videoElement.videoHeight,
+      image: videoElement.videoElement,
+      width: videoElement.videoElement.width || videoElement.videoElement.videoWidth,
+      height: videoElement.videoElement.height || videoElement.videoElement.videoHeight,
       name: "object",
       fill: "gray",
-      id: String(videoItem.id),
+      id: String(videoElement.id),
       uniqId,
       stroke: "white",
       strokeWidth: 2,
       x: 0,
       y: 0,
-      // rotation: videoItem.rotation || 0,
+      // rotation: videoElement.rotation || 0,
     });
 
     group.add(image);
@@ -94,7 +100,7 @@ export const addVideo = ({
 
     setSources((prev) => [
       ...prev,
-      { ...videoItem, externalId: uniqId, sceneId: getSelectedScene().id },
+      { ...videoElement, externalId: uniqId, sceneId: getSelectedScene().id },
     ]);
     selectedStage.add(selectedSceneLayer);
 
@@ -171,15 +177,32 @@ export const addVideo = ({
       selectedSceneLayer.draw();
     });
 
-    videoItem.loop = loopVideos[videoItem.name] || false;
+    // videoElement.loop = loopVideos[videoElement.name] || false;
+
+    videoElement.videoElement.loop = true;
+    videoElement.videoElement.play();
+
+    anim.start();
   } else {
-    console.log("videoItem.videoElement::: ", videoItem.videoElement);
-    videoItem.videoElement.onloadeddata = async () => {
-      console.log("TEST");
+    const v = videoElement.videoElement;
+
+    // 1) قبل از هر کاری، اتریبیوت‌ها را ست کن
+    v.muted = true;
+    v.volume = 0;
+    v.playsInline = true;
+    v.webkitPlaysInline = true; // برای iOS
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.crossOrigin = "anonymous";
+
+    // 2) به جای loadeddata از loadedmetadata استفاده کن
+    const onMeta = async () => {
+      v.removeEventListener("loadedmetadata", onMeta);
+
       const text = new Konva.Text({
         x: 0,
         y: 0,
-        text: `${videoItem.name}\n(${videoItem.type})`,
+        text: `${videoElement.name}\n(${videoElement.type})`,
         fontSize: 30,
         fill: "black",
         fontFamily: "Arial",
@@ -187,23 +210,26 @@ export const addVideo = ({
         id: String(uniqId),
         uniqId,
         align: "center",
-        width: videoItem.width,
+        width: videoElement.width,
         ellipsis: true,
       });
 
       const group = new Konva.Group({
-        x: mode ? targetX : videoItem.x,
-        y: mode ? targetY : videoItem.y,
+        x: mode ? targetX : videoElement.x,
+        y: mode ? targetY : videoElement.y,
         draggable: false,
         uniqId,
         id: String(uniqId),
-        rotation: videoItem.rotation || 0,
+        rotation: videoElement.rotation || 0,
       });
 
+      const vw = videoElement.width || v.videoWidth || 640;
+      const vh = videoElement.height || v.videoHeight || 360;
+
       const image = new Konva.Image({
-        image: videoItem.videoElement,
-        width: videoItem.width,
-        height: videoItem.height,
+        image: v,
+        width: vw,
+        height: vh,
         name: "object",
         fill: "gray",
         id: String(uniqId),
@@ -212,7 +238,6 @@ export const addVideo = ({
         uniqId,
         x: 0,
         y: 0,
-        // rotation: videoItem.rotation || 0,
       });
 
       group.add(image);
@@ -292,12 +317,39 @@ export const addVideo = ({
         selectedSceneLayer.draw();
       });
 
-      const newScene = await api.getSceneById(url, videoItem.sceneId);
-      setSources(newScene.sources);
-
-      videoItem.loop = loopVideos[videoItem.name] || false;
+      // 3) تلاش برای پخش خودکار
+      v.loop = true;
+      try {
+        await v.play();
+        anim.start();
+      } catch (err) {
+        console.warn("Autoplay blocked, will resume on first user gesture", err);
+        // 4) fallback: اولین تعامل کاربر → همه ویدیوهای معلق پلی شوند
+        const resume = async () => {
+          document.removeEventListener("pointerdown", resume, true);
+          document.removeEventListener("keydown", resume, true);
+          try {
+            await v.play();
+            anim.start();
+          } catch (e) {
+            /* نادیده بگیر */
+          }
+        };
+        document.addEventListener("pointerdown", resume, true);
+        document.addEventListener("keydown", resume, true);
+      }
     };
+
+    v.addEventListener("loadedmetadata", onMeta);
   }
+
+  // document.getElementById("play").addEventListener("click", function () {
+  //   text.destroy();
+  // });
+  // document.getElementById("pause").addEventListener("click", function () {
+  //   video.pause();
+  //   anim.stop();
+  // });
 };
 
 export const playVideo = (videoId) => {
