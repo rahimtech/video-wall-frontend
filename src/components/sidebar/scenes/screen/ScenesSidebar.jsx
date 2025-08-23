@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Tooltip } from "@nextui-org/react";
+import { Button, Chip, Tooltip } from "@nextui-org/react";
 import { FaTrashAlt } from "react-icons/fa";
 import { MdAddBox } from "react-icons/md";
 import { useMyContext } from "@/context/MyContext";
@@ -29,6 +29,9 @@ const ScenesSidebar = () => {
     videoWalls,
     createNewStage,
   } = useMyContext();
+  console.log("scenes::: ", scenes);
+  console.log("collections::: ", collections);
+  console.log("selectedCollection::: ", selectedCollection);
 
   const selectedScenes = scenes.filter((scene) => filteredScenes?.some((f) => f.id === scene.id));
   const unselectedScenes = scenes.filter(
@@ -128,14 +131,22 @@ const ScenesSidebar = () => {
                     selectedScene === scene.id
                       ? "bg-blue-500 text-white"
                       : darkMode
-                      ? "bg-gray-800 hover:bg-gray-700"
-                      : "bg-gray-400 hover:bg-gray-500"
+                      ? "bg-green-800 hover:bg-gray-700"
+                      : "bg-green-400 hover:bg-gray-500"
                   }`}
                   onDoubleClick={() => setEditingSceneId(scene.id)}
                   onClick={() => handleSceneSelection(scene)}
                 >
                   <span className="flex-grow font-semibold">
                     {scene.name}
+                    <Chip
+                      size="sm"
+                      color="secondary"
+                      classNames={{ content: "text-[10px]" }}
+                      variant="solid"
+                    >
+                      {collections.find((item) => item.id == selectedCollection).name}
+                    </Chip>
                     {filteredScenes?.find((f) => f.id == scene.id) ? " (منتخب) " : ""}
                   </span>
                   <div className="flex gap-1">
@@ -196,14 +207,25 @@ const ScenesSidebar = () => {
                     selectedScene === scene.id
                       ? "bg-blue-500 text-white"
                       : darkMode
-                      ? "bg-gray-700 hover:bg-gray-600"
-                      : "bg-gray-300 hover:bg-gray-400"
+                      ? "bg-gray-600 hover:bg-gray-600"
+                      : "bg-gray-200 hover:bg-gray-400"
                   }`}
                   onDoubleClick={() => setEditingSceneId(scene.id)}
                   onClick={() => handleSceneSelection(scene)}
                 >
                   <span className="flex-grow">
                     {scene.name}
+                    <Chip
+                      size="sm"
+                      color="default"
+                      className="mx-2"
+                      classNames={{ content: "text-[10px]" }}
+                      variant="solid"
+                    >
+                      {collections.find((item) =>
+                        item.schedules.find((item2) => item2.scene.id == scene.id)
+                      )?.name || "اختصاص داده نشده"}
+                    </Chip>
                     {filteredScenes?.find((f) => f.id == scene.id) ? " (منتخب) " : ""}
                   </span>
                   <div className="flex gap-1">
