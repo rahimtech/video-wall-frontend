@@ -8,7 +8,15 @@ import {
   DropdownTrigger,
   Tooltip,
 } from "@nextui-org/react";
-import { FaPlay, FaPause, FaTrashAlt, FaCog, FaRemoveFormat, FaNetworkWired } from "react-icons/fa";
+import {
+  FaPlay,
+  FaPause,
+  FaTrashAlt,
+  FaCog,
+  FaRemoveFormat,
+  FaNetworkWired,
+  FaStream,
+} from "react-icons/fa";
 import { MdAddBox, MdDeleteForever, MdDeleteSweep } from "react-icons/md";
 import { SketchPicker } from "react-color";
 import Swal from "sweetalert2";
@@ -57,7 +65,7 @@ const ResourcesSidebar = () => {
     VIDEO: { label: "ویدیوها", icon: FaVideo, badge: "primary" },
     IFRAME: { label: "صفحات وب", icon: FaGlobe, badge: "warning" },
     TEXT: { label: "متن‌ها", icon: FaFont, badge: "secondary" },
-    STREAM: { label: "استریم‌ها", icon: FaNetworkWired, badge: "danger" },
+    STREAM: { label: "استریم‌ها", icon: FaStream, badge: "danger" },
   };
 
   const groupedResources = useMemo(() => {
@@ -92,7 +100,6 @@ const ResourcesSidebar = () => {
         const isRtsp = /^rtsp:\/\//i.test(src);
 
         if (isRtsp) {
-          // RTSP را باید سمت سرور به HLS/DASH/WebRTC تبدیل کنید
           Swal.fire({
             icon: "error",
             title: "RTSP در مرورگر پخش نمی‌شود",
@@ -721,9 +728,156 @@ const ResourcesSidebar = () => {
                 </ul>
               </div>
             </Tab>
-            <Tab key="resources" title={`فایل‌ها: ${resources.length}`}>
+            <Tab
+              key="resources"
+              title={`فایل‌ها: ${
+                resources.filter((item) => item.type == "IMAGE" || item.type == "VIDEO").length
+              }`}
+            >
               <div className="flex flex-col gap-3 px-1 pb-2">
-                {["IMAGE", "VIDEO", "IFRAME", "TEXT", "STREAM"].map((t) => {
+                {["IMAGE", "VIDEO"].map((t) => {
+                  const Icon = TYPE_META[t].icon;
+                  const items = groupedResources[t];
+
+                  return (
+                    <Card
+                      key={t}
+                      shadow="sm"
+                      className={`${darkMode ? "bg-gray-800 border border-white/10" : "bg-white"}`}
+                    >
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`${darkMode ? "text-white/90" : "text-black/80"}`} />
+                          <span
+                            className={`text-sm font-medium ${
+                              darkMode ? "text-white" : "text-black"
+                            }`}
+                          >
+                            {TYPE_META[t].label}
+                          </span>
+                          <Chip size="sm" variant="flat">
+                            {items.length}
+                          </Chip>
+                        </div>
+                        {/* دکمه‌ی افزودن مستقیم همان نوع */}
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          className="min-w-fit"
+                          onPress={() => addResource(t)}
+                        >
+                          افزودن {TYPE_META[t].label}
+                        </Button>
+                      </div>
+
+                      <CardBody className="pt-0">
+                        {items.length === 0 ? (
+                          <div
+                            className={`text-xs px-3 pb-3 ${
+                              darkMode ? "text-white/60" : "text-black/60"
+                            }`}
+                          >
+                            موردی موجود نیست.
+                          </div>
+                        ) : (
+                          <ul className="flex flex-col gap-2 max-h-64 overflow-auto pr-1">
+                            {items.map((r) => (
+                              <li
+                                key={r.id}
+                                // وقتی در حالت ادیت هستیم، درگ را خاموش کنیم تا input درست کار کند
+                                draggable={editingResourceId !== r.id}
+                                onDragStart={(e) => {
+                                  handleDragDropItems(r);
+                                }}
+                                className={`flex items-center justify-between p-1 rounded-md cursor-grab active:cursor-grabbing select-none ${
+                                  darkMode ? "bg-gray-700 text-white" : "bg-gray-100 text-black"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 w-[70%]">
+                                  <Chip
+                                    size="sm"
+                                    className="text-[10px] p-0"
+                                    variant="solid"
+                                    color={TYPE_META[r.type]?.badge || "default"}
+                                  >
+                                    {r.type}
+                                  </Chip>
+
+                                  {editingResourceId === r.id ? (
+                                    <input
+                                      value={newName}
+                                      onChange={handleNameChange}
+                                      onBlur={() => handleNameSave(r.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleNameSave(r.id);
+                                        if (e.key === "Escape") handleNameCancel();
+                                      }}
+                                      className="px-2 py-1 rounded bg-white text-black w-[180px]"
+                                      autoFocus
+                                      // جلوگیری از شروع درگ وقتی داخل input کلیک می‌کنیم
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <span
+                                      className="truncate max-w-[180px] text-sm"
+                                      onDoubleClick={() => {
+                                        setEditingResourceId(r.id);
+                                        setNewName(r.name);
+                                      }}
+                                      title="برای تغییر نام دوبار کلیک کنید"
+                                    >
+                                      {r.name}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    className={`${
+                                      darkMode ? "text-white" : "text-black"
+                                    } min-w-fit h-fit p-1`}
+                                    draggable={false}
+                                    // جلوگیری از شروع درگ روی دکمه‌ها
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onPress={() => addResourceToScene(r)}
+                                  >
+                                    <MdAddBox />
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    className={`${
+                                      darkMode ? "text-white" : "text-black"
+                                    } min-w-fit h-fit p-1`}
+                                    draggable={false}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onPress={() => deleteResource(r.id)}
+                                  >
+                                    <FaTrashAlt />
+                                  </Button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+              </div>
+            </Tab>
+            <Tab
+              key="items"
+              title={`آیتم‌ها: ${
+                resources.filter((item) => item.type != "IMAGE" && item.type != "VIDEO").length
+              }`}
+            >
+              <div className="flex flex-col gap-3 px-1 pb-2">
+                {["IFRAME", "TEXT", "STREAM"].map((t) => {
                   const Icon = TYPE_META[t].icon;
                   const items = groupedResources[t];
 

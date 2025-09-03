@@ -231,7 +231,7 @@ const CollectionsSidebar = () => {
               selectedCollection === collection.id
                 ? darkMode
                   ? "bg-primary-700 "
-                  : ""
+                  : "bg-primary-500 text-white"
                 : darkMode
                 ? "bg-gray-600"
                 : ""
@@ -240,7 +240,11 @@ const CollectionsSidebar = () => {
             aria-label={collection.name}
             onPress={() => handleCollectionClick(collection.id)}
             title={
-              <div className={`text-sm flex-col items-center justify-between w-full p-2  `}>
+              <div
+                className={`text-sm ${
+                  selectedCollection === collection.id ? "text-white" : ""
+                } flex-col items-center justify-between w-full p-2  `}
+              >
                 <div className="flex items-center gap-2">
                   {collection.id == activeProgram && (
                     <video
@@ -339,7 +343,7 @@ const CollectionsSidebar = () => {
               </div>
             }
           >
-            <ul className="flex flex-col gap-2">
+            <ul className="flex pb-4 flex-col gap-2">
               {selectedScenes.length >= 1 ? (
                 <>
                   {selectedScenes?.map((scene) => (

@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import { MdInfo } from "react-icons/md";
+import { BsInfoCircle } from "react-icons/bs";
 
 const ModalInfo = ({ darkMode }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -18,13 +19,13 @@ const ModalInfo = ({ darkMode }) => {
     <>
       <Tooltip content={"درباره نرم‌افزار"}>
         <Button
-          className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg  p-1`}
+          className={` min-w-[35px] h-[33px] rounded-lg  p-1`}
           size="sm"
           variant="solid"
           color={"default"}
           onPress={onOpen}
         >
-          <MdInfo size={17} />
+          <BsInfoCircle size={17} />
           درباره ما
         </Button>
       </Tooltip>

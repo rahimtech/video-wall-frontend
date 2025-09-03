@@ -365,7 +365,7 @@ const HeaderBar = ({ toggleLayout }) => {
       <Button
         size="sm"
         color="danger"
-        variant="flat"
+        variant={darkMode ? "flat" : "flat"}
         className="flex items-center gap-1 rounded-lg"
         onPress={() => {
           Swal.fire({

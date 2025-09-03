@@ -29,9 +29,6 @@ const ScenesSidebar = () => {
     videoWalls,
     createNewStage,
   } = useMyContext();
-  console.log("scenes::: ", scenes);
-  console.log("collections::: ", collections);
-  console.log("selectedCollection::: ", selectedCollection);
 
   const selectedScenes = scenes.filter((scene) => filteredScenes?.some((f) => f.id === scene.id));
   const unselectedScenes = scenes.filter(
@@ -142,6 +139,7 @@ const ScenesSidebar = () => {
                     <Chip
                       size="sm"
                       color="secondary"
+                      className="mr-2"
                       classNames={{ content: "text-[10px]" }}
                       variant="solid"
                     >
@@ -215,17 +213,21 @@ const ScenesSidebar = () => {
                 >
                   <span className="flex-grow">
                     {scene.name}
-                    <Chip
-                      size="sm"
-                      color="default"
-                      className="mx-2"
-                      classNames={{ content: "text-[10px]" }}
-                      variant="solid"
-                    >
-                      {collections.find((item) =>
-                        item.schedules.find((item2) => item2.scene.id == scene.id)
-                      )?.name || "اختصاص داده نشده"}
-                    </Chip>
+                    {collections.find((item) => {
+                      item.schedules.map((item2) => {
+                        return (
+                          <Chip
+                            size="sm"
+                            color="default"
+                            className="mx-2"
+                            classNames={{ content: "text-[10px]" }}
+                            variant="solid"
+                          >
+                            {item2.name}
+                          </Chip>
+                        );
+                      });
+                    })}
                     {filteredScenes?.find((f) => f.id == scene.id) ? " (منتخب) " : ""}
                   </span>
                   <div className="flex gap-1">

@@ -1,3 +1,4 @@
+import Konva from "konva";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import config from "../../public/config.json";
 import api from "../api/api";
@@ -806,13 +807,13 @@ export const MyContextProvider = ({ children }) => {
           updateSourceRealTime(id, payload);
           break;
         case "play":
-          playVideo(id);
+          playVideo({ id, sources });
           break;
         case "pause":
-          pauseVideo(id);
+          pauseVideo({ id, sources });
           break;
         case "loop":
-          toggleLoopVideo(id);
+          toggleLoopVideo({ id, sources });
           break;
         case "fit":
           fitToMonitors({
@@ -899,13 +900,13 @@ export const MyContextProvider = ({ children }) => {
             updateSourceRealTime(id, payload);
             break;
           case "play":
-            playVideo(id);
+            playVideo({ id, sources });
             break;
           case "pause":
-            pauseVideo(id);
+            pauseVideo({ id, sources });
             break;
           case "loop":
-            toggleLoopVideo(id);
+            toggleLoopVideo({ id, sources });
             break;
           case "fit":
             fitToMonitors({

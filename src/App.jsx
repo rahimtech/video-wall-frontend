@@ -115,6 +115,7 @@ function App() {
     selectedSceneRef,
     isChangeRealTime,
     setIsChangeRealTime,
+    collections,
   } = useMyContext();
 
   const [leftTab, setLeftTab] = useState("Sources");
@@ -476,11 +477,9 @@ function App() {
           getSelectedScene()?.name ? `${getSelectedScene()?.name} فعال است` : "خطا در دریافت صحنه"
         }
         subtitle={
-          connectionMode
-            ? connecting
-              ? "اتصال برقرار است"
-              : "اتصال صحنه دچار مشکل شده"
-            : "حالت آفلاین فعال شده"
+          collections.find((item) =>
+            item.schedules.find((item2) => item2.scene.id == selectedScene)
+          )?.name || "اختصاص داده نشده"
         }
         scenes={scenes}
         selectedScene={selectedScene}

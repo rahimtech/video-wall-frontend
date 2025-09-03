@@ -1,3 +1,5 @@
+import Konva from "konva";
+
 import Swal from "sweetalert2";
 
 export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {

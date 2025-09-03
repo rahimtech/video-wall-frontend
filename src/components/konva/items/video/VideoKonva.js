@@ -1,3 +1,5 @@
+import Konva from "konva";
+
 import { v4 as uuidv4 } from "uuid";
 import api from "../../../../api/api";
 
@@ -181,6 +183,7 @@ export const addVideo = ({
 
     videoElement.videoElement.loop = true;
     videoElement.videoElement.play();
+    videoElement.videoElement.muted = true;
 
     anim.start();
   } else {
@@ -188,12 +191,13 @@ export const addVideo = ({
 
     // 1) قبل از هر کاری، اتریبیوت‌ها را ست کن
     v.muted = true;
+    v.defaultMuted = true;
     v.volume = 0;
     v.playsInline = true;
-    v.webkitPlaysInline = true; // برای iOS
+    v.webkitPlaysInline = true; // iOS
     v.setAttribute("muted", "");
     v.setAttribute("playsinline", "");
-    v.crossOrigin = "anonymous";
+    v.crossOrigin = v.crossOrigin || "anonymous";
 
     // 2) به جای loadeddata از loadedmetadata استفاده کن
     const onMeta = async () => {
@@ -317,10 +321,10 @@ export const addVideo = ({
         selectedSceneLayer.draw();
       });
 
-      // 3) تلاش برای پخش خودکار
       v.loop = true;
       try {
         await v.play();
+        // await v.muted();
         anim.start();
       } catch (err) {
         console.warn("Autoplay blocked, will resume on first user gesture", err);
@@ -352,46 +356,47 @@ export const addVideo = ({
   // });
 };
 
-export const playVideo = (videoId) => {
-  const video = sources.filter((item) => item.id == videoId);
-
-  // console.log("video::: ", video);
-  if (video[0].videoElement) {
-    video[0].videoElement.play();
-    // anim = new Konva.Animation((frame) => {}, selectedScene);
-
-    anim.start();
-    // sendOperation("source", {
-    //   action: "play",
-    //   id: videoId,
-    // });
-
-    // console.log("anim::: ", anim);
+export const playVideo = ({ id, sources = [] }) => {
+  const s = sources.find(
+    (it) =>
+      String(it.externalId) === String(id) ||
+      String(it.uniqId) === String(id) ||
+      String(it.id) === String(id)
+  );
+  if (s?.videoElement) {
+    try {
+      s.videoElement.muted = true;
+      s.videoElement.play();
+    } catch (e) {
+      // autoplay may be blocked
+    }
   }
 };
 
-export const pauseVideo = (videoId) => {
-  const video = sources.filter((item) => item.id == videoId);
-
-  if (video[0].videoElement) {
-    video[0].videoElement.pause();
-    sendOperation("source", {
-      action: "pause",
-      id: videoId,
-    });
+export const pauseVideo = ({ id, sources = [] }) => {
+  const s = sources.find(
+    (it) =>
+      String(it.externalId) === String(id) ||
+      String(it.uniqId) === String(id) ||
+      String(it.id) === String(id)
+  );
+  if (s?.videoElement) {
+    try {
+      s.videoElement.pause();
+    } catch (e) {
+      // ignore
+    }
   }
 };
 
-export const toggleLoopVideo = (videoId) => {
-  setLoopVideos((prev) => {
-    const isLooping = !prev[videoId];
-    sendOperation("source", {
-      action: "loop",
-      id: videoId,
-    });
-    return {
-      ...prev,
-      [videoId]: isLooping,
-    };
-  });
+export const toggleLoopVideo = ({ id, sources = [] }) => {
+  const s = sources.find(
+    (it) =>
+      String(it.externalId) === String(id) ||
+      String(it.uniqId) === String(id) ||
+      String(it.id) === String(id)
+  );
+  if (s?.videoElement) {
+    s.videoElement.loop = !s.videoElement.loop;
+  }
 };
