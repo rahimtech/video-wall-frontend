@@ -38,6 +38,7 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import Hls from "hls.js";
 
+export const ChangeRT = Object.freeze({ PENDING: "PENDING", DONE: "DONE", CANCEL: "CANCEL" });
 const MyContext = createContext();
 
 export const MyContextProvider = ({ children }) => {
@@ -472,7 +473,7 @@ export const MyContextProvider = ({ children }) => {
   const [flagReset, setFlagReset] = useState(false);
   const [dataDrag, setDataDrag] = useState({});
   const [filteredScenes, setFilteredScenes] = useState([]);
-  const [isChangeRealTime, setIsChangeRealTime] = useState("Cancle");
+  const [isChangeRealTime, setIsChangeRealTime] = useState(ChangeRT.CANCEL);
   const [dataChangeRealTime, setDataChangeRealTime] = useState([]);
   const [isRealTime, setIsRealTime] = useState(true);
   const isRealTimeRef = useRef(isRealTime);
@@ -590,13 +591,12 @@ export const MyContextProvider = ({ children }) => {
         ...dataDrag,
         input: { ...dataDrag.input, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
       });
-    } else if (dataDrag.type === "TEXT" && dataDrag.textItem) {
+    } else if ((dataDrag.type === "TEXT" || dataDrag.type === "RSS") && dataDrag.textItem) {
       addText({
         ...dataDrag,
         textItem: { ...dataDrag.textItem, x: contentPt.x, y: contentPt.y, sceneId: baseSceneId },
       });
     } else if (dataDrag.type === "STREAM" && dataDrag.videoElement) {
-      console.log("dataDrag::: ", dataDrag);
       addVideo({
         ...dataDrag,
         videoElement: {
@@ -833,14 +833,14 @@ export const MyContextProvider = ({ children }) => {
           break;
       }
     } else {
-      setIsChangeRealTime("Yes");
+      setIsChangeRealTime(ChangeRT.PENDING);
       setDataChangeRealTime((prev) => [...prev, { action, payload, id }]);
     }
   }, []);
 
   useEffect(() => {
     if (isRealTime) return;
-    if (isChangeRealTime === "Done" && dataChangeRealTime.length) {
+    if (isChangeRealTime === ChangeRT.DONE && dataChangeRealTime.length) {
       const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
       const scene = getScene();
       if (!scene || !scene.layer) return;
@@ -926,9 +926,9 @@ export const MyContextProvider = ({ children }) => {
             break;
         }
         setDataChangeRealTime([]);
-        setIsChangeRealTime("Cancle");
+        setIsChangeRealTime(ChangeRT.CANCEL);
       }
-    } else if (isChangeRealTime === "Cancle") {
+    } else if (isChangeRealTime === ChangeRT.CANCEL) {
       // رد کردن تغییرات
       setDataChangeRealTime([]);
     }
@@ -1498,9 +1498,15 @@ export const MyContextProvider = ({ children }) => {
                   endObj = {
                     videoElement: video,
                   };
-                } else {
+                } else if (item.type == "IFRAME") {
                   type = "IFRAME";
+                } else if (item.type == "TEXT") {
+                  type = "TEXT";
+                } else if (item.type == "RSS") {
+                  console.log("TEST");
+                  type = "RSS";
                 }
+                console.log("item::: ", item);
 
                 let dataOBJ = {
                   ...item,

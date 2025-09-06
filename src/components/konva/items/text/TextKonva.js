@@ -385,21 +385,31 @@ export const addText = ({
       action: "add",
       id: String(uniqId),
       payload: {
-        type: "TEXT",
-        name: textItem.name ?? "TEXT",
+        type: textItem.type,
+        name: textItem.name ?? textItem.type,
         x: targetX,
         y: targetY,
-        width: textItem.width ?? undefined, // متن نرمال عرض/ارتفاع داینامیک دارد
+        width: textItem.width ?? undefined,
         height: textItem.height ?? undefined,
         rotation,
         sceneId: scn.id,
+        mediaId: textItem.id,
         externalId: uniqId,
         content: initialText,
         metadata: {
-          text: initialText,
-          fill: initialFill,
-          fontSize: initialSize,
-          align: initialAlign,
+          speed: 90,
+          bgColor: "#000000",
+          style: {
+            dir: "rtl",
+            fontFamily: "Vazirmatn, IRANSans, Arial",
+            fontSize: 40,
+            color: "#ffffff",
+          },
+          marquee: {
+            enabled: true,
+            scrollDirection: "rtl",
+            loop: true,
+          },
         },
       },
     });
@@ -461,6 +471,7 @@ export const addText = ({
     nodes: [group],
     enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
     rotateEnabled: true,
+    keepRatio: true,
     id: String(uniqId),
   });
   transformer.flipEnabled(false);
@@ -484,38 +495,69 @@ export const addText = ({
     });
   });
 
-  transformer.on("transformend", (e) => {
-    // برای متن، اسکیل را به اندازه فونت تبدیل نکن؛ همان scale به‌همراه گروه کافیست
-    const rotationNow = Math.round(group.rotation());
-    const x = group.x();
-    const y = group.y();
+  transformer.on("transformend", () => {
+    // اسکیل فعلی گروه (کاربر به‌صورت بصری این را تغییر داده)
+    const sx = group.scaleX();
+    const sy = group.scaleY();
 
+    // برای متن، اسکیل عمودی منطقی‌ترین مبنا برای fontSize است
+    const scale = Number.isFinite(sy) && sy > 0 ? sy : Number.isFinite(sx) && sx > 0 ? sx : 1;
+
+    // محاسبه‌ی فونت جدید و اعمال آن
+    const prevFont = textNode.fontSize();
+    const newFont = Math.max(8, Math.round(prevFont * scale)); // حداقل ۸؛ دلخواه
+
+    textNode.fontSize(newFont);
+
+    // اسکیل گروه را ریست کن تا همه‌چیز واقعی و بدون scale باقی بماند
+    group.scale({ x: 1, y: 1 });
+
+    // اگر marquee فعاله باید inner را با فونت جدید ریست کنیم
+    if (group.getAttr("_marquee")) {
+      const cfgNow = group.getAttr("_marqueeCfg") || {
+        width: 400,
+        height: 50,
+        speed: 80,
+        dir: "rtl",
+        bg: "#000000",
+      };
+      startMarquee(group, textNode, cfgNow);
+    } else {
+      // در حالت عادی، بک‌گراند انتخاب را با متن جدید سینک کن
+      // (این تابع را قبلاً تعریف کرده‌ای)
+      syncBGNormal();
+    }
+
+    // مختصات و چرخش فعلی
+    const rotationNow = Math.round(group.rotation());
+    const { x, y } = group.position();
+
+    // به استیت محلی بنویس (بدون width/height)
     setSources((prev) =>
       prev.map((item) =>
         item.externalId === uniqId
-          ? {
-              ...item,
-              x,
-              y,
-              rotation: rotationNow,
-              sceneId: scn.id,
-            }
+          ? { ...item, x, y, rotation: rotationNow, fontSize: newFont, sceneId: scn.id }
           : item
       )
     );
 
+    // و به سرور بفرست: فقط fontSize (و در صورت نیاز x,y,rotation)
     sendOperation("source", {
-      action: "resize",
+      action: "update",
       id: uniqId,
       payload: {
         x,
         y,
-        // برای سازگاری، ابعاد ظاهری را هم بفرستیم (عرض/ارتفاع محتوای متن در اسکیل فعلی)
-        width: textNode.width() * group.scaleX(),
-        height: textNode.height() * group.scaleY(),
         rotation: rotationNow,
+        metadata: {
+          style: {
+            fontSize: newFont,
+          },
+        },
       },
     });
+
+    selectedSceneLayer.batchDraw();
   });
 
   // دابل کلیک = ویرایش سریع متن/سایز/رنگ/تراز
@@ -707,7 +749,7 @@ export const addText = ({
     ...prev,
     {
       ...textItem,
-      type: "TEXT",
+      type: textItem.type,
       externalId: uniqId,
       sceneId: scn.id,
       x: targetX,

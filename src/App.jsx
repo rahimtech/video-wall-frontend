@@ -33,6 +33,7 @@ import {
 import Swal from "sweetalert2";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMyContext } from "./context/MyContext";
+import { ChangeRT } from "./context/MyContext";
 import axios from "axios";
 import io, { connect } from "socket.io-client";
 import config from "../public/config.json";
@@ -745,13 +746,13 @@ function App() {
                 : "منتظر اتصال مانیتورها"}
             </span>
           </div>
-          {isChangeRealTime === "Yes" && (
+          {isChangeRealTime === ChangeRT.PENDING && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border">
               <span className="text-sm font-medium">تغییرات جدید</span>
-              <Button onPress={() => setIsChangeRealTime("Done")} size="sm" variant="flat">
+              <Button onPress={() => setIsChangeRealTime(ChangeRT.DONE)} size="sm" variant="flat">
                 تایید
               </Button>
-              <Button onPress={() => setIsChangeRealTime("Cancle")} size="sm" variant="flat">
+              <Button onPress={() => setIsChangeRealTime(ChangeRT.CANCEL)} size="sm" variant="flat">
                 انصراف
               </Button>
             </div>

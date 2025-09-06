@@ -11,6 +11,7 @@ import {
   FaVideo,
   FaPen,
   FaStream,
+  FaRss,
 } from "react-icons/fa";
 import { MdDelete, MdInput } from "react-icons/md";
 import { useMyContext } from "@/context/MyContext";
@@ -24,6 +25,7 @@ const TYPE_ICON = {
   TEXT: FaFont,
   INPUT: MdInput,
   STREAM: FaStream,
+  RSS: FaRss,
 };
 
 const TYPE_COLOR = {
@@ -32,6 +34,7 @@ const TYPE_COLOR = {
   IFRAME: "warning",
   TEXT: "secondary",
   STREAM: "danger",
+  RSS: "warning",
 };
 
 const UsageSidebar = () => {
