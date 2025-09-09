@@ -493,6 +493,139 @@ export const MyContextProvider = ({ children }) => {
     e.preventDefault();
   };
 
+  async function fetchRSSDescriptions(
+    rssUrl,
+    {
+      fetchFeedPageTitle = true, // تایتل HTML صفحه‌ی feed.link
+      fetchItemPageTitles = false, // در صورت true، برای چند آیتم اول هم تایتل HTML می‌گیرد
+      itemPageTitleLimit = 5, // حداکثر چند آیتم اول
+    } = {}
+  ) {
+    const l = console.log;
+
+    async function tryFetchHTMLTitle(pageUrl, timeoutMs = 7000) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(pageUrl, {
+          headers: { Accept: "text/html,application/xhtml+xml,*/*" },
+          redirect: "follow",
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) return null;
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const title = doc.querySelector("title")?.textContent?.trim() || "";
+        const og =
+          doc.querySelector('meta[property="og:title"]')?.getAttribute("content")?.trim() || "";
+        return title || og || null;
+      } catch {
+        return null; // احتمال CORS یا timeout
+      }
+    }
+
+    try {
+      l(`🔵 Fetching RSS from: ${rssUrl}`);
+
+      const res = await fetch(rssUrl, {
+        headers: {
+          Accept: "application/rss+xml, application/xml, text/xml, */*",
+          "User-Agent": "VideoWall-Controller-RSS-Fetcher/1.0",
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const xmlText = await res.text();
+      const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+
+      const parserError = xml.querySelector("parsererror");
+      if (parserError) throw new Error("XML parse error");
+
+      const isRSS = !!xml.querySelector("rss, rdf\\:RDF");
+      const isAtom = !!xml.querySelector("feed");
+      if (!isRSS && !isAtom) throw new Error("Not an RSS/Atom feed");
+
+      let feedTitle = "",
+        feedLink = "";
+      let items = [];
+
+      if (isRSS) {
+        feedTitle = (xml.querySelector("channel > title")?.textContent || "").trim();
+        feedLink = (xml.querySelector("channel > link")?.textContent || "").trim();
+
+        items = Array.from(xml.querySelectorAll("channel > item")).map((item) => {
+          const title = (item.querySelector("title")?.textContent || "").trim();
+          const link = (item.querySelector("link")?.textContent || "").trim();
+          const description = (
+            item.querySelector("content\\:encoded")?.textContent ||
+            item.querySelector("description")?.textContent ||
+            ""
+          ).trim();
+          return { title, link, description };
+        });
+      } else {
+        // Atom
+        feedTitle = (xml.querySelector("feed > title")?.textContent || "").trim();
+        feedLink = (
+          xml.querySelector('feed > link[rel="alternate"]')?.getAttribute("href") ||
+          xml.querySelector("feed > link[href]")?.getAttribute("href") ||
+          ""
+        ).trim();
+
+        items = Array.from(xml.querySelectorAll("feed > entry")).map((entry) => {
+          const title = (entry.querySelector("title")?.textContent || "").trim();
+          const link = (
+            entry.querySelector('link[rel="alternate"]')?.getAttribute("href") ||
+            entry.querySelector("link[href]")?.getAttribute("href") ||
+            ""
+          ).trim();
+          const description = (
+            entry.querySelector("content")?.textContent ||
+            entry.querySelector("summary")?.textContent ||
+            ""
+          ).trim();
+          return { title, link, description };
+        });
+      }
+
+      // برای سازگاری با کد قبلی‌ات
+      const descriptions = items.map((i) => i.description).filter(Boolean);
+
+      // عنوان HTML صفحه‌ی لینک فید (در صورت تمایل)
+      let siteTitle = "";
+      if (fetchFeedPageTitle && feedLink) {
+        siteTitle = (await tryFetchHTMLTitle(feedLink)) || "";
+      }
+
+      // عنوان HTML صفحات هر خبر (اختیاری و محدود)
+      if (fetchItemPageTitles && items.length) {
+        const n = Math.min(itemPageTitleLimit, items.length);
+        await Promise.all(
+          items.slice(0, n).map(async (it) => {
+            if (it.link) {
+              it.pageTitle = await tryFetchHTMLTitle(it.link);
+            }
+          })
+        );
+      }
+
+      return {
+        success: true,
+        data: descriptions, // قبلی‌ها همچنان کار می‌کنند
+        feed: {
+          title: feedTitle, // عنوان خود فید
+          link: feedLink,
+          siteTitle, // تایتل HTML صفحه‌ی اصلی (در صورت دسترسی)
+        },
+        items, // هر آیتم: {title, link, description, pageTitle?}
+      };
+    } catch (error) {
+      l(`❌ RSS fetch error: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
+
   function getContentPointerFromDomEvent(stage, evt) {
     const ne = evt?.nativeEvent ?? evt;
     if (!ne) return null;
@@ -679,9 +812,23 @@ export const MyContextProvider = ({ children }) => {
       };
     } else if (type === "IFRAME") {
       endObj = { externalId: item.externalId };
+    } else if (type === "TEXT") {
+      console.log("item::: ", item);
+      endObj = { externalId: item.externalId, metadata: item.metadata };
+    } else if (type === "RSS") {
+      endObj = { externalId: item.externalId, metadata: item.metadata };
+    } else if (type === "STREAM") {
+      const video = document.createElement("video");
+      video.src = `${item.media?.content}`;
+      const videoName = "video" + counterVideos++;
+      video.setAttribute("name", videoName);
+      video.setAttribute("id", item.id);
+      endObj = {
+        videoElement: video,
+        name: item.name ?? videoName,
+        externalId: item.externalId,
+      };
     }
-
-    console.log("endObj:::1231 ", endObj);
     endObj = {
       ...endObj,
       id: item.id,
@@ -756,6 +903,7 @@ export const MyContextProvider = ({ children }) => {
       switch (action) {
         case "add": {
           const { endObj, type } = contentGenerator(payload.type, payload);
+          console.log("type2::: ", type);
           const getSelected = () => getScene();
           if (type === "VIDEO") {
             addVideo({
@@ -792,6 +940,32 @@ export const MyContextProvider = ({ children }) => {
               getSelectedScene: getSelected,
               setSources,
               sendOperation,
+            });
+          } else if (type === "TEXT") {
+            addText({
+              textItem: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+            });
+          } else if (type === "RSS") {
+            addText({
+              textItem: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+            });
+          } else if (type === "STREAM") {
+            addVideo({
+              videoElement: endObj,
+              mode: false,
+              getSelectedScene: getSelected,
+              setSources,
+              sendOperation,
+              url: urlRef.current,
+              loopVideos,
             });
           }
           break;
@@ -848,6 +1022,7 @@ export const MyContextProvider = ({ children }) => {
         switch (action) {
           case "add": {
             const { endObj, type } = contentGenerator(payload.type, payload);
+            console.log("type3::: ", type);
             const getSelected = () => getScene();
             if (type === "VIDEO") {
               addVideo({
@@ -884,6 +1059,33 @@ export const MyContextProvider = ({ children }) => {
                 getSelectedScene: getSelected,
                 setSources,
                 sendOperation,
+              });
+            } else if (type === "TEXT") {
+              addText({
+                textItem: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+              });
+            } else if (type === "RSS") {
+              console.log("endObj::: ", endObj);
+              addText({
+                textItem: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+              });
+            } else if (type === "STREAM") {
+              addVideo({
+                videoElement: endObj,
+                mode: false,
+                getSelectedScene: getSelected,
+                setSources,
+                sendOperation,
+                url: urlRef.current,
+                loopVideos,
               });
             }
             break;
@@ -941,6 +1143,7 @@ export const MyContextProvider = ({ children }) => {
   function generateScene(data, sceneData) {
     data.forEach((item) => {
       let { endObj, type } = contentGenerator(item.media?.type, item);
+      console.log("type4::: ", type);
 
       //Just convert to fuction
       const convertToFunction = () => {
@@ -981,6 +1184,33 @@ export const MyContextProvider = ({ children }) => {
           getSelectedScene: convertToFunction,
           setSources,
           sendOperation,
+        });
+      } else if (type === "TEXT") {
+        addText({
+          textItem: endObj,
+          mode: false,
+          getSelectedScene: convertToFunction,
+          setSources,
+          sendOperation,
+        });
+      } else if (type === "RSS") {
+        console.log("endObj::: ", endObj);
+        addText({
+          textItem: endObj,
+          mode: false,
+          getSelectedScene: convertToFunction,
+          setSources,
+          sendOperation,
+        });
+      } else if (type === "STREAM") {
+        addVideo({
+          videoElement: endObj,
+          mode: false,
+          getSelectedScene: convertToFunction,
+          setSources,
+          sendOperation,
+          url: urlRef.current,
+          loopVideos,
         });
       }
     });
@@ -1503,11 +1733,18 @@ export const MyContextProvider = ({ children }) => {
                 } else if (item.type == "TEXT") {
                   type = "TEXT";
                 } else if (item.type == "RSS") {
-                  console.log("TEST");
                   type = "RSS";
+                } else if (item.type == "STREAM") {
+                  type = "STREAM";
+                  url = `${item.content}`;
+                  const video = document.createElement("video");
+                  video.src = url;
+                  const videoName = "videoBase" + counterVideos++;
+                  video.setAttribute("name", videoName);
+                  endObj = {
+                    videoElement: video,
+                  };
                 }
-                console.log("item::: ", item);
-
                 let dataOBJ = {
                   ...item,
                   name: item.name || "نامشخص",
@@ -1867,6 +2104,7 @@ export const MyContextProvider = ({ children }) => {
         isRealTime,
         setIsRealTime,
         contentGenerator,
+        fetchRSSDescriptions,
       }}
     >
       {children}

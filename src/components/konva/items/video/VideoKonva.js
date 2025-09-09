@@ -27,9 +27,12 @@ export const addVideo = ({
   const anim = new Konva.Animation(function () {
     // do nothing, animation just needs to update the layer
   }, selectedSceneLayer);
-  const modifiedVideoURL = mode
-    ? `video:${url}/${videoElement.content}`
-    : videoElement.videoElement.src;
+  const modifiedVideoURL =
+    videoElement.type === "VIDEO"
+      ? mode
+        ? `video:${url}/${videoElement.content}`
+        : videoElement.videoElement.src
+      : videoElement.content;
 
   // videoElement.videoElement.src = `${url}/uploads/${videoElement.name}`;
 
@@ -44,12 +47,12 @@ export const addVideo = ({
         width: videoElement.videoElement.width || videoElement.videoElement.videoWidth,
         height: videoElement.videoElement.height || videoElement.videoElement.videoHeight,
         name: videoElement.name,
-        type: "VIDEO",
+        type: videoElement.type,
         sceneId: getSelectedScene().id,
         content: videoElement.content,
         mediaId: videoElement.id,
         externalId: uniqId,
-        metadata: { source: modifiedVideoURL },
+        metadata: {},
       },
     });
   }

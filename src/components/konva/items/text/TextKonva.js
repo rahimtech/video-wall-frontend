@@ -59,7 +59,7 @@ function openMarqueeSettingsModal({ initial }) {
     cancelButtonColor: "red",
     cancelButtonText: "انصراف",
     focusConfirm: false,
-    preConfirm: () => {
+    preConfirm: (e) => {
       const w = Number(document.getElementById("mq-w").value);
       const h = Number(document.getElementById("mq-h").value);
       const speed = Number(document.getElementById("mq-speed").value);
@@ -147,9 +147,13 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
             id: uniqId,
             payload: {
               content: value.text,
-              fontSize: textNode.fontSize(),
-              fill: textNode.fill(),
-              align: textNode.align(),
+              metadata: {
+                style: {
+                  color: textNode.fill(),
+                  fontSize: textNode.fontSize(),
+                },
+              },
+              // align: textNode.align(),
             },
           });
         });
@@ -160,22 +164,63 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
   if (res.isDenied) {
     if (isMarquee) {
       stopMarquee(group);
+      const { x, y } = group.position();
+      sendOperation("source", {
+        action: "update",
+        id: uniqId,
+        payload: {
+          x,
+          y,
+          metadata: {
+            marquee: { enabled: false },
+          },
+          width: textNode.width(),
+          height: textNode.height(),
+        },
+      });
       // syncBGNormal();
     } else {
       startMarquee(group, textNode, cfg);
+      const cfgOn = group.getAttr("_marqueeCfg") || computeMarqueeCfgFromText(group, textNode);
+      group.setAttr("_marqueeCfg", cfgOn);
+      startMarquee(group, textNode, cfgOn);
+      const { x, y } = group.position();
+      sendOperation("source", {
+        action: "update",
+        id: uniqId,
+        payload: {
+          x,
+          y,
+          metadata: {
+            marquee: { enabled: true },
+          },
+          width: cfgOn.width,
+          height: cfgOn.height,
+        },
+      });
     }
     layer.draw();
     return;
   }
 
+  console.log("res.isConfirmed::: ", res.isConfirmed);
   if (res.isConfirmed) {
     const { isConfirmed: ok, value: cfgNew } = await openMarqueeSettingsModal({ initial: cfg });
     if (!ok) return;
+
+    console.log("cfgNew::: ", cfgNew);
     startMarquee(group, textNode, cfgNew);
     sendOperation("source", {
       action: "update",
       id: uniqId,
-      payload: { marquee: { enabled: true, ...cfgNew } },
+      payload: {
+        width: cfgNew.width,
+        height: cfgNew.height,
+        metadata: {
+          bgColor: cfgNew.bg,
+          marquee: { enabled: true, dir: cfgNew.dir, speed: cfgNew.speed },
+        },
+      },
     });
   }
 }
@@ -373,11 +418,19 @@ export const addText = ({
   const targetY = Number.isFinite(textItem?.y) ? textItem.y : 0;
 
   // پیش‌فرض‌های متن
-  const initialText = textItem.text ?? textItem.content ?? "متن جدید";
+  let initialText = "";
+  if (textItem.type === "TEXT") {
+    initialText = textItem.text ?? textItem.content ?? "متن جدید";
+  } else if (textItem.type === "RSS") {
+    initialText = textItem.metadata.rssContent ?? textItem.text ?? textItem.content ?? "متن جدید";
+  }
+
   const initialFill = textItem.fill ?? "#ffffff";
   const initialSize = coerceNumber(textItem.fontSize, 40);
   const initialAlign = textItem.align ?? "left";
   const rotation = textItem.rotation || 0;
+  console.log("textItem::: ", textItem);
+  console.log("initialText::: ", initialText);
 
   // --- ارسال به سرور (در حالت آنلاین) ---
   if (mode) {
@@ -396,19 +449,21 @@ export const addText = ({
         mediaId: textItem.id,
         externalId: uniqId,
         content: initialText,
+        z: 0,
+        source: `${textItem.type.toLowerCase()}:${textItem.content}`,
         metadata: {
-          speed: 90,
-          bgColor: "#000000",
+          rssContent: textItem.metadata.rssContent || [],
+          bgColor: textItem.metadata?.bgColor ?? "#000000",
           style: {
-            dir: "rtl",
-            fontFamily: "Vazirmatn, IRANSans, Arial",
-            fontSize: 40,
-            color: "#ffffff",
+            dir: textItem.metadata.style.dir || "rtl",
+            fontFamily: textItem.metadata.style.fontFamily || "Vazirmatn, IRANSans, Arial",
+            fontSize: textItem.metadata.style.fontSize || 20,
+            color: textItem.metadata.style.color || "#ffffff",
           },
           marquee: {
-            enabled: true,
-            scrollDirection: "rtl",
-            loop: true,
+            enabled: textItem.metadata.marquee.enabled || false,
+            scrollDirection: textItem.metadata.marquee.scrollDirection || "rtl",
+            speed: textItem.metadata?.marquee?.speed ?? 90,
           },
         },
       },
@@ -469,7 +524,7 @@ export const addText = ({
   // ترنسفورمر
   const transformer = new Konva.Transformer({
     nodes: [group],
-    enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+    enabledAnchors: [],
     rotateEnabled: true,
     keepRatio: true,
     id: String(uniqId),
@@ -513,6 +568,8 @@ export const addText = ({
     group.scale({ x: 1, y: 1 });
 
     // اگر marquee فعاله باید inner را با فونت جدید ریست کنیم
+    console.log("textNode::: ", textNode);
+    console.log('group.getAttr("_marquee")::: ', group.getAttr("_marquee"));
     if (group.getAttr("_marquee")) {
       const cfgNow = group.getAttr("_marqueeCfg") || {
         width: 400,
@@ -536,7 +593,14 @@ export const addText = ({
     setSources((prev) =>
       prev.map((item) =>
         item.externalId === uniqId
-          ? { ...item, x, y, rotation: rotationNow, fontSize: newFont, sceneId: scn.id }
+          ? {
+              ...item,
+              x,
+              y,
+              rotation: rotationNow,
+              metadata: { style: { fontSize: newFont } },
+              sceneId: scn.id,
+            }
           : item
       )
     );
@@ -549,6 +613,8 @@ export const addText = ({
         x,
         y,
         rotation: rotationNow,
+        width: textNode.width() * group.scaleX(),
+        height: textNode.height() * group.scaleY(),
         metadata: {
           style: {
             fontSize: newFont,
@@ -585,9 +651,13 @@ export const addText = ({
       id: uniqId,
       payload: {
         content: value.text,
-        fontSize: textNode.fontSize(),
-        fill: textNode.fill(),
-        align: textNode.align(),
+        metadata: {
+          style: {
+            color: textNode.fill(),
+            fontSize: textNode.fontSize(),
+          },
+        },
+        // align: textNode.align(),
       },
     });
     setSources((prev) =>
@@ -596,9 +666,13 @@ export const addText = ({
           ? {
               ...item,
               text: value.text,
-              fontSize: textNode.fontSize(),
-              fill: textNode.fill(),
-              align: textNode.align(),
+              content: value.text,
+              metadata: {
+                bgColor: textNode.fill(),
+                style: {
+                  fontSize: textNode.fontSize(),
+                },
+              },
             }
           : item
       )
@@ -613,153 +687,25 @@ export const addText = ({
     const tn = group.findOne(".marqueeInner Text") || group.findOne("Text");
     if (!layer || !tn) return;
     showTextContextMenu({ group, textNode: tn, layer, setSources, sendOperation });
-    const isMarquee = !!group.getAttr("_marquee");
-    const cfg = group.getAttr("_marqueeCfg") || {
-      width: 400,
-      height: 50,
-      speed: 80,
-      dir: "rtl",
-      bg: "#000000",
-    };
-
-    const res = await Swal.fire({
-      title: "عملیات متن",
-      showCancelButton: true,
-      cancelButtonColor: "red",
-      cancelButtonText: "بستن",
-      showDenyButton: true,
-      denyButtonColor: isMarquee ? "#ef4444" : "black",
-      denyButtonText: isMarquee ? "خاموش‌کردن زیرنویس" : "روشن‌کردن زیرنویس",
-      confirmButtonColor: "black",
-      confirmButtonText: "تنظیمات زیرنویس",
-      footer: `
-      <button id="btn-edit" class="swal2-confirm swal2-styled" style="background:#2563eb;margin-top:6px">
-        ویرایش متن/استایل
-      </button>
-      <button id="btn-del" class="swal2-confirm swal2-styled" style="background:#ef4444;margin-top:6px">
-        حذف
-      </button>
-    `,
-      didOpen: () => {
-        // دکمه حذف
-        const btnDel = document.getElementById("btn-del");
-        if (btnDel) {
-          btnDel.addEventListener("click", async () => {
-            Swal.close();
-            group.destroy();
-            selectedSceneLayer.draw();
-            setSources((prev) => prev.filter((s) => s.externalId !== uniqId));
-            sendOperation("source", { action: "remove", id: uniqId, payload: {} });
-          });
-        }
-        // دکمه ویرایش متن/استایل
-        const btnEdit = document.getElementById("btn-edit");
-        if (btnEdit) {
-          btnEdit.addEventListener("click", async () => {
-            Swal.close();
-            const { isConfirmed: ok, value } = await openTextEditorModal({
-              initial: {
-                text: textNode.text(),
-                fontSize: textNode.fontSize(),
-                fill: textNode.fill(),
-                align: textNode.align(),
-              },
-            });
-            if (!ok) return;
-            textNode.text(value.text);
-            textNode.fontSize(coerceNumber(value.fontSize, textNode.fontSize()));
-            textNode.fill(value.fill);
-            textNode.align(value.align);
-
-            if (group.getAttr("_marquee")) {
-              // اگر زیرنویس فعاله، اندازهٔ متن عوض شده؛ لازم است inner را ریست کنیم
-              const cfgNow = group.getAttr("_marqueeCfg") || cfg;
-              startMarquee(group, textNode, cfgNow);
-            } else {
-              syncBGNormal();
-            }
-
-            selectedSceneLayer.batchDraw();
-
-            sendOperation("source", {
-              action: "update",
-              id: uniqId,
-              payload: {
-                content: value.text,
-                fontSize: textNode.fontSize(),
-                fill: textNode.fill(),
-                align: textNode.align(),
-              },
-            });
-            setSources((prev) =>
-              prev.map((item) =>
-                item.externalId === uniqId
-                  ? {
-                      ...item,
-                      text: value.text,
-                      fontSize: textNode.fontSize(),
-                      fill: textNode.fill(),
-                      align: textNode.align(),
-                    }
-                  : item
-              )
-            );
-          });
-        }
-      },
-    });
-
-    if (res.isDenied) {
-      // toggle marquee
-      if (isMarquee) {
-        stopMarquee(group);
-        syncBGNormal();
-      } else {
-        // اگر قبلاً تنظیمات ذخیره شده، با همان برو
-        startMarquee(group, textNode, cfg);
-      }
-      selectedSceneLayer.draw();
-      return;
-    }
-
-    if (res.isConfirmed) {
-      // تنظیمات زیرنویس
-      const { isConfirmed: ok, value: cfgNew } = await openMarqueeSettingsModal({ initial: cfg });
-      if (!ok) return;
-
-      // شروع/بروزرسانی زیرنویس با تنظیمات جدید
-      startMarquee(group, textNode, cfgNew);
-
-      // (اختیاری) ارسال به سرور برای ثبت تنظیمات
-      sendOperation("source", {
-        action: "update",
-        id: uniqId,
-        payload: {
-          marquee: {
-            enabled: true,
-            ...cfgNew,
-          },
-        },
-      });
-    }
   });
 
   // ثبت در state
-  setSources((prev) => [
-    ...prev,
-    {
-      ...textItem,
-      type: textItem.type,
-      externalId: uniqId,
-      sceneId: scn.id,
-      x: targetX,
-      y: targetY,
-      text: initialText,
-      fontSize: initialSize,
-      fill: initialFill,
-      align: initialAlign,
-    },
-  ]);
+  if (mode)
+    setSources((prev) => [
+      ...prev,
+      {
+        ...textItem,
+        type: textItem.type,
+        externalId: uniqId,
+        sceneId: scn.id,
+        x: targetX,
+        y: targetY,
+        text: initialText,
+        fontSize: initialSize,
+        fill: initialFill,
+        align: initialAlign,
+      },
+    ]);
 
   selectedSceneLayer.draw();
 };

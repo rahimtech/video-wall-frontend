@@ -221,79 +221,6 @@ const ResourcesSidebar = () => {
     }
   };
 
-  async function fetchRSSDescriptions(rssUrl) {
-    const l = console.log;
-    try {
-      l(`🔵 Fetching RSS from: ${rssUrl}`);
-
-      // مهم: حتماً متن خام بگیر
-      const res = await fetch(rssUrl, {
-        headers: {
-          "User-Agent": "VideoWall-Controller-RSS-Fetcher/1.0",
-          Accept: "application/rss+xml, application/xml, text/xml, */*",
-        },
-        // اگر CORS داشت، باید از سمت سرور پروکسی کنی؛ سمت کلاینت دور زده نمی‌شود
-      });
-
-      const contentType = (res.headers.get("content-type") || "").toLowerCase();
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const xmlText = await res.text();
-
-      // پارس با DOMParser
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlText, "application/xml");
-
-      // خطای پارس؟
-      const parserError = xml.querySelector("parsererror");
-      if (parserError) {
-        throw new Error("XML parse error");
-      }
-
-      // پشتیبانی از RSS 2.0 (<rss><channel><item>) و Atom (<feed><entry>)
-      let items = [];
-      const isRSS = !!xml.querySelector("rss, rdf\\:RDF");
-      const isAtom = !!xml.querySelector("feed");
-
-      if (isRSS) {
-        items = Array.from(xml.querySelectorAll("channel > item"));
-      } else if (isAtom) {
-        items = Array.from(xml.querySelectorAll("feed > entry"));
-      } else {
-        throw new Error("Not an RSS/Atom feed");
-      }
-
-      // استخراج توضیحات (description / content:encoded / summary)
-      const getText = (el, selector) => {
-        const n = el.querySelector(selector);
-        if (!n) return "";
-        // متن داخل CDATA هم به textContent میاد
-        return (n.textContent || "").trim();
-      };
-
-      const descriptions = items
-        .map((item) => {
-          // ترتیب اولویت: content:encoded → description/summary → title
-          return (
-            getText(item, "content\\:encoded") ||
-            getText(item, "description") ||
-            getText(item, "summary") ||
-            getText(item, "title")
-          );
-        })
-        .filter((t) => t && t.length > 0);
-
-      if (descriptions.length === 0) {
-        throw new Error("No valid descriptions found in RSS/Atom feed");
-      }
-
-      l(`✅ Successfully extracted ${descriptions.length} descriptions from RSS/Atom feed`);
-      return { success: true, data: descriptions };
-    } catch (error) {
-      console.log(`❌ RSS fetch error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
-
   const addResource = (type) => {
     if (type === "VIDEO" || type === "IMAGE") {
       const input = document.createElement("input");
@@ -315,12 +242,25 @@ const ResourcesSidebar = () => {
           const media = await api.createMedia(url, {
             type: "TEXT",
             content: textInit,
-            width: 1920,
-            height: 1080,
+            width: 0.0,
+            height: 100,
             name: textInit,
             externalId: id,
+            metadata: {
+              bgColor: "transparent",
+              style: {
+                dir: "rtl",
+                fontFamily: "Vazirmatn, IRANSans, Arial",
+                fontSize: 40,
+                color: darkMode ? "white" : "black",
+              },
+              marquee: {
+                speed: 90,
+                enabled: false,
+                scrollDirection: "rtl",
+              },
+            },
           });
-          console.log("media::: ", media);
 
           let newResource = {
             type: "TEXT",
@@ -330,8 +270,8 @@ const ResourcesSidebar = () => {
             name: textInit,
             content: textInit,
             color: darkMode ? "white" : "black",
-            width: 200,
-            height: 200,
+            width: 0.0,
+            height: 100,
             x: 0,
             y: 0,
             rotation: 0,
@@ -345,9 +285,8 @@ const ResourcesSidebar = () => {
               },
               marquee: {
                 speed: 90,
-                enabled: true,
+                enabled: false,
                 scrollDirection: "rtl",
-                loop: true,
               },
             },
           };
@@ -410,27 +349,12 @@ const ResourcesSidebar = () => {
           const media = await api.createMedia(url, {
             type: "RSS",
             content: textInit,
-            width: 1920,
-            height: 1080,
+            width: 0.0,
+            height: 100,
             name: textInit,
             externalId: id,
-          });
-          const rssData = await fetchRSSDescriptions(result.value);
-          let newResource = {
-            type: "RSS",
-            id: media?.id,
-            mediaId: media?.id,
-            externalId: media?.externalId,
-            name: textInit,
-            content: rssData.success ? rssData.data : [],
-            color: darkMode ? "white" : "black",
-            width: 200,
-            height: 200,
-            x: 0,
-            y: 0,
-            rotation: 0,
             metadata: {
-              rssContent: rssData,
+              rssContent: [],
               bgColor: "transparent",
               style: {
                 dir: "rtl",
@@ -440,9 +364,37 @@ const ResourcesSidebar = () => {
               },
               marquee: {
                 speed: 90,
-                enabled: true,
+                enabled: false,
                 scrollDirection: "rtl",
-                loop: true,
+              },
+            },
+          });
+          let newResource = {
+            type: "RSS",
+            id: media?.id,
+            mediaId: media?.id,
+            externalId: media?.externalId,
+            name: textInit, // Show text and Editble
+            content: textInit,
+            color: darkMode ? "white" : "black",
+            width: 0.0,
+            height: 100,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            metadata: {
+              rssContent: media.metadata.rssContent,
+              bgColor: "transparent",
+              style: {
+                dir: "rtl",
+                fontFamily: "Vazirmatn, IRANSans, Arial",
+                fontSize: 40,
+                color: darkMode ? "white" : "black",
+              },
+              marquee: {
+                speed: 90,
+                enabled: false,
+                scrollDirection: "rtl",
               },
             },
           };
@@ -531,14 +483,27 @@ const ResourcesSidebar = () => {
             return "لینک وارد شده معتبر نیست";
           }
         },
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed && result.value) {
           const id = uuidv4();
+          const textInit = result.value;
+
+          const media = await api.createMedia(url, {
+            type: "STREAM",
+            content: textInit,
+            width: 640,
+            height: 360,
+            name: textInit,
+            externalId: id,
+          });
           let newResource = {
             type: "STREAM",
-            id,
-            name: result.value,
-            content: result.value,
+            id: media?.id,
+            mediaId: media?.id,
+            externalId: media?.externalId,
+            name: textInit, // Show text and Editble
+            content: textInit,
+            color: darkMode ? "white" : "black",
             width: 640,
             height: 360,
             x: 0,
@@ -915,7 +880,7 @@ const ResourcesSidebar = () => {
           <Tabs
             classNames={{ base: "sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit" }}
             aria-label="Options"
-            defaultSelectedKey={"resources"}
+            defaultSelectedKey={"items"}
             className={`${darkMode ? "dark" : "light"}`}
           >
             <Tab key="inputs" title={`ورودی‌ها: ${inputs.length}`}>

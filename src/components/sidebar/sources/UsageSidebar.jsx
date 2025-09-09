@@ -155,7 +155,6 @@ const UsageSidebar = () => {
             const Icon = TYPE_ICON[type] || FaFont;
 
             const rowSelected = isSelectedRow(resource);
-            console.log("rowSelected::: ", rowSelected);
             const rowBase = darkMode ? "" : "";
             const rowSelectedCls = rowSelected
               ? darkMode
