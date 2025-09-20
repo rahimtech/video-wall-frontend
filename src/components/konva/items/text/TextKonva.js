@@ -160,6 +160,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
       }
     },
   });
+  console.log("res::: ", res);
 
   if (res.isDenied) {
     if (isMarquee) {
@@ -192,6 +193,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
           x,
           y,
           metadata: {
+            bgColor: textNode.fill(),
             marquee: { enabled: true },
           },
           width: cfgOn.width,
@@ -203,12 +205,10 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
     return;
   }
 
-  console.log("res.isConfirmed::: ", res.isConfirmed);
   if (res.isConfirmed) {
     const { isConfirmed: ok, value: cfgNew } = await openMarqueeSettingsModal({ initial: cfg });
     if (!ok) return;
 
-    console.log("cfgNew::: ", cfgNew);
     startMarquee(group, textNode, cfgNew);
     sendOperation("source", {
       action: "update",
@@ -224,7 +224,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
     });
   }
 }
-
 // ⬇️ اکسپورت برای فراخوانی از بیرون (UsageSidebar)
 export function openTextContextMenuById(
   externalId,
@@ -309,7 +308,6 @@ function startMarquee(group, textNode, cfg) {
   const layer = group.getLayer();
   if (!layer) return;
 
-  // ساخت/گرفتن ویوپورت کلیپ‌دار
   let viewport = group.findOne(".marqueeViewport");
   if (!viewport) {
     viewport = new Konva.Group({
@@ -429,8 +427,6 @@ export const addText = ({
   const initialSize = coerceNumber(textItem.fontSize, 40);
   const initialAlign = textItem.align ?? "left";
   const rotation = textItem.rotation || 0;
-  console.log("textItem::: ", textItem);
-  console.log("initialText::: ", initialText);
 
   // --- ارسال به سرور (در حالت آنلاین) ---
   if (mode) {
@@ -521,7 +517,6 @@ export const addText = ({
 
   syncBGNormal();
 
-  // ترنسفورمر
   const transformer = new Konva.Transformer({
     nodes: [group],
     enabledAnchors: [],
@@ -568,8 +563,6 @@ export const addText = ({
     group.scale({ x: 1, y: 1 });
 
     // اگر marquee فعاله باید inner را با فونت جدید ریست کنیم
-    console.log("textNode::: ", textNode);
-    console.log('group.getAttr("_marquee")::: ', group.getAttr("_marquee"));
     if (group.getAttr("_marquee")) {
       const cfgNow = group.getAttr("_marqueeCfg") || {
         width: 400,
@@ -624,59 +617,6 @@ export const addText = ({
     });
 
     selectedSceneLayer.batchDraw();
-  });
-
-  // دابل کلیک = ویرایش سریع متن/سایز/رنگ/تراز
-  group.on("dblclick dbltap", async () => {
-    const { isConfirmed, value } = await openTextEditorModal({
-      initial: {
-        text: textNode.text(),
-        fontSize: textNode.fontSize(),
-        fill: textNode.fill(),
-        align: textNode.align(),
-      },
-    });
-    if (!isConfirmed) return;
-
-    textNode.text(value.text);
-    textNode.fontSize(coerceNumber(value.fontSize, textNode.fontSize()));
-    textNode.fill(value.fill);
-    textNode.align(value.align);
-    syncBGNormal();
-    selectedSceneLayer.batchDraw();
-
-    // sync state + server
-    sendOperation("source", {
-      action: "update",
-      id: uniqId,
-      payload: {
-        content: value.text,
-        metadata: {
-          style: {
-            color: textNode.fill(),
-            fontSize: textNode.fontSize(),
-          },
-        },
-        // align: textNode.align(),
-      },
-    });
-    setSources((prev) =>
-      prev.map((item) =>
-        item.externalId === uniqId
-          ? {
-              ...item,
-              text: value.text,
-              content: value.text,
-              metadata: {
-                bgColor: textNode.fill(),
-                style: {
-                  fontSize: textNode.fontSize(),
-                },
-              },
-            }
-          : item
-      )
-    );
   });
 
   // --- راست‌کلیک = منو با گزینه‌های زیرنویس ---
