@@ -252,7 +252,7 @@ const ResourcesSidebar = () => {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
                 fontSize: 40,
-                color: darkMode ? "white" : "black",
+                color: "gray",
               },
               marquee: {
                 speed: 90,
@@ -269,7 +269,7 @@ const ResourcesSidebar = () => {
             externalId: media?.externalId,
             name: textInit,
             content: textInit,
-            color: darkMode ? "white" : "black",
+            color: "gray",
             width: 0.0,
             height: 100,
             x: 0,
@@ -281,7 +281,7 @@ const ResourcesSidebar = () => {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
                 fontSize: 40,
-                color: darkMode ? "white" : "black",
+                color: "gray",
               },
               marquee: {
                 speed: 90,

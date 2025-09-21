@@ -1203,6 +1203,10 @@ export default function Canvas({
                         <Checkbox
                           isSelected={showGlobalIndex}
                           onValueChange={setShowGlobalIndex}
+                          classNames={{ label: `${darkMode ? "text-white" : "text-[#0f131a]"}` }}
+                          className={`${
+                            darkMode ? "text-white" : "text-[#0f131a]"
+                          } p-3 col-span-12 text-xs opacity-70 mt-1 w-full`}
                           size="sm"
                         >
                           شماره‌گذاری خانه‌ها
@@ -1218,14 +1222,17 @@ export default function Canvas({
                           size="sm"
                           color="danger"
                           variant="flat"
-                          className="w-full"
                           onPress={clearGlobal}
                           startContent={<TbTrash />}
                         >
                           حذف گرید جمعی
                         </Button>
                       </div>
-                      <div className="col-span-12 text-xs opacity-70 mt-1">
+                      <div
+                        className={`${
+                          darkMode ? "text-white" : "text-[#0f131a]"
+                        } p-3 col-span-12 text-xs opacity-70 mt-1`}
+                      >
                         این گرید روی کل محدودهٔ همهٔ مانیتورها خط‌کشی می‌کند (مثلاً ۵×۳ روی چیدمان
                         ۴×۴).
                       </div>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>مستندات VideoWall Controller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html { scroll-behavior: smooth; }
+      .active-link { color: #2563eb; font-weight: 700; }
+      pre code { direction: ltr; display: block; white-space: pre; }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-800">
+    <!-- Top Nav -->
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-extrabold text-sky-700">VideoWall Controller</span>
+          <span class="text-xs text-slate-500">راهنمای توسعه‌دهندگان</span>
+        </div>
+        <nav class="hidden md:flex items-center gap-4 text-sm">
+          <a href="#intro" class="hover:text-sky-700">معرفی</a>
+          <a href="#setup" class="hover:text-sky-700">نصب و اجرا</a>
+          <a href="#architecture" class="hover:text-sky-700">معماری</a>
+          <a href="#modules" class="hover:text-sky-700">ماژول‌ها</a>
+          <a href="#build" class="hover:text-sky-700">بیلد و استقرار</a>
+          <a href="#testing" class="hover:text-sky-700">تست و Storybook</a>
+          <a href="#troubleshooting" class="hover:text-sky-700">اشکال‌زدایی</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-12 gap-6">
+      <!-- Side TOC -->
+      <aside class="col-span-12 md:col-span-3 lg:col-span-3">
+        <div class="sticky top-20 space-y-1 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+          <div class="text-sm font-bold text-slate-600 mb-2">فهرست</div>
+          <a href="#intro" class="block py-1 text-sm hover:text-sky-700">۱) معرفی</a>
+          <a href="#features" class="block py-1 text-sm hover:text-sky-700">۲) قابلیت‌ها</a>
+          <a href="#setup" class="block py-1 text-sm hover:text-sky-700">۳) نصب و اجرا</a>
+          <a href="#config" class="block py-1 text-sm hover:text-sky-700">۴) پیکربندی</a>
+          <a href="#structure" class="block py-1 text-sm hover:text-sky-700">۵) ساختار پوشه‌ها</a>
+          <a href="#architecture" class="block py-1 text-sm hover:text-sky-700">۶) معماری و جریان‌ها</a>
+          <a href="#modules" class="block py-1 text-sm hover:text-sky-700">۷) ماژول‌های کلیدی</a>
+          <a href="#build" class="block py-1 text-sm hover:text-sky-700">۸) بیلد و استقرار</a>
+          <a href="#testing" class="block py-1 text-sm hover:text-sky-700">۹) تست / Storybook</a>
+          <a href="#security" class="block py-1 text-sm hover:text-sky-700">۱۰) نکات امنیتی</a>
+          <a href="#troubleshooting" class="block py-1 text-sm hover:text-sky-700">۱۱) اشکال‌زدایی</a>
+          <a href="#faq" class="block py-1 text-sm hover:text-sky-700">۱۲) پرسش‌های متداول</a>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <section class="col-span-12 md:col-span-9 lg:col-span-9 space-y-10">
+        <!-- Intro -->
+        <article id="intro" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold text-slate-800">معرفی</h2>
+          <p class="mt-3 leading-8">
+            VideoWall Controller یک پنل وب برای طراحی، پیکربندی و کنترل پخش محتوا روی ویدیووال‌هاست.
+            این نرم‌افزار با React و Vite توسعه یافته و با اتصال بلادرنگ (Socket.IO) به درایور سیستم مقصد،
+            وضعیت مانیتورها، ورودی‌ها و منابع را مدیریت می‌کند.
+          </p>
+        </article>
+
+        <!-- Features -->
+        <article id="features" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">قابلیت‌ها</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8">
+            <li>ورود کاربر و جابجایی به حالت آنلاین پس از احراز هویت.</li>
+            <li>مدیریت صحنه‌ها (Scenes) و برنامه‌ها/زمان‌بندی‌ها.</li>
+            <li>درگ‌ـ‌دراپ منابع: تصویر، ویدیو، ورودی‌ها (Input)، متن/RSS، وب/iframe.</li>
+            <li>نمایش و چیدمان مانیتورها، Fit/Center/Reset، گرید مجازی و گروه‌بندی مانیتورها.</li>
+            <li>نمایش وضعیت اتصال درایور و مانیتورها و هشدار قطعی.</li>
+            <li>ورود/خروج پروژه (JSON) و ابزار به‌روزرسانی فایل‌های توزیع.</li>
+          </ul>
+        </article>
+
+        <!-- Setup -->
+        <article id="setup" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">نصب و اجرا (Dev)</h2>
+          <ol class="mt-3 list-decimal pr-6 leading-8">
+            <li>پیش‌نیازها: Node.js 18+ و npm</li>
+            <li>نصب وابستگی‌ها:</li>
+          </ol>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>npm install</code></pre>
+          <ol start="3" class="list-decimal pr-6 leading-8">
+            <li>اجرای حالت توسعه (به‌صورت پیش‌فرض روی پورت 3003):</li>
+          </ol>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>npm run dev</code></pre>
+          <p class="mt-2 text-sm text-slate-600">آدرس: http://localhost:3003</p>
+        </article>
+
+        <!-- Config -->
+        <article id="config" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">پیکربندی</h2>
+          <p class="mt-3 leading-8">فایل پیکربندی در مسیر زیر نگهداری می‌شود:</p>
+          <p class="font-mono text-sm bg-slate-100 inline-block rounded px-2 py-1">public/config.json</p>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>{
+  "host": "192.168.1.116",
+  "port": 4000,
+  "password": "mrkadmin",
+  "username": "admin"
+}</code></pre>
+          <ul class="mt-3 list-disc pr-6 text-sm leading-7">
+            <li><strong>host/port</strong>: آدرس درایور مقصد برای اتصال سوکت.</li>
+            <li><strong>username/password</strong>: برای ورود اولیه در کلاینت (در حالت ساده، سمت کلاینت نگهداری می‌شود).</li>
+            <li>مقادیر می‌توانند از طریق localStorage هم override شوند (کلیدهای <code>host</code> و <code>port</code>).</li>
+          </ul>
+        </article>
+
+        <!-- Structure -->
+        <article id="structure" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">ساختار پوشه‌ها</h2>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>src/
+  App.jsx                 &mdash; شِل اصلی UI
+  Canvas.jsx              &mdash; بوم و ابزار چیدمان/گرید/گروه‌بندی
+  index.jsx               &mdash; نقطه ورود، لاگین، Provider
+  context/MyContext.jsx   &mdash; State و منطق اصلی، سوکت، منابع، صحنه‌ها
+  api/                    &mdash; لایه API (axios) برای scenes/sources/media/programs
+  components/             &mdash; HeaderBar, Sidebars, Konva items (image/video/input/text/web)
+public/
+  config.json             &mdash; تنظیمات اتصال و ورود
+  docs/index.html         &mdash; همین مستندات
+README.md                 &mdash; راهنمای سریع
+vite.config.js            &mdash; پیکربندی Vite و alias "@" → "/src"
+</code></pre>
+        </article>
+
+        <!-- Architecture -->
+        <article id="architecture" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">معماری و جریان‌های اصلی</h2>
+          <p class="mt-3 leading-8">
+            UI با React و NextUI/HeroUI ساخته شده و رندر گرافیک صحنه‌ها روی Konva/React-Konva انجام می‌شود.
+            Context مرکزی (`MyContext`) وضعیت جهانی برنامه (صحنه‌ها، منابع، مانیتورها، اتصال سوکت، حالت‌ها) را مدیریت می‌کند.
+          </p>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>[React] --&gt; [MyContext] -- Konva Stage/Layer --(render)--&gt; Canvas/Items
+                 |                |
+                 |                +-- مانیتورها، منابع، ترنسفورم‌ها
+                 |
+                 +-- Socket.IO &lt;-- Driver (host:port)
+                 +-- Axios (REST) scenes/sources/media/programs
+</code></pre>
+          <ul class="mt-3 list-disc pr-6 leading-8">
+            <li><strong>اتصال بلادرنگ</strong>: `MyContext` سوکت را به آدرس <code>http://host:port</code> برقرار می‌کند و رویدادهای مانند <code>init</code>، <code>source</code> و وضعیت مانیتور را مدیریت می‌کند.</li>
+            <li><strong>Canvas</strong>: ابزار Fit/Center/Reset/Zoom، گرید مجازی (تکی/جمعی)، گروه‌بندی مانیتورها و جایگذاری منابع در سلول‌ها.</li>
+            <li><strong>Sidebars</strong>: مدیریت صحنه‌ها، منابع، برنامه‌ها و زمان‌بندی‌ها.</li>
+          </ul>
+        </article>
+
+        <!-- Modules -->
+        <article id="modules" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">ماژول‌های کلیدی</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8">
+            <li><code>src/context/MyContext.jsx</code>: هسته منطق برنامه. مدیریت state، سوکت، منابع، صحنه‌ها، Fit به مانیتورها، Drag/Drop، و API.</li>
+            <li><code>src/Canvas.jsx</code>: UI بوم و ابزارهای چیدمان، گرید، گروه‌بندی، و جایگذاری منابع در سلول‌ها.</li>
+            <li><code>src/components/konva/items/*</code>: ترسیم آبجکت‌ها روی Konva (تصویر، ویدیو، ورودی، متن، وب).</li>
+            <li><code>src/components/headerbar/screen/HeaderBar.jsx</code>: کنترل‌های اصلی (حالت آنلاین/آفلاین، به‌روزرسانی، پاور، تم).</li>
+            <li><code>src/components/sidebar/*</code>: مدیریت صحنه‌ها/منابع/برنامه‌ها و ابزارهای وابسته.</li>
+            <li><code>src/api/*</code>: لایه REST با axios برای CRUD صحنه/منبع/مدیا/برنامه‌ها.</li>
+          </ul>
+        </article>
+
+        <!-- Build & Deploy -->
+        <article id="build" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">بیلد و استقرار</h2>
+          <p class="mt-3">بیلد با Vite انجام می‌شود:</p>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>npm run build</code></pre>
+          <p class="mt-2 text-sm leading-7">
+            خروجی در پوشه <code>dist/</code> قرار می‌گیرد. برای استقرار، محتوای این پوشه را روی وب‌سرور مدنظر سرو کنید.
+            همچنین در برنامه ابزار به‌روزرسانی وجود دارد که فایل‌های بسته (مثل <code>dist.zip</code>) را دریافت و استخراج می‌کند.
+          </p>
+        </article>
+
+        <!-- Testing & Storybook -->
+        <article id="testing" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">تست و Storybook</h2>
+          <p class="mt-3 leading-8">
+            برای ایجاد محیط داکیومنت‌محور UI از Storybook استفاده می‌شود. فایل‌های اولیه پیکربندی در مسیر
+            <code>.storybook/</code> و نمونه استوری برای <code>Canvas</code> در
+            <code>src/stories/Canvas.stories.jsx</code> آماده شده است.
+          </p>
+          <ol class="mt-3 list-decimal pr-6 leading-8">
+            <li>نصب وابستگی‌ها (نیازمند اینترنت):</li>
+          </ol>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>npm i -D @storybook/react-vite @storybook/addon-essentials @storybook/test storybook</code></pre>
+          <ol start="2" class="list-decimal pr-6 leading-8">
+            <li>افزودن اسکریپت‌ها به <code>package.json</code> (اگر وجود ندارند):</li>
+          </ol>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>"storybook": "storybook dev -p 6006",
+"build-storybook": "storybook build"</code></pre>
+          <ol start="3" class="list-decimal pr-6 leading-8">
+            <li>اجرا:</li>
+          </ol>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3"><code>npm run storybook</code></pre>
+        </article>
+
+        <!-- Security -->
+        <article id="security" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">نکات امنیتی</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8 text-sm">
+            <li>نگهداری <code>username/password</code> در <code>public/config.json</code> صرفاً برای محیط دمو است؛ در محیط واقعی باید از احراز هویت سمت‌سرور استفاده شود.</li>
+            <li>اتصال سوکت به درایور مقصد را روی شبکه امن و با کنترل IP/ACL انجام دهید.</li>
+            <li>ورود/خروج فایل‌ها (JSON) را اعتبارسنجی کنید تا از ورودی‌های ناسازگار جلوگیری شود.</li>
+          </ul>
+        </article>
+
+        <!-- Troubleshooting -->
+        <article id="troubleshooting" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">اشکال‌زدایی</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8 text-sm">
+            <li>اگر بوم Konva نمایش نمی‌دهد، بررسی کنید برای صحنه فعال، <code>stageData</code> و <code>layer</code> ایجاد شده باشد.</li>
+            <li>اگر اتصال سوکت برقرار نمی‌شود، مقدار <code>host/port</code> را در <code>public/config.json</code> یا <code>localStorage</code> بررسی کنید.</li>
+            <li>اگر منابع ویدیو/تصویر بارگذاری نمی‌شوند، مسیرهای فایل (URL) و CORS را کنترل کنید.</li>
+          </ul>
+        </article>
+
+        <!-- FAQ -->
+        <article id="faq" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">پرسش‌های متداول</h2>
+          <div class="mt-4 space-y-4 text-sm leading-8">
+            <div>
+              <p class="font-bold">چطور تم (دارک/لایت) را عوض کنم؟</p>
+              <p>از طریق HeaderBar (سوئیچ تم) یا تغییر مقدار <code>localStorage.darkMode</code>.</p>
+            </div>
+            <div>
+              <p class="font-bold">چطور مانیتورها را Fit یا Center کنم؟</p>
+              <p>در Canvas از دکمه‌های «کالیبره»، «مرکز صفحه»، «۱۰۰٪»، «Zoom+/−» استفاده کنید.</p>
+            </div>
+            <div>
+              <p class="font-bold">چطور منابع را به سلول‌ها بگذارم؟</p>
+              <p>ابتدا گرید (تکی یا جمعی) را اعمال، سپس منبع و سلول(ها) را انتخاب و عملیات جایگذاری را اجرا کنید.</p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="py-10 text-center text-xs text-slate-500">
+      ساخته‌شده با ❤️ — مستندات برای تیم توسعه
+    </footer>
+
+    <script>
+      // Highlight active link while scrolling
+      const links = Array.from(document.querySelectorAll('aside a[href^="#"]'));
+      const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const id = '#' + entry.target.id;
+          const link = links.find(a => a.getAttribute('href') === id);
+          if (link) {
+            if (entry.isIntersecting) link.classList.add('active-link');
+            else link.classList.remove('active-link');
+          }
+        });
+      }, { rootMargin: '0px 0px -70% 0px', threshold: 0.1 });
+      sections.forEach(sec => observer.observe(sec));
+    </script>
+  </body>
+  </html>
+

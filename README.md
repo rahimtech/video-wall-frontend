@@ -27,3 +27,22 @@ This application is built with **React** and allows users to design, configure, 
 ```bash
 npm install
 npm run dev
+
+---
+
+## مستندات توسعه‌دهندگان
+
+یک راهنمای کامل فارسی برای معماری، نصب، اجرا و بیلد در مسیر زیر قرار داده شد:
+
+- آدرس در حالت توسعه: http://localhost:3003/docs/
+- فایل: `public/docs/index.html`
+
+### لندینگ‌پیج محصول
+
+- آدرس در حالت توسعه: http://localhost:3003/landing.html
+- فایل: `public/landing.html`
+
+### راهنمای اپراتور
+
+- آدرس در حالت توسعه: http://localhost:3003/guide.html
+- فایل: `public/guide.html`

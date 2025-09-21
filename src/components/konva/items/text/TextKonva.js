@@ -126,6 +126,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
               fontSize: textNode.fontSize(),
               fill: textNode.fill(),
               align: textNode.align(),
+              dir: textNode.direction(),
             },
           });
           if (!ok) return;
@@ -133,6 +134,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
           textNode.fontSize(coerceNumber(value.fontSize, textNode.fontSize()));
           textNode.fill(value.fill);
           textNode.align(value.align);
+          textNode.direction(value.dir);
 
           if (group.getAttr("_marquee")) {
             const cfgNow = group.getAttr("_marqueeCfg") || cfg;
@@ -147,10 +149,15 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
             id: uniqId,
             payload: {
               content: value.text,
+              height: textNode.height(),
+              width: textNode.width(),
+
               metadata: {
                 style: {
                   color: textNode.fill(),
                   fontSize: textNode.fontSize(),
+                  dir: value.dir,
+                  align: value.align,
                 },
               },
               // align: textNode.align(),
@@ -160,7 +167,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
       }
     },
   });
-  console.log("res::: ", res);
 
   if (res.isDenied) {
     if (isMarquee) {
@@ -270,6 +276,13 @@ function openTextEditorModal({ initial }) {
             <option value="right" ${initial.align === "right" ? "selected" : ""}>راست</option>
           </select>
         </div>
+         <div style="margin-top:8px">
+          <label>راستچین/چپ‌چین:</label>
+          <select id="txt-dir" class="swal2-select">
+            <option value="rtl" >rtl</option>
+            <option value="ltr" >ltr</option>
+          </select>
+        </div>
       </div>
     `,
     showCancelButton: true,
@@ -283,7 +296,9 @@ function openTextEditorModal({ initial }) {
       const fontSize = coerceNumber(document.getElementById("txt-fontsize").value, 40);
       const fill = document.getElementById("txt-color").value || "#ffffff";
       const align = document.getElementById("txt-align").value || "left";
-      return { text, fontSize, fill, align };
+      const dir = document.getElementById("txt-dir").value || "rtl";
+      console.log("dir::: ", dir);
+      return { text, fontSize, fill, align, dir };
     },
   });
 }
@@ -428,44 +443,6 @@ export const addText = ({
   const initialAlign = textItem.align ?? "left";
   const rotation = textItem.rotation || 0;
 
-  // --- ارسال به سرور (در حالت آنلاین) ---
-  if (mode) {
-    sendOperation("source", {
-      action: "add",
-      id: String(uniqId),
-      payload: {
-        type: textItem.type,
-        name: textItem.name ?? textItem.type,
-        x: targetX,
-        y: targetY,
-        width: textItem.width ?? undefined,
-        height: textItem.height ?? undefined,
-        rotation,
-        sceneId: scn.id,
-        mediaId: textItem.id,
-        externalId: uniqId,
-        content: initialText,
-        z: 0,
-        source: `${textItem.type.toLowerCase()}:${textItem.content}`,
-        metadata: {
-          rssContent: textItem.metadata.rssContent || [],
-          bgColor: textItem.metadata?.bgColor ?? "#000000",
-          style: {
-            dir: textItem.metadata.style.dir || "rtl",
-            fontFamily: textItem.metadata.style.fontFamily || "Vazirmatn, IRANSans, Arial",
-            fontSize: textItem.metadata.style.fontSize || 20,
-            color: textItem.metadata.style.color || "#ffffff",
-          },
-          marquee: {
-            enabled: textItem.metadata.marquee.enabled || false,
-            scrollDirection: textItem.metadata.marquee.scrollDirection || "rtl",
-            speed: textItem.metadata?.marquee?.speed ?? 90,
-          },
-        },
-      },
-    });
-  }
-
   // --- ساخت نودهای کنوا ---
   const textNode = new Konva.Text({
     text: initialText,
@@ -501,6 +478,44 @@ export const addText = ({
     uniqId,
     rotation,
   });
+
+  // --- ارسال به سرور (در حالت آنلاین) ---
+  if (mode) {
+    sendOperation("source", {
+      action: "add",
+      id: String(uniqId),
+      payload: {
+        type: textItem.type,
+        name: textItem.name ?? textItem.type,
+        x: targetX,
+        y: targetY,
+        width: textNode.width() ?? textItem.width ?? undefined,
+        height: textNode.height() ?? textItem.height ?? undefined,
+        rotation,
+        sceneId: scn.id,
+        mediaId: textItem.id,
+        externalId: uniqId,
+        content: initialText,
+        z: 0,
+        source: `${textItem.type.toLowerCase()}:${textItem.content}`,
+        metadata: {
+          rssContent: textItem.metadata.rssContent || [],
+          bgColor: textItem.metadata?.bgColor ?? "#000000",
+          style: {
+            dir: textItem.metadata.style.dir || "rtl",
+            fontFamily: textItem.metadata.style.fontFamily || "Vazirmatn, IRANSans, Arial",
+            fontSize: textItem.metadata.style.fontSize || 20,
+            color: textItem.metadata.style.color || "#ffffff",
+          },
+          marquee: {
+            enabled: textItem.metadata.marquee.enabled || false,
+            scrollDirection: textItem.metadata.marquee.scrollDirection || "rtl",
+            speed: textItem.metadata?.marquee?.speed ?? 90,
+          },
+        },
+      },
+    });
+  }
 
   group.add(textNode);
   selectedSceneLayer.add(group);
