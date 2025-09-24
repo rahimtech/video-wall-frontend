@@ -509,7 +509,16 @@ export default function Canvas({
 
   const cellCacheRef = useRef(new Map());
 
+  const [calibMonitorId, setCalibMonitorId] = useState(null);
+
   // ---------- Effects ----------
+
+  useEffect(() => {
+    if (videoWalls?.length && !calibMonitorId) {
+      setCalibMonitorId(videoWalls[0].id);
+    }
+  }, [videoWalls]);
+
   useEffect(() => {
     cellCacheRef.current.clear();
   }, [selectedScene]);
@@ -599,6 +608,13 @@ export default function Canvas({
     fitStageToMonitorsSmart(stage, videoWalls);
   };
 
+  const doFitMonitor = (monitorId) => {
+    const { stage } = getStageAndLayer(getSelectedScene);
+    if (!stage) return;
+    const m = videoWalls.find((v) => Number(v.id) === Number(monitorId));
+    if (!m) return;
+    fitStageToMonitorsSmart(stage, [m]);
+  };
   const doCenter = () => {
     const { stage } = getStageAndLayer(getSelectedScene);
     if (!stage) return;
@@ -1002,8 +1018,32 @@ export default function Canvas({
             Zoom+
           </Button>
         </div>
+        <div className="flex items-center gap-2">
+          <Select
+            size="sm"
+            aria-label="انتخاب مانیتور کالیبراسیون"
+            className="min-w-[160px]"
+            selectedKeys={calibMonitorId ? [String(calibMonitorId)] : []}
+            onChange={(e) => setCalibMonitorId(Number(e.target.value))}
+          >
+            {videoWalls.map((m) => (
+              <SelectItem key={m.id} value={String(m.id)}>
+                {m.name ?? `Monitor ${m.id}`}
+              </SelectItem>
+            ))}
+          </Select>
+          <Button
+            size="sm"
+            variant="flat"
+            className={`${darkMode ? "dark" : "light"}`}
+            onPress={() => doFitMonitor(calibMonitorId)}
+            startContent={<TbMaximize />}
+            isDisabled={!calibMonitorId}
+          >
+            کالیبره مانیتور
+          </Button>
+        </div>
       </CardHeader>
-
       <CardBody className="px-0 pb-0">
         {/* کانواس */}
         <div
@@ -1057,35 +1097,6 @@ export default function Canvas({
                 ${darkMode ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"}
               `}
             >
-              <div className="px-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TbGridDots className="opacity-80" />
-                    <span
-                      className={`text-sm font-medium ${
-                        darkMode ? "text-white/80" : "text-black/80"
-                      }`}
-                    >
-                      ابزار چیدمان
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="light" onPress={doZoomOut} isIconOnly>
-                      <TbZoomOut />
-                    </Button>
-                    <Button size="sm" variant="light" onPress={doZoomIn} isIconOnly>
-                      <TbZoomIn />
-                    </Button>
-                    <Button size="sm" variant="light" onPress={doCenter} isIconOnly>
-                      <TbFocusCentered />
-                    </Button>
-                    <Button size="sm" variant="light" onPress={onFit} isIconOnly>
-                      <TbMaximize />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
               <div className="px-3 pb-3">
                 <div
                   className={`mt-2 rounded-xl overflow-hidden border ${

@@ -56,6 +56,7 @@ const UsageSidebar = () => {
     setSelectedSource,
   } = useMyContext();
 
+  console.log("sources::: ", sources);
   // فقط منابعِ صحنهٔ انتخاب‌شده
   const usageSources = useMemo(
     () => sources.filter((s) => s.sceneId === getSelectedScene()?.id) ?? [],
@@ -304,7 +305,7 @@ const UsageSidebar = () => {
                     fitToMonitors={fitToMonitors}
                   />
 
-                  {resource.type === "TEXT" && (
+                  {resource?.media?.type === "TEXT" && (
                     <Tooltip content="تنظیمات متن">
                       <Button
                         size="sm"

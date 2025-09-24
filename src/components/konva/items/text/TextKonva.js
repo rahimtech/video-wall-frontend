@@ -49,7 +49,7 @@ function openMarqueeSettingsModal({ initial }) {
         </div>
         <div style="margin-top:8px">
           <label>پس‌زمینه باکس:</label>
-          <input id="mq-bg" class="swal2-input" type="color" value="${initial.bg ?? "#000000"}">
+          <input id="mq-bg" class="swal2-input" type="color" value="${initial.bg ?? "#ffffff"}">
         </div>
       </div>
     `,
@@ -64,7 +64,7 @@ function openMarqueeSettingsModal({ initial }) {
       const h = Number(document.getElementById("mq-h").value);
       const speed = Number(document.getElementById("mq-speed").value);
       const dir = document.getElementById("mq-dir").value || "rtl";
-      const bg = document.getElementById("mq-bg").value || "#000000";
+      const bg = document.getElementById("mq-bg").value || "#ffffff";
       return {
         width: Number.isFinite(w) ? w : 400,
         height: Number.isFinite(h) ? h : 50,
@@ -83,7 +83,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
     height: 50,
     speed: 80,
     dir: "rtl",
-    bg: "#000000",
+    bg: "#ffffff",
   };
   const uniqId = group.id();
 
@@ -149,8 +149,8 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
             id: uniqId,
             payload: {
               content: value.text,
-              height: textNode.height(),
-              width: textNode.width(),
+              // height: textNode.height(),
+              // width: textNode.width(),
 
               metadata: {
                 style: {
@@ -170,6 +170,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
 
   if (res.isDenied) {
     if (isMarquee) {
+      console.log("isMarquee::: ", isMarquee);
       stopMarquee(group);
       const { x, y } = group.position();
       sendOperation("source", {
@@ -179,10 +180,11 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
           x,
           y,
           metadata: {
+            bgColor: "transparent",
             marquee: { enabled: false },
           },
-          width: textNode.width(),
-          height: textNode.height(),
+          width: "fit-content",
+          height: "auto",
         },
       });
       // syncBGNormal();
@@ -199,7 +201,7 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
           x,
           y,
           metadata: {
-            bgColor: textNode.fill(),
+            bgColor: cfgOn.bg,
             marquee: { enabled: true },
           },
           width: cfgOn.width,
@@ -318,100 +320,221 @@ function hexToRgba(hex, alpha = 1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function startMarquee(group, textNode, cfg) {
-  stopMarquee(group);
-  const layer = group.getLayer();
-  if (!layer) return;
+function normalizeForMarquee(raw) {
+  if (typeof raw !== "string") return { normalized: raw, changed: false };
+  // \r و \n و فاصله‌های تکراری را تبدیل به یک فاصله کن
+  const normalized = raw
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return { normalized, changed: normalized !== raw };
+}
 
+function bindSelectionRelay(group, ...nodes) {
+  nodes.forEach((n) => {
+    if (!n) return;
+
+    n.listening(true); // قابل کلیک/درگ
+    n.off(".marquee"); // جلوگیری از دوبل‌بایند
+
+    // شروع درگ از روی هر بخش باکس
+    n.on("mousedown.marquee touchstart.marquee", (e) => {
+      e.cancelBubble = true;
+
+      // مطمئن شو گروه درگ‌ابل شده
+      group.draggable(true);
+
+      // همون لحظه ترنسفورمر وصل بشه (مثل کلیک روی خود گروه)
+      group.fire("click", { evt: e.evt });
+
+      // درگ را از خود گروه شروع کن
+      group.startDrag();
+    });
+
+    // برای انتخاب بدون درگ (مثلاً فقط سِلکت کردن)
+    n.on("click.marquee tap.marquee", (e) => {
+      e.cancelBubble = true;
+      group.fire("click", { evt: e.evt });
+    });
+  });
+}
+
+function startMarquee(group, textNode, cfg) {
+  // تمیزکاری وضعیت قبلی
+  stopMarquee(group);
+
+  const layer = group.getLayer();
+  if (!layer || !textNode) return;
+
+  // نرمال‌سازی کانفیگ
+  const width = Number.isFinite(cfg?.width) ? cfg.width : 400;
+  const height = Number.isFinite(cfg?.height) ? cfg.height : 50;
+  const speed = Number.isFinite(cfg?.speed) ? cfg.speed : 80;
+  const dir = cfg?.dir === "ltr" ? "ltr" : "rtl";
+  const bgCol = cfg?.bg || "#000000";
+
+  // --- ذخیره‌ی وضعیت قبلِ مارکوئی ---
+  const hadExplicitWidth = textNode.getAttr("width") != null;
+  const prevWrap = typeof textNode.wrap === "function" ? textNode.wrap() : "word";
+  const prevText = textNode.text();
+
+  group.setAttr("_textPrev", {
+    x: textNode.x(),
+    y: textNode.y(),
+    wrap: prevWrap,
+    hadExplicitWidth,
+    width: hadExplicitWidth ? textNode.width() : null,
+    rawText: prevText, // برای بازگردانی بعد از stop
+  });
+
+  // --- یک‌خطی‌سازی متن (حذف \n) + nowrap ---
+  const { normalized, changed } = normalizeForMarquee(prevText);
+  if (changed) textNode.text(normalized);
+
+  if (typeof textNode.wrap === "function") textNode.wrap("none"); // معادل white-space:nowrap
+  if (typeof textNode.ellipsis === "function") textNode.ellipsis(false);
+
+  // اگر قبلاً width صریح داشت، برای اندازه‌ی واقعی متن در مارکوئی موقتاً بردار
+  if (hadExplicitWidth) textNode.setAttr("width", undefined);
+
+  // --- viewport با کلیپ ---
   let viewport = group.findOne(".marqueeViewport");
   if (!viewport) {
     viewport = new Konva.Group({
       name: "marqueeViewport",
-      clip: { x: 0, y: 0, width: cfg.width, height: cfg.height },
+      clip: { x: 0, y: 0, width, height },
+      listening: false,
     });
     group.add(viewport);
   } else {
-    viewport.clip({ x: 0, y: 0, width: cfg.width, height: cfg.height });
+    viewport.clip({ x: 0, y: 0, width, height });
   }
 
-  // پس‌زمینهٔ باکس زیرنویس
+  // --- پس‌زمینه ---
   let bg = group.findOne(".marqueeBG");
   if (!bg) {
     bg = new Konva.Rect({
       name: "marqueeBG",
       x: 0,
       y: 0,
-      width: cfg.width,
-      height: cfg.height,
-      fill: hexToRgba(cfg.bg, 0.65),
-      cornerRadius: 3,
+      width,
+      height,
+      fill: hexToRgba(bgCol, 1),
+      cornerRadius: 8,
       stroke: "white",
       strokeWidth: 1,
       listening: true,
     });
     group.add(bg);
-    bg.moveToBottom(); // بک‌گراند زیر همه
+    bg.moveToBottom();
   } else {
-    bg.width(cfg.width);
-    bg.height(cfg.height);
-    bg.fill(hexToRgba(cfg.bg, 0.65));
+    bg.width(width);
+    bg.height(height);
+    bg.fill(hexToRgba(bgCol, 1));
   }
 
-  // گروه داخلی حرکت‌کننده
+  // --- گروه داخلی متحرک ---
   let inner = viewport.findOne(".marqueeInner");
   if (!inner) {
-    inner = new Konva.Group({ name: "marqueeInner" });
+    inner = new Konva.Group({ name: "marqueeInner", listening: false });
     viewport.add(inner);
   } else {
-    inner.removeChildren(); // متن قبلی را پاک کن
+    inner.removeChildren();
   }
 
-  // متن را به inner منتقل کن
+  // انتقال متن به inner و هم‌ترازی عمودی
   inner.add(textNode);
-  // متن را همتراز عمودی وسط کن
-  textNode.y((cfg.height - textNode.height()) / 2);
+  textNode.y((height - textNode.height()) / 2);
 
-  // نقطهٔ شروع متن بر اساس جهت
-  if (cfg.dir === "rtl") {
-    inner.x(cfg.width); // از راست وارد شود
+  // نقطه شروع
+  if (dir === "rtl") {
+    inner.x(width);
   } else {
-    inner.x(-textNode.width()); // از چپ وارد شود
+    inner.x(-textNode.width());
   }
   inner.y(0);
 
-  // انیمیشن
+  // --- انیمیشن ---
   const anim = new Konva.Animation((frame) => {
     const dt = (frame?.timeDiff ?? 16) / 1000;
-    const step = cfg.speed * dt;
+    const step = speed * dt;
 
-    if (cfg.dir === "rtl") {
+    if (dir === "rtl") {
       inner.x(inner.x() - step);
-      // وقتی متن کامل از چپ بیرون رفت، از راست دوباره شروع کن
-      if (inner.x() + textNode.width() < 0) {
-        inner.x(cfg.width);
-      }
+      if (inner.x() + textNode.width() < 0) inner.x(width);
     } else {
       inner.x(inner.x() + step);
-      // وقتی متن کامل از راست بیرون رفت، از چپ دوباره شروع کن
-      if (inner.x() > cfg.width) {
-        inner.x(-textNode.width());
-      }
+      if (inner.x() > width) inner.x(-textNode.width());
     }
   }, layer);
   anim.start();
 
   group.setAttr("_marqueeAnim", anim);
   group.setAttr("_marquee", true);
-  group.setAttr("_marqueeCfg", cfg);
+  group.setAttr("_marqueeCfg", { width, height, speed, dir, bg: bgCol });
 
   layer.batchDraw();
+  bindSelectionRelay(group, bg, viewport, inner, textNode);
 }
 
 function stopMarquee(group) {
+  if (!group) return;
+
+  // توقف انیمیشن
   const anim = group.getAttr("_marqueeAnim");
   if (anim && anim.stop) anim.stop();
+
+  // نودها
+  const viewport = group.findOne(".marqueeViewport");
+  const inner = viewport?.findOne(".marqueeInner");
+  const bg = group.findOne(".marqueeBG");
+
+  // متن را پیدا کن
+  let textNode = inner?.findOne("Text") || group.findOne("Text");
+
+  // برگرداندن متن به والد اصلی
+  if (textNode && inner) {
+    textNode.remove();
+    group.add(textNode);
+  }
+
+  // بازگردانی وضعیت اولیه (wrap/width/x/y/متن)
+  const prev = group.getAttr("_textPrev") || {};
+  if (textNode) {
+    // متن اصلی با \n برگردد
+    if (typeof prev.rawText === "string") textNode.text(prev.rawText);
+
+    // مختصات
+    const px = Number.isFinite(prev.x) ? prev.x : 0;
+    const py = Number.isFinite(prev.y) ? prev.y : 0;
+    textNode.position({ x: px, y: py });
+
+    // white-space: inherit  ⇠ همان wrap قبلی
+    if (typeof textNode.wrap === "function") {
+      textNode.wrap(prev.wrap ?? "word");
+    }
+
+    // width به حالت قبل
+    if (prev.hadExplicitWidth) {
+      textNode.width(prev.width);
+    } else {
+      textNode.setAttr("width", undefined);
+    }
+  }
+
+  // تخریب UI مارکوئی
+  if (bg) bg.destroy();
+  if (viewport) viewport.destroy();
+
+  // پاکسازی فلگ‌ها
   group.setAttr("_marqueeAnim", null);
   group.setAttr("_marquee", false);
+  group.setAttr("_marqueeCfg", null);
+  group.setAttr("_textPrev", null);
+
+  // رندر
+  const layer = group.getLayer();
+  if (layer) layer.batchDraw();
 }
 
 export const addText = ({
@@ -438,9 +561,9 @@ export const addText = ({
     initialText = textItem.metadata.rssContent ?? textItem.text ?? textItem.content ?? "متن جدید";
   }
 
-  const initialFill = textItem.fill ?? "#ffffff";
-  const initialSize = coerceNumber(textItem.fontSize, 40);
-  const initialAlign = textItem.align ?? "left";
+  const initialFill = textItem.metadata.style.color ?? "#ffffff";
+  const initialSize = coerceNumber(textItem.metadata.style.fontSize, 40);
+  const initialAlign = textItem.metadata.style.align ?? "left";
   const rotation = textItem.rotation || 0;
 
   // --- ساخت نودهای کنوا ---
@@ -500,12 +623,12 @@ export const addText = ({
         source: `${textItem.type.toLowerCase()}:${textItem.content}`,
         metadata: {
           rssContent: textItem.metadata.rssContent || [],
-          bgColor: textItem.metadata?.bgColor ?? "#000000",
+          bgColor: textItem.metadata?.bgColor ?? "#ffffff",
           style: {
             dir: textItem.metadata.style.dir || "rtl",
             fontFamily: textItem.metadata.style.fontFamily || "Vazirmatn, IRANSans, Arial",
             fontSize: textItem.metadata.style.fontSize || 20,
-            color: textItem.metadata.style.color || "#ffffff",
+            color: textItem.metadata.style.color || "#000000",
           },
           marquee: {
             enabled: textItem.metadata.marquee.enabled || false,
@@ -541,11 +664,29 @@ export const addText = ({
   });
   transformer.flipEnabled(false);
 
+  // const attachTransformerFor = () => {
+  //   selectedSceneLayer.add(transformer);
+  //   transformer.moveToTop();
+  //   selectedSceneLayer.draw();
+  // };
+
   group.on("click", () => {
-    group.draggable(true);
-    selectedSceneLayer.add(transformer);
-    transformer.attachTo(group);
-    selectedSceneLayer.draw();
+    const marqueeOn = !!group.getAttr("_marquee");
+    if (marqueeOn) {
+      const target = marqueeOn ? group.findOne(".marqueeBG") : group; // وقتی مارکوئی روشنه به باکس
+      transformer.nodes([target || group]);
+      target.draggable(true);
+      selectedSceneLayer.add(transformer);
+      transformer.attachTo(target);
+      selectedSceneLayer.draw();
+    } else {
+      group.draggable(true);
+      selectedSceneLayer.add(transformer);
+      transformer.attachTo(group);
+      selectedSceneLayer.draw();
+    }
+
+    // attachTransformerFor();
   });
 
   group.on("dragend", (e) => {
@@ -637,10 +778,15 @@ export const addText = ({
   // --- راست‌کلیک = منو با گزینه‌های زیرنویس ---
   group.on("contextmenu", async (evt) => {
     evt.evt.preventDefault();
-    evt.evt.preventDefault();
+
+    // جلوگیری حتمی از دنبال کردن موس
+    group.stopDrag();
+    group.draggable(false);
+
     const layer = group.getLayer();
     const tn = group.findOne(".marqueeInner Text") || group.findOne("Text");
     if (!layer || !tn) return;
+
     showTextContextMenu({ group, textNode: tn, layer, setSources, sendOperation });
   });
 
