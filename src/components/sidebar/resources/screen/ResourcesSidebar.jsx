@@ -376,7 +376,7 @@ const ResourcesSidebar = () => {
             externalId: media?.externalId,
             name: textInit, // Show text and Editble
             content: textInit,
-            color: darkMode ? "white" : "black",
+            color: "gray",
             width: 0.0,
             height: 100,
             x: 0,
@@ -389,7 +389,7 @@ const ResourcesSidebar = () => {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
                 fontSize: 40,
-                color: darkMode ? "white" : "black",
+                color: "gray",
               },
               marquee: {
                 speed: 90,
@@ -529,15 +529,9 @@ const ResourcesSidebar = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         let flagCheckIsResourceUse = false;
-        collections.find((f) => {
-          f.schedules.find((s) => {
-            s.scene.sources.find((item) => {
-              if (item.media.id == id) {
-                flagCheckIsResourceUse = true;
-              }
-            });
-          });
-        });
+
+        const newSources = await api.getSources(url);
+        flagCheckIsResourceUse = newSources.find((item) => item.media.id == id) ? true : false;
 
         if (!flagCheckIsResourceUse) {
           try {

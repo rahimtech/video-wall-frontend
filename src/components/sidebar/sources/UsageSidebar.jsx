@@ -305,7 +305,10 @@ const UsageSidebar = () => {
                     fitToMonitors={fitToMonitors}
                   />
 
-                  {resource?.media?.type === "TEXT" && (
+                  {(resource?.media?.type === "TEXT" ||
+                    resource.type === "TEXT" ||
+                    type === "RSS" ||
+                    type === "TEXT") && (
                     <Tooltip content="تنظیمات متن">
                       <Button
                         size="sm"
