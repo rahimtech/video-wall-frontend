@@ -486,6 +486,7 @@ export const MyContextProvider = ({ children }) => {
   let allDataMonitors = videoWalls;
   let motherLayer;
   let motherStage;
+  let isMonitorOff = false;
 
   // addMonitorsToScenes({ jsonData: videoWalls, scenes: fetchDataScene, setScenes });
 
@@ -1022,7 +1023,6 @@ export const MyContextProvider = ({ children }) => {
         switch (action) {
           case "add": {
             const { endObj, type } = contentGenerator(payload.type, payload);
-            console.log("type3::: ", type);
             const getSelected = () => getScene();
             if (type === "VIDEO") {
               addVideo({
@@ -2105,6 +2105,8 @@ export const MyContextProvider = ({ children }) => {
         setIsRealTime,
         contentGenerator,
         fetchRSSDescriptions,
+
+        isMonitorOff,
       }}
     >
       {children}

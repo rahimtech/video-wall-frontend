@@ -117,6 +117,7 @@ function App() {
     isChangeRealTime,
     setIsChangeRealTime,
     collections,
+    isMonitorOff,
   } = useMyContext();
 
   const [leftTab, setLeftTab] = useState("Sources");
@@ -186,6 +187,7 @@ function App() {
               if (text) text.text(`Monitor ${display.name} (Disconnected)`);
 
               if (!group.findOne(".disconnectIcon")) {
+                console.log("TEST IS ITTTTT");
                 const disconnectIcon = new Konva.Text({
                   text: "❌",
                   fontSize: 30,
@@ -197,6 +199,9 @@ function App() {
                 group.add(disconnectIcon);
               }
             } else {
+              const layer = scene.layer;
+
+              // console.log("TEST");
               // addMonitorsToScenes({
               //   jsonData: updatedDisplays,
               //   scenes: scenesRef.current,
