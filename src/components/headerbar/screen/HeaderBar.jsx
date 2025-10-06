@@ -378,6 +378,7 @@ const HeaderBar = ({ toggleLayout }) => {
           }).then((result) => {
             if (result.isConfirmed) {
               localStorage.setItem("isLoggedIn", "false");
+              localStorage.setItem("refreshToken", "");
               location.reload();
             }
           });

@@ -49,6 +49,7 @@ const ResourcesSidebar = () => {
     setSources,
     sendOperation,
     url,
+    host,
     loopVideos,
     generateBlobImageURL,
     setResources,
@@ -61,6 +62,59 @@ const ResourcesSidebar = () => {
     dataDrag,
     setDataDrag,
   } = useMyContext();
+
+  // cleanup function
+  const cleanupVideoElement = (videoElement) => {
+    try {
+      if (!videoElement) return;
+      if (videoElement._hls) {
+        try {
+          videoElement._hls.destroy();
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      videoElement.pause && videoElement.pause();
+      try {
+        videoElement.removeAttribute("src");
+        videoElement.src = "";
+        videoElement.load && videoElement.load();
+      } catch (e) {}
+      // اگر از URL.createObjectURL استفاده کردی revoke کن
+      if (videoElement._blobUrl) {
+        URL.revokeObjectURL(videoElement._blobUrl);
+      }
+    } catch (err) {
+      console.warn("cleanupVideoElement error", err);
+    }
+  };
+
+  const MEDIA_SERVER_BASE = `http://${host}:4001`;
+  // شروع کانورژن RTSP -> HLS
+  const startRtspConversion = async (streamId, rtspUrl) => {
+    try {
+      // call start endpoint
+      await axios.get(`${MEDIA_SERVER_BASE}/stream/start/${streamId}`, {
+        params: { rtspUrl },
+      });
+      // ساده‌ترین شکل: poll تا status تغییر کنه به running/ready
+      const waitForReady = async (maxAttempts = 30, interval = 1000) => {
+        for (let i = 0; i < maxAttempts; i++) {
+          const res = await axios.get(`${MEDIA_SERVER_BASE}/stream/status/${streamId}`);
+          const status = res.status || res.data; // بستگی به پیلود سرور داره
+          if (status === 200 || status) return true;
+          await new Promise((r) => setTimeout(r, interval));
+        }
+        return false;
+      };
+
+      const ok = await waitForReady(30, 1000);
+      return ok;
+    } catch (err) {
+      console.error("startRtspConversion error:", err);
+      return false;
+    }
+  };
 
   const TYPE_META = {
     IMAGE: { label: "تصاویر", icon: FaImage, badge: "success" },
@@ -466,19 +520,18 @@ const ResourcesSidebar = () => {
         showCancelButton: true,
         confirmButtonColor: "green",
         cancelButtonColor: "gray",
+        // در بخش addResource type === "STREAM" داخل Swal
         inputValidator: (value) => {
-          if (!value) {
-            return "لطفاً یک لینک وارد کنید";
-          }
+          if (!value) return "لطفاً یک لینک وارد کنید";
+          // اجازه http, https یا rtsp
           try {
-            const url = new URL(value);
-            if (!/^https?:$/i.test(url.protocol)) {
-              return "لینک باید با http:// یا https:// شروع شود";
-            }
-            // بررسی دامنه معتبر (حداقل یک نقطه داشته باشد)
-            if (!url.hostname.includes(".")) {
-              return "لینک وارد شده معتبر نیست";
-            }
+            // اگر rtsp باشه new URL ممکنه خطا بده، پس جدا چک کن
+            if (/^rtsp:\/\//i.test(value)) return null;
+            const parsed = new URL(value);
+            if (!/^https?:$/i.test(parsed.protocol))
+              return "لینک باید با http:// یا https:// یا rtsp:// شروع شود";
+            if (!parsed.hostname.includes(".")) return "لینک وارد شده معتبر نیست";
+            return null;
           } catch {
             return "لینک وارد شده معتبر نیست";
           }
@@ -486,7 +539,30 @@ const ResourcesSidebar = () => {
       }).then(async (result) => {
         if (result.isConfirmed && result.value) {
           const id = uuidv4();
-          const textInit = result.value;
+          let textInit = result.value;
+
+          const streamId = id;
+          if (/^rtsp:\/\//i.test(textInit)) {
+            setMiniLoad(true);
+            try {
+              const started = await startRtspConversion(streamId, textInit);
+
+              if (!started) {
+                Swal.fire({
+                  icon: "error",
+                  title: "شروع کانورژن ناموفق بود",
+                  text: "لطفاً لینک و دسترسی شبکه را بررسی کنید.",
+                });
+                // می‌تونی resource رو با وضعیت error ذخیره کنی یا حذف
+              } else {
+                // ساختن آدرس HLS — طبق README
+                const hlsUrl = `${MEDIA_SERVER_BASE}/streams/${streamId}/playlist.m3u8`;
+                textInit = hlsUrl; // مقدار جدید برای resource
+              }
+            } finally {
+              setMiniLoad(false);
+            }
+          }
 
           const media = await api.createMedia(url, {
             type: "STREAM",
@@ -496,6 +572,7 @@ const ResourcesSidebar = () => {
             name: textInit,
             externalId: id,
           });
+
           let newResource = {
             type: "STREAM",
             id: media?.id,
@@ -581,6 +658,21 @@ const ResourcesSidebar = () => {
                 });
                 return so;
               });
+
+              // داخل deleteResource وقتی confirmed و قبل از setResources(...)
+              const resObj = resources.find((r) => r.id === id);
+              if (resObj?.type === "STREAM") {
+                try {
+                  setMiniLoad(true);
+                  const streamId = resObj.externalId || resObj.id;
+                  // call stop endpoint
+                  await axios.get(`${MEDIA_SERVER_BASE}/stream/stop/${streamId}`);
+                } catch (err) {
+                  console.warn("Failed to stop stream on media server", err);
+                } finally {
+                  setMiniLoad(false);
+                }
+              }
 
               try {
                 setMiniLoad(true);
