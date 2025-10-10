@@ -52,13 +52,13 @@ import { RiForbid2Fill } from "react-icons/ri";
 // ---------------- Mock API placeholders ----------------
 const wait = (ms = 300) => new Promise((res) => setTimeout(res, ms));
 
-const API_ROOT = `http://${localStorage.getItem("host")}:4000/api/auth`;
-const API_ROOT_USERS = `http://${localStorage.getItem("host")}:4000/api`;
+const API_ROOT = `http://${localStorage.getItem("host")}:4000/api`;
+
 const userAccessToken = localStorage.getItem("accessToken");
 
 async function apiFetchUsers() {
   await wait(200);
-  const res = await axios.get(`${API_ROOT_USERS}/users`, {
+  const res = await axios.get(`${API_ROOT}/users`, {
     headers: {
       Authorization: `Bearer ${userAccessToken}`,
     },
@@ -147,7 +147,7 @@ async function apiSaveUser(u) {
   try {
     if (u.id) {
       await axios.put(
-        `${API_ROOT_USERS}/users/${u.id}`,
+        `${API_ROOT}/users/${u.id}`,
         {
           username: u.username,
           email: u.email,
@@ -163,7 +163,7 @@ async function apiSaveUser(u) {
         }
       );
     } else {
-      await axios.post(`${API_ROOT}/signup`, u, {
+      await axios.post(`${API_ROOT}/auth/signup`, u, {
         headers: {
           Authorization: `Bearer ${userAccessToken}`,
         },
@@ -181,7 +181,7 @@ async function apiSaveUser(u) {
 async function apiDeleteUser(id) {
   try {
     if (id) {
-      await axios.delete(`${API_ROOT_USERS}/users/${id}`, {
+      await axios.delete(`${API_ROOT}/users/${id}`, {
         headers: {
           Authorization: `Bearer ${userAccessToken}`,
         },
@@ -249,19 +249,25 @@ export default function SecuritySettingsModal({ darkMode }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (tab != "monitor") return;
     const fetchLayouts = async () => {
+      if (tab != "monitor") return;
       setLoading(true);
       try {
-        const res = await axios.get(`${API_ROOT_LAYOUT}/options`, {
-          headers: { Authorization: `Bearer ${userAccessToken}` },
+        const res = await fetch(`${API_ROOT}/displayServer/getAllPossibleLayouts`, {
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`,
+          },
         });
-        // فرض کنیم پاسخ سرور به‌صورت آرایه‌ای از layoutهاست:
-        // { data: [ { id: "2x2", label: "۲ در ۲" }, { id: "3x3", label: "۳ در ۳" } ] }
-        setLayouts(res.data?.data || []);
+        const json = await res.json();
+        if (json.success && json.data?.availableLayouts) {
+          const sorted = json.data.availableLayouts.sort(
+            (a, b) => a.rows * a.columns - b.rows * b.columns
+          );
+          console.log("sorted::: ", sorted);
+          setLayouts(sorted);
+        }
       } catch (err) {
-        console.error("fetchLayouts error:", err);
-        alert("❌ خطا در دریافت لیست چیدمان‌ها");
+        console.error("خطا در دریافت چیدمان‌ها:", err);
       } finally {
         setLoading(false);
       }
@@ -270,30 +276,28 @@ export default function SecuritySettingsModal({ darkMode }) {
   }, [tab]);
 
   const handleSave = async () => {
-    if (!selected) {
-      alert("لطفاً یک چیدمان انتخاب کنید.");
-      return;
-    }
-
+    if (!selected) return alert("ابتدا یک چیدمان انتخاب کنید");
     setSaving(true);
     try {
-      const res = await axios.post(
-        `${API_ROOT_LAYOUT}/apply`,
-        { layout: selected },
-        {
-          headers: { Authorization: `Bearer ${userAccessToken}` },
-        }
-      );
-
-      if (res.data?.success) {
-        alert(`✅ چیدمان "${selected}" با موفقیت ثبت شد.`);
+      const [cols, rows] = selected.split("x").map(Number);
+      const res = await fetch(`${API_ROOT}/displayServer/setLayout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+        body: JSON.stringify({ rows }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert("چیدمان با موفقیت ثبت شد ✅");
+        location.reload();
       } else {
-        alert("❌ ثبت چیدمان با خطا مواجه شد.");
+        alert("خطا در ثبت چیدمان ❌");
       }
     } catch (err) {
-      console.error("handleSave error:", err);
-      const msg = err?.response?.data?.message || err.message || "خطا در ارتباط با سرور";
-      alert(msg);
+      console.error("submit error:", err);
+      alert("خطا در ارتباط با سرور");
     } finally {
       setSaving(false);
     }
@@ -474,7 +478,7 @@ export default function SecuritySettingsModal({ darkMode }) {
 
     try {
       const res = await axios.put(
-        `${API_ROOT_USERS}/users/${userId}`,
+        `${API_ROOT}/users/${userId}`,
         { isActive: newIsActive },
         { headers: { Authorization: `Bearer ${userAccessToken}` } }
       );
@@ -828,27 +832,31 @@ export default function SecuritySettingsModal({ darkMode }) {
                                         >
                                           ویرایش
                                         </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="light"
-                                          color="danger"
-                                          onPress={() => removeUser(u.id)}
-                                          startContent={<FiTrash2 />}
-                                        >
-                                          حذف
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          color={u.isActive ? "danger" : "success"}
-                                          variant="light"
-                                          startContent={<RiForbid2Fill />}
-                                          onPress={() => {
-                                            let isActive = !u.isActive;
-                                            toggleUserActive(u.id, isActive);
-                                          }}
-                                        >
-                                          {u.isActive ? "تعلیق" : "فعال‌سازی"}
-                                        </Button>
+                                        {!u.isSuperAdmin && (
+                                          <Button
+                                            size="sm"
+                                            variant="light"
+                                            color="danger"
+                                            onPress={() => removeUser(u.id)}
+                                            startContent={<FiTrash2 />}
+                                          >
+                                            حذف
+                                          </Button>
+                                        )}
+                                        {!u.isSuperAdmin && (
+                                          <Button
+                                            size="sm"
+                                            color={u.isActive ? "danger" : "success"}
+                                            variant="light"
+                                            startContent={<RiForbid2Fill />}
+                                            onPress={() => {
+                                              let isActive = !u.isActive;
+                                              toggleUserActive(u.id, isActive);
+                                            }}
+                                          >
+                                            {u.isActive ? "تعلیق" : "فعال‌سازی"}
+                                          </Button>
+                                        )}
 
                                         {/* <Dropdown>
                                           <DropdownTrigger>
@@ -926,22 +934,29 @@ export default function SecuritySettingsModal({ darkMode }) {
                                 }
                               />
                               <div className="md:col-span-2 flex items-center gap-3">
-                                <Checkbox
-                                  isSelected={editingUser.isActive}
-                                  onChange={() =>
-                                    setEditingUser((s) => ({ ...s, isActive: !s.isActive }))
-                                  }
-                                >
-                                  فعال
-                                </Checkbox>
-                                <Checkbox
-                                  isSelected={editingUser.isSuperAdmin}
-                                  onChange={() =>
-                                    setEditingUser((s) => ({ ...s, isSuperAdmin: !s.isSuperAdmin }))
-                                  }
-                                >
-                                  Super Admin
-                                </Checkbox>
+                                {!editingUser.isSuperAdmin && (
+                                  <>
+                                    <Checkbox
+                                      isSelected={editingUser.isActive}
+                                      onChange={() =>
+                                        setEditingUser((s) => ({ ...s, isActive: !s.isActive }))
+                                      }
+                                    >
+                                      فعال
+                                    </Checkbox>
+                                    <Checkbox
+                                      isSelected={editingUser.isSuperAdmin}
+                                      onChange={() =>
+                                        setEditingUser((s) => ({
+                                          ...s,
+                                          isSuperAdmin: !s.isSuperAdmin,
+                                        }))
+                                      }
+                                    >
+                                      Super Admin
+                                    </Checkbox>
+                                  </>
+                                )}
                               </div>
 
                               {/* <div className="md:col-span-2">
@@ -1404,34 +1419,42 @@ export default function SecuritySettingsModal({ darkMode }) {
                     {/* Monitor */}
                     <Tab key="monitor" title="تنظیمات چیدمان">
                       <Card className="p-3">
-                        <CardHeader className="font-semibold">چیدمان</CardHeader>
+                        <CardHeader className="font-semibold">تنظیمات چیدمان</CardHeader>
                         <Divider />
-                        <CardBody className="flex flex-col gap-4">
-                          {/* SelectBox */}
+                        <CardBody>
+                          {loading ? (
+                            <div className="text-center text-gray-500">
+                              در حال دریافت داده‌ها...
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-4">
+                              <div>
+                                <label className="block mb-1 text-sm font-medium text-gray-600">
+                                  انتخاب چیدمان
+                                </label>
+                                <select
+                                  className="border rounded-md px-3 py-2 w-full"
+                                  value={selected}
+                                  onChange={(e) => setSelected(e.target.value)}
+                                >
+                                  <option value="">— انتخاب کنید —</option>
+                                  {layouts.map((l, i) => (
+                                    <option key={i} value={`${l.columns}x${l.rows}`}>
+                                      {`${l.columns} در ${l.rows}`}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
 
-                          <Select
-                            label="انتخاب چیدمان"
-                            placeholder={loading ? "در حال بارگذاری..." : "انتخاب کنید"}
-                            selectedKeys={selected ? [selected] : []}
-                            onChange={(e) => setSelected(e.target.value)}
-                            // disabled={loading}
-                          >
-                            {layouts.map((layout) => (
-                              <SelectItem key={layout.id} value={layout.id}>
-                                {layout.label}
-                              </SelectItem>
-                            ))}
-                          </Select>
-
-                          {/* دکمه ثبت */}
-                          <Button
-                            color="primary"
-                            onPress={handleSave}
-                            isLoading={saving}
-                            disabled={!selected || saving}
-                          >
-                            ثبت چیدمان
-                          </Button>
+                              <Button
+                                onClick={handleSave}
+                                disabled={saving || !selected}
+                                className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2"
+                              >
+                                {saving ? "در حال ثبت..." : "ثبت چیدمان"}
+                              </Button>
+                            </div>
+                          )}
                         </CardBody>
                       </Card>
                     </Tab>
