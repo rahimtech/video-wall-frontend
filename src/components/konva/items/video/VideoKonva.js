@@ -31,7 +31,7 @@ export const addVideo = ({
     videoElement.type === "VIDEO"
       ? mode
         ? `video:${url}/${videoElement.content}`
-        : videoElement.videoElement.src
+        : `video:${videoElement.videoElement.src}`
       : videoElement.content;
 
   // videoElement.videoElement.src = `${url}/uploads/${videoElement.name}`;

@@ -1143,6 +1143,7 @@ export const MyContextProvider = ({ children }) => {
   function generateScene(data, sceneData) {
     data.forEach((item) => {
       let { endObj, type } = contentGenerator(item.media?.type, item);
+      console.log("endObj::: ", endObj);
       console.log("type4::: ", type);
 
       //Just convert to fuction

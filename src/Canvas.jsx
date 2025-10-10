@@ -976,7 +976,7 @@ export default function Canvas({
             onPress={onFit}
             startContent={<TbMaximize />}
           >
-            کالیبره
+            کالیبره مرکزی
           </Button>
           <Button
             size="sm"

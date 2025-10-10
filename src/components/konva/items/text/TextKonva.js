@@ -13,8 +13,8 @@ function openMarqueeSettingsModal({ initial }) {
   return Swal.fire({
     title: "تنظیمات زیرنویس",
     html: `
-      <div style="text-align:right">
-        <div style="display:flex; gap:8px">
+      <div style="text-align:right;">
+        <div style="display:flex; flex-direction:column; gap:8px">
           <div style="flex:1">
             <label>عرض باکس (px):</label>
             <input id="mq-w" class="swal2-input" type="number" min="50" step="10" value="${
@@ -28,7 +28,7 @@ function openMarqueeSettingsModal({ initial }) {
             }">
           </div>
         </div>
-        <div style="display:flex; gap:8px">
+        <div style="display:flex; flex-direction: column; gap:8px">
           <div style="flex:1">
             <label>سرعت (px/sec):</label>
             <input id="mq-speed" class="swal2-input" type="number" min="10" step="5" value="${
@@ -76,6 +76,72 @@ function openMarqueeSettingsModal({ initial }) {
   });
 }
 
+// helper — امن آپدیت کردن متن از مقدار ورودی modal
+async function applyTextEdit({ group, textNode, layer, value }) {
+  // مقدار ورودی را نرمال کن (اختیاری — اگر می‌خوای \n حذف بشه)
+  const { normalized } = normalizeForMarquee(value.text || "");
+  const newText = normalized;
+
+  // ۱) اعمال متن و استایل‌ها
+  textNode.text(newText);
+  textNode.fontSize(coerceNumber(value.fontSize, textNode.fontSize()));
+  textNode.fill(value.fill);
+  textNode.align(value.align);
+  textNode.direction(value.dir);
+
+  // ۲) اگر node کش‌شده بود، کش را پاک کن تا متن جدید رندر شود
+  // (اگر از cache استفاده نشده هم safe است)
+  if (typeof textNode.clearCache === "function") {
+    try {
+      textNode.clearCache();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  // ۳) اگر گروهِ مارکوئی فعال است، فونت/متن تغییر کرده — باید marquee را ری‌استارت کنیم
+  const isMarquee = !!group.getAttr("_marquee");
+  if (isMarquee) {
+    // نگه‌داری cfg فعلی یا محاسبه از متن
+    const cfgNow = group.getAttr("_marqueeCfg") ||
+      computeMarqueeCfgFromText(group, textNode) || {
+        width: 400,
+        height: 50,
+        speed: 80,
+        dir: "rtl",
+        bg: "#000000",
+      };
+
+    // مهم: بعضی اوقات textNode هنوز parent صحیح نیست — صبر کوتاه و سپس ری‌استارت امن
+    // stopMarquee و سپس startMarquee با متن جدید
+    stopMarquee(group);
+
+    // کمی تاخیر کوچک برای جلوگیری از race (معمولاً لازم نیست، اما ایمن‌تر است)
+    setTimeout(() => {
+      startMarquee(group, textNode, cfgNow);
+      // redraw layer
+      layer && layer.batchDraw();
+    }, 8);
+  } else {
+    // ۴) اگر مارکوئی خاموشه: ممکنه اندازهٔ پس‌زمینه/باکس نیاز به آپدیت داشته باشه
+    // فرض می‌کنیم syncBGNormal در scope بالاتر موجوده؛ اگر نه، سینک کوچک انجام بده:
+    const bgRect = group.findOne(".marqueeBG") || group.findOne("Rect");
+    if (bgRect) {
+      bgRect.width(textNode.width());
+      bgRect.height(textNode.height());
+    } else {
+      // اگر بک‌رکت جداست که syncBGNormal باید آن را هندل کند
+      // یا در نبود bg فقط چی میخوای انجام بدی
+    }
+    // و در پایان redraw
+    layer && layer.batchDraw();
+  }
+
+  // ۵) در نهایت کلاینت را هماهنگ کن (اگر لازم است sendOperation و setSources را صدا بزن)
+  // این بخش را آنجا که در کدت sendOperation می‌زنی اضافه کن؛ مثال:
+  // sendOperation("source", { action: "update", id: uniqId, payload: { content: newText, metadata: { style: ... } }});
+}
+
 async function showTextContextMenu({ group, textNode, layer, setSources, sendOperation }) {
   const isMarquee = !!group.getAttr("_marquee");
   const cfg = group.getAttr("_marqueeCfg") || {
@@ -116,53 +182,126 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
           sendOperation("source", { action: "remove", id: uniqId, payload: {} });
         });
       }
+
+      // جایگزین listener دکمه ویرایش در didOpen
       const btnEdit = document.getElementById("btn-edit");
       if (btnEdit) {
         btnEdit.addEventListener("click", async () => {
           Swal.close();
+
+          // وضعیت فعلی مارکوئی را نگه دار
+          const wasMarquee = !!group.getAttr("_marquee");
+          const prevCfg = group.getAttr("_marqueeCfg") || null;
+
+          // اگر مارکوئی فعال است، آن را متوقف کن تا ویرایش پایدار باشد
+          if (wasMarquee) {
+            try {
+              stopMarquee(group);
+            } catch (e) {
+              console.warn("stopMarquee error:", e);
+            }
+            // رندر سریع تا UI ثابت شود
+            layer && layer.batchDraw();
+          }
+
+          // پیدا کردن نود متنی موجود (بعد از stopMarquee متن باید در group باشد)
+          let currentTextNode = group.findOne("Text") || group.findOne(".marqueeInner Text");
+          if (!currentTextNode) {
+            // اگر متن پیدا نشد، یک بار تلاش کن با inner
+            currentTextNode = group.findOne(".marqueeInner Text");
+          }
+          if (!currentTextNode) {
+            console.warn("No text node to edit");
+            // در صورت نیاز مارکوئی را دوباره فعال کن
+            if (wasMarquee && prevCfg)
+              startMarquee(group, group.findOne("Text") || currentTextNode, prevCfg);
+            return;
+          }
+
+          // باز کردن modal با مقادیر فعلی (امن)
           const { isConfirmed: ok, value } = await openTextEditorModal({
             initial: {
-              text: textNode.text(),
-              fontSize: textNode.fontSize(),
-              fill: textNode.fill(),
-              align: textNode.align(),
-              dir: textNode.direction(),
+              text: currentTextNode.text(),
+              fontSize: currentTextNode.fontSize(),
+              fill: currentTextNode.fill(),
+              align: currentTextNode.align(),
+              dir: currentTextNode.direction ? currentTextNode.direction() : "rtl",
             },
           });
-          if (!ok) return;
-          textNode.text(value.text);
-          textNode.fontSize(coerceNumber(value.fontSize, textNode.fontSize()));
-          textNode.fill(value.fill);
-          textNode.align(value.align);
-          textNode.direction(value.dir);
 
-          if (group.getAttr("_marquee")) {
-            const cfgNow = group.getAttr("_marqueeCfg") || cfg;
-            startMarquee(group, textNode, cfgNow);
-          } else {
-            // اگر تابع syncBGNormal داری، صداش بزن (یا باکس انتخاب رو آپدیت کن)
+          if (!ok) {
+            // اگر کاربر انصراف داد، اگر قبلاً مارکوئی بود آن را برگردان
+            if (wasMarquee && prevCfg) {
+              // کمی تاخیر کوتاه برای جلوگیری از race
+              setTimeout(() => {
+                startMarquee(group, group.findOne("Text") || currentTextNode, prevCfg);
+                layer && layer.batchDraw();
+              }, 8);
+            }
+            return;
           }
-          layer.batchDraw();
 
-          sendOperation("source", {
-            action: "update",
-            id: uniqId,
-            payload: {
-              content: value.text,
-              // height: textNode.height(),
-              // width: textNode.width(),
+          // اعمال تغییرات امن روی text node
+          try {
+            const newText = value.text ?? "";
+            currentTextNode.text(newText);
+            currentTextNode.fontSize(coerceNumber(value.fontSize, currentTextNode.fontSize()));
+            currentTextNode.fill(value.fill);
+            currentTextNode.align(value.align);
+            if (typeof currentTextNode.direction === "function") {
+              currentTextNode.direction(value.dir);
+            }
 
-              metadata: {
-                style: {
-                  color: textNode.fill(),
-                  fontSize: textNode.fontSize(),
-                  dir: value.dir,
-                  align: value.align,
+            // پاک کردن cache در صورت وجود
+            if (typeof currentTextNode.clearCache === "function") {
+              try {
+                currentTextNode.clearCache();
+              } catch (e) {
+                /* ignore */
+              }
+            }
+
+            // اگر نیاز به همگام‌سازی پس‌زمینه/باکس داری، اینجا انجام بده
+            const bg = group.findOne(".marqueeBG") || group.findOne("Rect");
+            if (bg) {
+              // اگر مارکوئی خاموش است، اندازهٔ bg را به متن جدید بچسبان
+              bg.width(currentTextNode.width());
+              bg.height(currentTextNode.height());
+            }
+
+            // رندر تغییرات سریع
+            layer && layer.batchDraw();
+
+            // اگر قبلاً مارکوئی روشن بوده — آن را با cfg قبلی دوباره فعال کن
+            if (wasMarquee && prevCfg) {
+              // delay خیلی کوتاه تا همه چیز پایدار باشه
+              setTimeout(() => {
+                startMarquee(group, currentTextNode, prevCfg);
+                layer && layer.batchDraw();
+              }, 8);
+            }
+
+            // ارسال آپدیت به سرور / state
+            const uniqId = group.id();
+            sendOperation("source", {
+              action: "update",
+              id: uniqId,
+              payload: {
+                content: newText,
+                metadata: {
+                  style: {
+                    color: currentTextNode.fill(),
+                    fontSize: currentTextNode.fontSize(),
+                    dir: value.dir,
+                    align: value.align,
+                  },
                 },
               },
-              // align: textNode.align(),
-            },
-          });
+            });
+            // همچنین بروز رسانی local state (setSources) در صورت نیاز
+          } catch (err) {
+            console.error("apply edit error:", err);
+          }
         });
       }
     },
@@ -170,7 +309,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
 
   if (res.isDenied) {
     if (isMarquee) {
-      console.log("isMarquee::: ", isMarquee);
       stopMarquee(group);
       const { x, y } = group.position();
       sendOperation("source", {
@@ -299,7 +437,6 @@ function openTextEditorModal({ initial }) {
       const fill = document.getElementById("txt-color").value || "#ffffff";
       const align = document.getElementById("txt-align").value || "left";
       const dir = document.getElementById("txt-dir").value || "rtl";
-      console.log("dir::: ", dir);
       return { text, fontSize, fill, align, dir };
     },
   });
@@ -360,6 +497,7 @@ function bindSelectionRelay(group, ...nodes) {
 }
 
 function startMarquee(group, textNode, cfg) {
+  console.log("group::: ", group);
   // تمیزکاری وضعیت قبلی
   stopMarquee(group);
 
@@ -420,7 +558,6 @@ function startMarquee(group, textNode, cfg) {
       width,
       height,
       fill: hexToRgba(bgCol, 1),
-      cornerRadius: 8,
       stroke: "white",
       strokeWidth: 1,
       listening: true,
@@ -655,6 +792,16 @@ export const addText = ({
 
   syncBGNormal();
 
+  if (textItem.metadata.marquee.enabled == true) {
+    startMarquee(group, textNode, {
+      bg: textItem.metadata?.bgColor ?? "#ffffff",
+      dir: textItem.metadata.marquee.scrollDirection || "rtl",
+      speed: textItem.metadata?.marquee?.speed ?? 90,
+      width: textItem.width ?? 100,
+      height: textItem.height ?? 50,
+    });
+  }
+
   const transformer = new Konva.Transformer({
     nodes: [group],
     enabledAnchors: [],
@@ -672,19 +819,11 @@ export const addText = ({
 
   group.on("click", () => {
     const marqueeOn = !!group.getAttr("_marquee");
-    if (marqueeOn) {
-      const target = marqueeOn ? group.findOne(".marqueeBG") : group; // وقتی مارکوئی روشنه به باکس
-      transformer.nodes([target || group]);
-      target.draggable(true);
-      selectedSceneLayer.add(transformer);
-      transformer.attachTo(target);
-      selectedSceneLayer.draw();
-    } else {
-      group.draggable(true);
-      selectedSceneLayer.add(transformer);
-      transformer.attachTo(group);
-      selectedSceneLayer.draw();
-    }
+
+    group.draggable(true);
+    selectedSceneLayer.add(transformer);
+    transformer.attachTo(group);
+    selectedSceneLayer.draw();
 
     // attachTransformerFor();
   });
@@ -701,44 +840,26 @@ export const addText = ({
     });
   });
 
-  transformer.on("transformend", () => {
-    // اسکیل فعلی گروه (کاربر به‌صورت بصری این را تغییر داده)
+  transformer.on("transformend", (e) => {
+    const nodes = transformer.nodes();
+    const node = nodes && nodes[0] ? nodes[0] : group;
+
     const sx = group.scaleX();
     const sy = group.scaleY();
 
-    // برای متن، اسکیل عمودی منطقی‌ترین مبنا برای fontSize است
     const scale = Number.isFinite(sy) && sy > 0 ? sy : Number.isFinite(sx) && sx > 0 ? sx : 1;
 
-    // محاسبه‌ی فونت جدید و اعمال آن
     const prevFont = textNode.fontSize();
     const newFont = Math.max(8, Math.round(prevFont * scale)); // حداقل ۸؛ دلخواه
 
     textNode.fontSize(newFont);
 
-    // اسکیل گروه را ریست کن تا همه‌چیز واقعی و بدون scale باقی بماند
     group.scale({ x: 1, y: 1 });
+    group.rotation(e.target.attrs.rotation);
 
-    // اگر marquee فعاله باید inner را با فونت جدید ریست کنیم
-    if (group.getAttr("_marquee")) {
-      const cfgNow = group.getAttr("_marqueeCfg") || {
-        width: 400,
-        height: 50,
-        speed: 80,
-        dir: "rtl",
-        bg: "#000000",
-      };
-      startMarquee(group, textNode, cfgNow);
-    } else {
-      // در حالت عادی، بک‌گراند انتخاب را با متن جدید سینک کن
-      // (این تابع را قبلاً تعریف کرده‌ای)
-      syncBGNormal();
-    }
-
-    // مختصات و چرخش فعلی
     const rotationNow = Math.round(group.rotation());
     const { x, y } = group.position();
 
-    // به استیت محلی بنویس (بدون width/height)
     setSources((prev) =>
       prev.map((item) =>
         item.externalId === uniqId
@@ -754,7 +875,6 @@ export const addText = ({
       )
     );
 
-    // و به سرور بفرست: فقط fontSize (و در صورت نیاز x,y,rotation)
     sendOperation("source", {
       action: "update",
       id: uniqId,

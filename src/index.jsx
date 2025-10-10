@@ -34,7 +34,7 @@ const AuthContext = createContext(null);
 
 export const useAuth = () => useContext(AuthContext);
 
-const API_ROOT = "http://localhost:4000/auth";
+const API_ROOT = `http://${localStorage.getItem("host")}:4000/api/auth`;
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -133,6 +133,8 @@ const AuthProvider = ({ children }) => {
     if (data?.data?.refreshToken) {
       setRefreshToken(data.data.refreshToken);
       localStorage.setItem("refreshToken", data.data.refreshToken);
+      localStorage.setItem("userId", data.data.user.id);
+      localStorage.setItem("accessToken", data.data.accessToken);
     }
 
     return data;
@@ -148,6 +150,15 @@ const AuthProvider = ({ children }) => {
     if (data?.data?.refreshToken) {
       setRefreshToken(data.data.refreshToken);
       localStorage.setItem("refreshToken", data.data.refreshToken);
+    }
+    if (data?.data?.accessToken) {
+      localStorage.setItem("accessToken", data.data.accessToken);
+    }
+    if (data?.data?.refreshToken) {
+      localStorage.setItem("refreshToken", data.data.refreshToken);
+    }
+    if (data?.data?.user) {
+      localStorage.setItem("userId", data.data.user.id);
     }
 
     return data;
@@ -232,6 +243,7 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
       await auth.login({ identifier, password });
       localStorage.setItem("isLoggedIn", "true");
       onLoginSuccess?.();
+      location.reload();
     } catch (err) {
       if (err?.payload?.error === "INVALID_CREDENTIALS")
         setError("نام کاربری یا رمز عبور اشتباه است.");
@@ -246,6 +258,7 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
 
   return (
     <div dir="rtl" className="flex flex-col justify-center items-center h-screen bg-slate-200">
+      <Network />
       <div className="max-w-md mx-auto relative overflow-hidden z-10 bg-white p-8 rounded-lg shadow-md before:w-24 before:h-24 before:absolute before:bg-purple-500 before:rounded-full before:-z-10 before:blur-2xl after:w-32 after:h-32 after:absolute after:bg-sky-400 after:rounded-full after:-z-10 after:blur-xl after:top-24 after:-right-12">
         <h2 className="text-2xl text-sky-900 font-bold mb-6">ورود به نرم‌افزار</h2>
         <form onSubmit={handleSubmit}>
@@ -302,6 +315,66 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
   );
 };
 
+const Network = () => {
+  const [form, setForm] = useState(() => localStorage.getItem("host") || "");
+
+  // اگر خواستی هنگام mount هر بار از localStorage تازه بخوانی:
+  useEffect(() => {
+    const stored = localStorage.getItem("host") || "";
+    if (stored !== form) setForm(stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // فقط یکبار on mount
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    setForm(v);
+    // ذخیره بلافاصله در localStorage
+    localStorage.setItem("host", v);
+  };
+
+  const handleSaveClick = (e) => {
+    e.preventDefault();
+    // اگر لازم باشه کاری فراتر از ذخیره محلی انجام بدی، اینجا انجام بده
+    // مثلاً فراخوانی API، اعتبارسنجی، یا ارسال event به بالا
+    console.log("Saved host:", form);
+    location.reload();
+  };
+
+  return (
+    <div dir="rtl" className="flex flex-col justify-center items-center bg-slate-200">
+      <div className="mb-3 w-full max-w-md">
+        <label className="block text-sm font-medium text-gray-600">اتصال به شبکه</label>
+        <input
+          dir="ltr"
+          name="host"
+          className="mt-1 p-2 w-full border rounded-md"
+          type="text"
+          value={form}
+          onChange={handleChange}
+          placeholder="192.168.1.100"
+          autoComplete="off"
+        />
+        <div className="mt-2 flex gap-2">
+          <button className="text-sm underline text-sky-700" onClick={handleSaveClick}>
+            ثبت شبکه
+          </button>
+          <button
+            className="text-sm underline text-gray-600"
+            onClick={() => {
+              setForm("");
+              localStorage.removeItem("host");
+            }}
+          >
+            پاک کردن
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Network;
+
 // ---------------------------
 // Signup UI component
 // ---------------------------
@@ -340,6 +413,7 @@ const Signup = ({ onSignupSuccess, switchToLogin }) => {
 
   return (
     <div dir="rtl" className="flex flex-col justify-center items-center h-screen bg-slate-200">
+      <Network />
       <div className="max-w-md mx-auto relative overflow-hidden z-10 bg-white p-8 rounded-lg shadow-md before:w-24 before:h-24 before:absolute before:bg-purple-500 before:rounded-full before:-z-10 before:blur-2xl after:w-32 after:h-32 after:absolute after:bg-sky-400 after:rounded-full after:-z-10 after:blur-xl after:top-24 after:-right-12">
         <h2 className="text-2xl text-sky-900 font-bold mb-6">ثبت‌نام</h2>
         <form onSubmit={handleSubmit}>

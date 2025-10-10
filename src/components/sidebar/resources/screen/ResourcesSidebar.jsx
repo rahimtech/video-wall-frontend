@@ -579,7 +579,7 @@ const ResourcesSidebar = () => {
             mediaId: media?.id,
             externalId: media?.externalId,
             name: textInit, // Show text and Editble
-            content: textInit,
+            content: media.content,
             color: darkMode ? "white" : "black",
             width: 640,
             height: 360,

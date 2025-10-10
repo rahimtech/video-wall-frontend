@@ -19,7 +19,7 @@ export const addImage = ({
   const targetX = Number.isFinite(img?.x) ? img.x : 0;
   const targetY = Number.isFinite(img?.y) ? img.y : 0;
 
-  const modifiedImageURL = mode ? `image:${url}/${img.content}` : img.imageElement.src;
+  const modifiedImageURL = mode ? `image:${url}/${img.content}` : `image:${img.imageElement.src}`;
 
   if (mode) {
     sendOperation("source", {

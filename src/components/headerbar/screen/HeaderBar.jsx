@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FaDownload,
   FaExpand,
@@ -353,6 +353,26 @@ const HeaderBar = ({ toggleLayout }) => {
       document.exitFullscreen();
     }
   };
+  const userAccessToken = localStorage.getItem("accessToken");
+
+  let userAdmin = false;
+  const [usetAdmin, setUserAdmin] = useState(false);
+  useEffect(() => {
+    console.log("TEWE");
+    const API_ROOT_USERS = `http://${localStorage.getItem(
+      "host"
+    )}:4000/api/users/${localStorage.getItem("userId")}`;
+    async function fetchDataUser() {
+      const res = await axios.get(API_ROOT_USERS, {
+        headers: {
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+      });
+
+      setUserAdmin(res.data.data.isSuperAdmin);
+    }
+    fetchDataUser();
+  }, []);
 
   return (
     <div
@@ -378,7 +398,9 @@ const HeaderBar = ({ toggleLayout }) => {
           }).then((result) => {
             if (result.isConfirmed) {
               localStorage.setItem("isLoggedIn", "false");
+              localStorage.setItem("accessToken", "");
               localStorage.setItem("refreshToken", "");
+              localStorage.setItem("userId", "");
               location.reload();
             }
           });
@@ -629,7 +651,7 @@ const HeaderBar = ({ toggleLayout }) => {
       >
         <MdSettings size={18} /> <span>تنظیمات</span>
       </Button> */}
-      <SettingsModal isOpen={openSettings} onClose={() => setOpenSettings(false)} />
+      {usetAdmin && <SettingsModal isOpen={openSettings} onClose={() => setOpenSettings(false)} />}
     </div>
   );
 };
