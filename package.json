@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
+    "build:obfuscated": "vite build --config vite.config.obfuscate.js",
+    "build:prod": "vite build --config vite.config.obfuscate.js",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
