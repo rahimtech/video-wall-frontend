@@ -28,7 +28,7 @@ export const addVideo = ({
     // do nothing, animation just needs to update the layer
   }, selectedSceneLayer);
   const modifiedVideoURL =
-    videoElement.type === "VIDEO"
+    videoElement.type === "VIDEO" || videoElement.type === "STREAM"
       ? mode
         ? `video:${url}/${videoElement.content}`
         : `video:${videoElement.videoElement.src}`
@@ -58,8 +58,6 @@ export const addVideo = ({
   }
 
   if (mode) {
-    console.log("videoElement::: ", videoElement);
-
     const text = new Konva.Text({
       x: 0,
       y: 0,
@@ -252,7 +250,6 @@ export const addVideo = ({
 
       selectedSceneLayer.add(group);
       if (mode) selectedStage.add(selectedSceneLayer);
-
       const transformer = new Konva.Transformer({
         nodes: [group],
         enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
@@ -347,6 +344,9 @@ export const addVideo = ({
       }
     };
 
+    if (videoElement.type === "STREAM") {
+      onMeta();
+    }
     v.addEventListener("loadedmetadata", onMeta);
   }
 

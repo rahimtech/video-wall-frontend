@@ -497,7 +497,6 @@ function bindSelectionRelay(group, ...nodes) {
 }
 
 function startMarquee(group, textNode, cfg) {
-  console.log("group::: ", group);
   // تمیزکاری وضعیت قبلی
   stopMarquee(group);
 

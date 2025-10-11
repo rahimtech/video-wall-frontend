@@ -140,7 +140,7 @@ async function apiFetchHierarchy() {
   };
 }
 async function apiSaveUser(u) {
-  console.log("apiSaveUser", u);
+  // console.log("apiSaveUser", u);
   // const auth = useAuth();
 
   // setLoading(true);
@@ -199,17 +199,17 @@ async function apiDeleteUser(id) {
 }
 async function apiSaveRole(r) {
   await wait(180);
-  console.log("apiSaveRole", r);
+  // console.log("apiSaveRole", r);
   return { ok: true, data: { ...r, id: r.id || Math.floor(Math.random() * 90000) + 1000 } };
 }
 async function apiDeleteRole(id) {
   await wait(160);
-  console.log("apiDeleteRole", id);
+  // console.log("apiDeleteRole", id);
   return { ok: true };
 }
 async function apiSaveHierarchy(h) {
   await wait(180);
-  console.log("apiSaveHierarchy", h);
+  // console.log("apiSaveHierarchy", h);
   return { ok: true, data: h };
 }
 
@@ -237,7 +237,7 @@ export default function SecuritySettingsModal({ darkMode }) {
   const [menuConfig, setMenuConfig] = useState([]);
   const [hierarchy, setHierarchy] = useState({ regionInheritance: true, nodes: [] });
   const [userQuery, setUserQuery] = useState("");
-
+  const [limit, setLimit] = useState(false);
   // editors
   const [editingUser, setEditingUser] = useState(null);
   const [editingRole, setEditingRole] = useState(null);
@@ -263,7 +263,7 @@ export default function SecuritySettingsModal({ darkMode }) {
           const sorted = json.data.availableLayouts.sort(
             (a, b) => a.rows * a.columns - b.rows * b.columns
           );
-          console.log("sorted::: ", sorted);
+          // console.log("sorted::: ", sorted);
           setLayouts(sorted);
         }
       } catch (err) {
@@ -300,6 +300,20 @@ export default function SecuritySettingsModal({ darkMode }) {
       alert("خطا در ارتباط با سرور");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleShowIndexMonitor = async () => {
+    try {
+      setLimit(true);
+      const res = await axios.post(`${API_ROOT}/displayServer/getDisplayIndexes`, {
+        Authorization: `Bearer ${userAccessToken}`,
+      });
+    } catch (err) {
+      console.error("submit error:", err);
+      alert("خطا در ارسال");
+    } finally {
+      setLimit(false);
     }
   };
 
@@ -554,7 +568,7 @@ export default function SecuritySettingsModal({ darkMode }) {
     }));
   };
   const saveRolePermissions = async (roleId) => {
-    console.log("saveRolePermissions", roleId, rolePermissionDraft[roleId]);
+    // console.log("saveRolePermissions", roleId, rolePermissionDraft[roleId]);
     alert("ذخیره شد (mock)");
   };
   const toggleRoleMenuDraft = (roleId, menuId) => {
@@ -564,7 +578,7 @@ export default function SecuritySettingsModal({ darkMode }) {
     }));
   };
   const saveRoleMenuAccess = async (roleId) => {
-    console.log("saveRoleMenuAccess", roleId, roleMenuDraft[roleId]);
+    // console.log("saveRoleMenuAccess", roleId, roleMenuDraft[roleId]);
     alert("ذخیره شد (mock)");
   };
 
@@ -1445,13 +1459,22 @@ export default function SecuritySettingsModal({ darkMode }) {
                                   ))}
                                 </select>
                               </div>
-
+                              {!limit && (
+                                <Button
+                                  onPress={handleSave}
+                                  disabled={saving || !selected}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2"
+                                >
+                                  {saving ? "در حال ثبت..." : "ثبت چیدمان"}
+                                </Button>
+                              )}
                               <Button
-                                onClick={handleSave}
+                                onPress={handleShowIndexMonitor}
                                 disabled={saving || !selected}
                                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2"
                               >
-                                {saving ? "در حال ثبت..." : "ثبت چیدمان"}
+                                نمایش شماره صفحات
+                                {limit ? <>(لطفا صبر کنید)</> : <></>}
                               </Button>
                             </div>
                           )}

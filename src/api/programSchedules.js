@@ -56,6 +56,6 @@ export const addSceneToProgram = async (
   description = undefined,
   metadata = {}
 ) => {
-  console.log(`Adding scene ${sceneId} to program ${programId}(${duration}s) ${!skip}`);
+  // console.log(`Adding scene ${sceneId} to program ${programId}(${duration}s) ${!skip}`);
   return createProgramSchedule(url, { programId, sceneId, duration, skip, description, metadata });
 };

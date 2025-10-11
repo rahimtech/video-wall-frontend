@@ -56,7 +56,6 @@ const UsageSidebar = () => {
     setSelectedSource,
   } = useMyContext();
 
-  console.log("sources::: ", sources);
   // فقط منابعِ صحنهٔ انتخاب‌شده
   const usageSources = useMemo(
     () => sources.filter((s) => s.sceneId === getSelectedScene()?.id) ?? [],
