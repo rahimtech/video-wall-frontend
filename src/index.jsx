@@ -336,7 +336,7 @@ const Network = () => {
     e.preventDefault();
     // اگر لازم باشه کاری فراتر از ذخیره محلی انجام بدی، اینجا انجام بده
     // مثلاً فراخوانی API، اعتبارسنجی، یا ارسال event به بالا
-    console.log("Saved host:", form);
+    // console.log("Saved host:", form);
     location.reload();
   };
 

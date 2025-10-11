@@ -358,7 +358,6 @@ const HeaderBar = ({ toggleLayout }) => {
   let userAdmin = false;
   const [usetAdmin, setUserAdmin] = useState(false);
   useEffect(() => {
-    console.log("TEWE");
     const API_ROOT_USERS = `http://${localStorage.getItem(
       "host"
     )}:4000/api/users/${localStorage.getItem("userId")}`;

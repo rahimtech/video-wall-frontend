@@ -187,7 +187,6 @@ function App() {
               if (text) text.text(`Monitor ${display.name} (Disconnected)`);
 
               if (!group.findOne(".disconnectIcon")) {
-                console.log("TEST IS ITTTTT");
                 const disconnectIcon = new Konva.Text({
                   text: "❌",
                   fontSize: 30,
@@ -305,7 +304,6 @@ function App() {
   useEffect(() => {
     const selectedSceneLayer = getSelectedScene()?.layer;
     getSelectedScene()?.stageData?.on("click", (e) => {
-      console.log("e.target.attrs.uniqId::: ", e.target.attrs.uniqId);
       setSelectedSource(e.target.attrs.uniqId);
 
       if (e.target === getSelectedScene()?.stageData || e.target.attrs.catFix == "monitor") {

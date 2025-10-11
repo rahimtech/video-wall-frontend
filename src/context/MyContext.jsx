@@ -814,7 +814,6 @@ export const MyContextProvider = ({ children }) => {
     } else if (type === "IFRAME") {
       endObj = { externalId: item.externalId };
     } else if (type === "TEXT") {
-      console.log("item::: ", item);
       endObj = { externalId: item.externalId, metadata: item.metadata };
     } else if (type === "RSS") {
       endObj = { externalId: item.externalId, metadata: item.metadata };
@@ -904,7 +903,6 @@ export const MyContextProvider = ({ children }) => {
       switch (action) {
         case "add": {
           const { endObj, type } = contentGenerator(payload.type, payload);
-          console.log("type2::: ", type);
           const getSelected = () => getScene();
           if (type === "VIDEO") {
             addVideo({
@@ -1069,7 +1067,7 @@ export const MyContextProvider = ({ children }) => {
                 sendOperation,
               });
             } else if (type === "RSS") {
-              console.log("endObj::: ", endObj);
+              // console.log("endObj::: ", endObj);
               addText({
                 textItem: endObj,
                 mode: false,
@@ -1143,8 +1141,6 @@ export const MyContextProvider = ({ children }) => {
   function generateScene(data, sceneData) {
     data.forEach((item) => {
       let { endObj, type } = contentGenerator(item.media?.type, item);
-      console.log("endObj::: ", endObj);
-      console.log("type4::: ", type);
 
       //Just convert to fuction
       const convertToFunction = () => {
@@ -1195,7 +1191,6 @@ export const MyContextProvider = ({ children }) => {
           sendOperation,
         });
       } else if (type === "RSS") {
-        console.log("endObj::: ", endObj);
         addText({
           textItem: endObj,
           mode: false,
@@ -1338,7 +1333,6 @@ export const MyContextProvider = ({ children }) => {
         "color: red; font-weight: bold; font-size: 20px; background: yellow; padding: 5px; border: 2px solid red; border-radius: 5px;"
       );
       if (scenesRef.current.length <= 0) {
-        console.log("test");
         setScenes([
           {
             name: "صحنه پیش فرض",
@@ -1705,12 +1699,7 @@ export const MyContextProvider = ({ children }) => {
                 if (item.type === "INPUT") {
                   return null;
                 }
-                if (
-                  item.content.endsWith(".jpeg") ||
-                  item.content.endsWith(".jpg") ||
-                  item.content.endsWith(".png") ||
-                  item.content.endsWith(".webp")
-                ) {
+                if (item.type == "IMAGE") {
                   url = `http://${host}:${port}/${item.content}`;
                   type = "IMAGE";
                   let img = new Image();
@@ -1719,7 +1708,7 @@ export const MyContextProvider = ({ children }) => {
                   endObj = {
                     imageElement: img,
                   };
-                } else if (item.content.endsWith(".mp4")) {
+                } else if (item.type == "VIDEO") {
                   type = "VIDEO";
                   url = `http://${host}:${port}/${item.content}`;
                   const video = document.createElement("video");

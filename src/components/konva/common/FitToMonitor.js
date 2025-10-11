@@ -1,5 +1,4 @@
 const removeTransformers = (layer) => {
-  console.log("layer::: ", layer);
   layer.find("Transformer").forEach((tr) => tr.detach());
 };
 

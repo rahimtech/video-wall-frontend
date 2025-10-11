@@ -516,21 +516,24 @@ const ResourcesSidebar = () => {
       Swal.fire({
         title: "آدرس استریم را وارد کنید:",
         input: "text",
-        inputPlaceholder: "rtsp://ip:port/stream یا https://...m3u8",
+        inputPlaceholder: "فقط لینک‌های http:// یا https:// مجاز هستند",
         showCancelButton: true,
         confirmButtonColor: "green",
         cancelButtonColor: "gray",
-        // در بخش addResource type === "STREAM" داخل Swal
         inputValidator: (value) => {
           if (!value) return "لطفاً یک لینک وارد کنید";
-          // اجازه http, https یا rtsp
+
+          // رد کردن هر لینکی که rtsp باشد
+          if (/^rtsp:\/\//i.test(value)) {
+            return "لینک‌های RTSP پشتیبانی نمی‌شوند. فقط HTTP یا HTTPS مجاز است.";
+          }
+
           try {
-            // اگر rtsp باشه new URL ممکنه خطا بده، پس جدا چک کن
-            if (/^rtsp:\/\//i.test(value)) return null;
             const parsed = new URL(value);
             if (!/^https?:$/i.test(parsed.protocol))
-              return "لینک باید با http:// یا https:// یا rtsp:// شروع شود";
+              return "لینک باید با http:// یا https:// شروع شود";
             if (!parsed.hostname.includes(".")) return "لینک وارد شده معتبر نیست";
+            console.log("TEST ERROR");
             return null;
           } catch {
             return "لینک وارد شده معتبر نیست";
@@ -539,31 +542,9 @@ const ResourcesSidebar = () => {
       }).then(async (result) => {
         if (result.isConfirmed && result.value) {
           const id = uuidv4();
-          let textInit = result.value;
+          const textInit = result.value;
 
-          const streamId = id;
-          if (/^rtsp:\/\//i.test(textInit)) {
-            setMiniLoad(true);
-            try {
-              const started = await startRtspConversion(streamId, textInit);
-
-              if (!started) {
-                Swal.fire({
-                  icon: "error",
-                  title: "شروع کانورژن ناموفق بود",
-                  text: "لطفاً لینک و دسترسی شبکه را بررسی کنید.",
-                });
-                // می‌تونی resource رو با وضعیت error ذخیره کنی یا حذف
-              } else {
-                // ساختن آدرس HLS — طبق README
-                const hlsUrl = `${MEDIA_SERVER_BASE}/streams/${streamId}/playlist.m3u8`;
-                textInit = hlsUrl; // مقدار جدید برای resource
-              }
-            } finally {
-              setMiniLoad(false);
-            }
-          }
-
+          // بدون پشتیبانی از RTSP
           const media = await api.createMedia(url, {
             type: "STREAM",
             content: textInit,
@@ -573,12 +554,12 @@ const ResourcesSidebar = () => {
             externalId: id,
           });
 
-          let newResource = {
+          const newResource = {
             type: "STREAM",
             id: media?.id,
             mediaId: media?.id,
             externalId: media?.externalId,
-            name: textInit, // Show text and Editble
+            name: textInit,
             content: media.content,
             color: darkMode ? "white" : "black",
             width: 640,
@@ -609,6 +590,7 @@ const ResourcesSidebar = () => {
 
         const newSources = await api.getSources(url);
         flagCheckIsResourceUse = newSources.find((item) => item.media.id == id) ? true : false;
+        const checkExId = newSources.find((item) => item.media.id == id).externalId;
 
         if (!flagCheckIsResourceUse) {
           try {
@@ -635,13 +617,13 @@ const ResourcesSidebar = () => {
             if (result.isConfirmed) {
               const colEndPoint = collections.map((so) => {
                 so.schedules.map((s) => {
-                  const newSch = s.scene.sources.filter((sch) => {
+                  const newSch = newSources.filter((sch) => {
                     if (sch.media.id !== id) {
                       return sch;
                     } else {
                       let groupToRemove = getSelectedScene()
                         ?.layer.getParent()
-                        .find(`#${sch.externalId}`);
+                        .find(`#${checkExId}`);
                       if (groupToRemove) {
                         for (let index = 0; index < groupToRemove.length; index++) {
                           groupToRemove[index].remove();
@@ -654,9 +636,15 @@ const ResourcesSidebar = () => {
                   });
 
                   setSources(newSch || []);
-                  return { ...s, schedules: newSch };
+                  return { ...newSources, schedules: newSch };
                 });
                 return so;
+              });
+
+              sendOperation("source", {
+                action: "remove",
+                id: checkExId,
+                payload: {},
               });
 
               // داخل deleteResource وقتی confirmed و قبل از setResources(...)
@@ -688,7 +676,6 @@ const ResourcesSidebar = () => {
               //   // return col;
               // });
 
-              console.log("colEndPoint::: ", colEndPoint);
               setCollections(colEndPoint);
               setResources(resources.filter((res) => res.id !== id));
 
