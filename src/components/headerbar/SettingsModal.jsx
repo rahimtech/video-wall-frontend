@@ -229,6 +229,7 @@ function buildTree(nodes) {
 export default function SecuritySettingsModal({ darkMode }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [tab, setTab] = useState("users");
+  const [check, setCheck] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
@@ -457,6 +458,48 @@ export default function SecuritySettingsModal({ darkMode }) {
       } else {
         alert(`❌ ${message}`);
       }
+    }
+  };
+
+  const handleCheckSuperAdmin = async (e) => {
+    try {
+      const res = await fetch(`${API_ROOT}/users`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+      });
+
+      const res2 = await fetch(`${API_ROOT}/users/${e.id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`خطا در دریافت کاربران (${res.status})`);
+      }
+
+      const data = await res.json();
+      const data2 = await res2.json();
+      console.log("data2::: ", data2);
+
+      // فقط کاربران با نقش superadmin
+      const superAdmins = data.data.filter((u) => u.isSuperAdmin === true);
+      console.log("superAdmins::: ", superAdmins);
+
+      if (superAdmins.length === 1) {
+        return { checkJustOneSuperAdminExist: true, user: data2.data };
+      } else {
+        console.warn("⚠️ تعداد superadmin ها مجاز نیست:", superAdmins.length);
+        return { checkJustOneSuperAdminExist: false, user: data2.data };
+      }
+    } catch (err) {
+      console.error("❌ خطا در بررسی superadmin:", err);
+      return false;
     }
   };
 
@@ -948,29 +991,25 @@ export default function SecuritySettingsModal({ darkMode }) {
                                 }
                               />
                               <div className="md:col-span-2 flex items-center gap-3">
-                                {!editingUser.isSuperAdmin && (
-                                  <>
-                                    <Checkbox
-                                      isSelected={editingUser.isActive}
-                                      onChange={() =>
-                                        setEditingUser((s) => ({ ...s, isActive: !s.isActive }))
-                                      }
-                                    >
-                                      فعال
-                                    </Checkbox>
-                                    <Checkbox
-                                      isSelected={editingUser.isSuperAdmin}
-                                      onChange={() =>
-                                        setEditingUser((s) => ({
-                                          ...s,
-                                          isSuperAdmin: !s.isSuperAdmin,
-                                        }))
-                                      }
-                                    >
-                                      Super Admin
-                                    </Checkbox>
-                                  </>
-                                )}
+                                <Checkbox
+                                  isSelected={editingUser.isActive}
+                                  onChange={() =>
+                                    setEditingUser((s) => ({ ...s, isActive: !s.isActive }))
+                                  }
+                                >
+                                  فعال
+                                </Checkbox>
+                                <Checkbox
+                                  isSelected={editingUser.isSuperAdmin}
+                                  onChange={() =>
+                                    setEditingUser((s) => ({
+                                      ...s,
+                                      isSuperAdmin: !s.isSuperAdmin,
+                                    }))
+                                  }
+                                >
+                                  Super Admin
+                                </Checkbox>
                               </div>
 
                               {/* <div className="md:col-span-2">
@@ -1049,7 +1088,38 @@ export default function SecuritySettingsModal({ darkMode }) {
                               <div className="md:col-span-2 flex gap-2">
                                 <Button
                                   color="primary"
-                                  onPress={() => saveUser(editingUser)}
+                                  onPress={async (e) => {
+                                    const { checkJustOneSuperAdminExist, user } =
+                                      await handleCheckSuperAdmin(editingUser);
+
+                                    setCheck(checkJustOneSuperAdminExist);
+                                    if (editingUser.id && user.isSuperAdmin) {
+                                      if (
+                                        checkJustOneSuperAdminExist &&
+                                        editingUser.isSuperAdmin &&
+                                        checkJustOneSuperAdminExist &&
+                                        editingUser.isActive
+                                      ) {
+                                        saveUser(editingUser);
+                                        return;
+                                      } else if (
+                                        (checkJustOneSuperAdminExist &&
+                                          !editingUser.isSuperAdmin) ||
+                                        (checkJustOneSuperAdminExist && !editingUser.isActive)
+                                      ) {
+                                        alert(
+                                          "تنها سوپر ادمین شما هستید نمیشود سوپر ادمین غیر فعال شود"
+                                        );
+                                        return;
+                                      } else {
+                                        saveUser(editingUser);
+                                      }
+                                    } else {
+                                      console.log("first");
+                                      saveUser(editingUser);
+                                      return;
+                                    }
+                                  }}
                                   startContent={<FiSave />}
                                 >
                                   ذخیره
