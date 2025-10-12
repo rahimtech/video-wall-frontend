@@ -47,7 +47,7 @@ body::-webkit-scrollbar {
 
 @font-face {
   font-family: vazir;
-  src: url("../public/Vazirmatn-Regular.woff2");
+  src: url("/Vazirmatn-Regular.woff2");
 }
 
 .blobred {

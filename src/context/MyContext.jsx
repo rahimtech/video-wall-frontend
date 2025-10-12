@@ -1442,8 +1442,14 @@ export const MyContextProvider = ({ children }) => {
   }
 
   useEffect(() => {
+    const hostURL = window.location.hostname;
+
     if (!localStorage.getItem("host")) {
-      localStorage.setItem("host", config.host);
+      if (localStorage.getItem("host")) {
+        localStorage.setItem("host", config.host);
+      } else {
+        localStorage.setItem("host", hostURL);
+      }
       localStorage.setItem("port", config.port);
     } else {
       host = localStorage.getItem("host");

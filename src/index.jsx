@@ -316,11 +316,12 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
 };
 
 const Network = () => {
-  const [form, setForm] = useState(() => localStorage.getItem("host") || "");
+  const host = window.location.hostname;
+  const [form, setForm] = useState(() => localStorage.getItem("host") || host);
 
   // اگر خواستی هنگام mount هر بار از localStorage تازه بخوانی:
   useEffect(() => {
-    const stored = localStorage.getItem("host") || "";
+    const stored = localStorage.getItem("host") || host;
     if (stored !== form) setForm(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // فقط یکبار on mount

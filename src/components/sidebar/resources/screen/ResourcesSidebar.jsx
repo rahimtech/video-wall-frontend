@@ -590,7 +590,8 @@ const ResourcesSidebar = () => {
 
         const newSources = await api.getSources(url);
         flagCheckIsResourceUse = newSources.find((item) => item.media.id == id) ? true : false;
-        const checkExId = newSources.find((item) => item.media.id == id).externalId;
+
+        const checkExId = newSources.find((item) => item.media.id == id)?.externalId;
 
         if (!flagCheckIsResourceUse) {
           try {
@@ -1286,7 +1287,7 @@ const ResourcesSidebar = () => {
               }`}
             >
               <div className="flex flex-col gap-3 px-1 pb-2">
-                {["IFRAME", "TEXT", "STREAM", "RSS"].map((t) => {
+                {["IFRAME", "TEXT", "RSS"].map((t) => {
                   const Icon = TYPE_META[t].icon;
                   const items = groupedResources[t];
 
@@ -1455,9 +1456,9 @@ const ResourcesSidebar = () => {
               <DropdownItem onPress={() => addResource("RSS")} key="rss">
                 افزودن خبرخوان
               </DropdownItem>
-              <DropdownItem onPress={() => addResource("STREAM")} key="stream">
+              {/* <DropdownItem onPress={() => addResource("STREAM")} key="stream">
                 افزودن استریم
-              </DropdownItem>
+              </DropdownItem> */}
             </DropdownMenu>
           </Dropdown>
         </div>
