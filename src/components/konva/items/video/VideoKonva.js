@@ -183,10 +183,10 @@ export const addVideo = ({
     // videoElement.loop = loopVideos[videoElement.name] || false;
 
     videoElement.videoElement.loop = true;
-    videoElement.videoElement.play();
+    // videoElement.videoElement.play();
     videoElement.videoElement.muted = true;
 
-    anim.start();
+    // anim.start();
   } else {
     const v = videoElement.videoElement;
 
@@ -323,9 +323,9 @@ export const addVideo = ({
 
       v.loop = true;
       try {
-        await v.play();
+        // await v.play();
         // await v.muted();
-        anim.start();
+        // anim.start();
       } catch (err) {
         console.warn("Autoplay blocked, will resume on first user gesture", err);
         // 4) fallback: اولین تعامل کاربر → همه ویدیوهای معلق پلی شوند
@@ -333,8 +333,8 @@ export const addVideo = ({
           document.removeEventListener("pointerdown", resume, true);
           document.removeEventListener("keydown", resume, true);
           try {
-            await v.play();
-            anim.start();
+            // await v.play();
+            // anim.start();
           } catch (e) {
             /* نادیده بگیر */
           }
