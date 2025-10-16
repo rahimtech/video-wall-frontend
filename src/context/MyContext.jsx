@@ -440,7 +440,7 @@ export const MyContextProvider = ({ children }) => {
   );
   const [connecting, setConnecting] = useState(false);
   const [connectionMode, setConnectionMode] = useState(
-    localStorage.getItem("onlineMode") === "true" ? true : false || false
+    localStorage.getItem("onlineMode") === "true" ? true : false || true
   );
   const [inputs, setInputs] = useState([]);
   const videoWallsRef = useRef(videoWalls);
@@ -467,6 +467,8 @@ export const MyContextProvider = ({ children }) => {
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedCollection, setSelectedCollection] = useState(1);
   const [sources, setSources] = useState([]);
+  const sourcesRef = useRef(sources);
+
   const [pendingOperations, setPendingOperation] = useState([]);
   const [flagOperations, setFlagOperation] = useState(false);
   const [resources, setResources] = useState([]);
@@ -839,6 +841,7 @@ export const MyContextProvider = ({ children }) => {
       height: item.height,
       x: item.x,
       y: item.y,
+      z: item.z,
       name: item.name ?? "",
       rotation: parseInt(item.rotation) || 0,
     };
@@ -903,6 +906,7 @@ export const MyContextProvider = ({ children }) => {
       switch (action) {
         case "add": {
           const { endObj, type } = contentGenerator(payload.type, payload);
+          console.log("T1");
           const getSelected = () => getScene();
           if (type === "VIDEO") {
             addVideo({
@@ -1021,6 +1025,8 @@ export const MyContextProvider = ({ children }) => {
         switch (action) {
           case "add": {
             const { endObj, type } = contentGenerator(payload.type, payload);
+            console.log("T2");
+
             const getSelected = () => getScene();
             if (type === "VIDEO") {
               addVideo({
@@ -1147,6 +1153,8 @@ export const MyContextProvider = ({ children }) => {
         return sceneData;
       };
       if (type === "IMAGE") {
+        console.log("type::: ", type);
+
         addImage({
           img: endObj,
           mode: false,
@@ -1165,6 +1173,7 @@ export const MyContextProvider = ({ children }) => {
           sendOperation,
         });
       } else if (type === "VIDEO") {
+        console.log("type::: ", type);
         addVideo({
           videoElement: endObj,
           mode: false,
@@ -1183,6 +1192,7 @@ export const MyContextProvider = ({ children }) => {
           sendOperation,
         });
       } else if (type === "TEXT") {
+        console.log("type::: ", type);
         addText({
           textItem: endObj,
           mode: false,
@@ -1466,7 +1476,45 @@ export const MyContextProvider = ({ children }) => {
 
   useEffect(() => {
     selectedSceneRef.current = selectedScene;
+    async function sceneINDEX() {
+      if (!getSelectedScene()?.id) return;
+      const newScene = await api.getSceneById(`http://${host}:${port}`, getSelectedScene()?.id);
+      console.log("newScene::: ", newScene);
+      // console.log('fetchDataScene[0].id::: ', );
+      const integratedSource = newScene?.sources
+        .slice() // کپیِ آرایه تا منابع اصلی تغییر نکنند
+        .sort((a, b) => {
+          // پشتیبانی از چند نام فیلد (z یا zIndex) و تبدیل به عدد امن
+          const az = Number(a.z ?? a.zIndex ?? 0);
+          const bz = Number(b.z ?? b.zIndex ?? 0);
+
+          // نزولی: مقدار بزرگتر z اول نمایش داده می‌شود (روی لایه جلوتر)
+          return bz - az;
+        });
+      console.log("integratedSource::: ", integratedSource);
+      if (integratedSource) console.log("TWRWERWER");
+      integratedSource.forEach((item) => {
+        console.log("item::: ", item);
+        const node = getSelectedScene()?.layer.findOne(`#${item.externalId}`);
+        console.log("node::: ", node);
+        if (item.z > 0) {
+          for (let index = 0; index < item.z; index++) {
+            node?.moveUp();
+          }
+        } else {
+          for (let index = 0; index > item.z; index--) {
+            node?.moveDown();
+          }
+        }
+      });
+    }
+
+    sceneINDEX();
   }, [selectedScene]);
+
+  useEffect(() => {
+    sourcesRef.current = sources;
+  }, [sources]);
 
   useEffect(() => {
     if (!url) {
@@ -1591,8 +1639,21 @@ export const MyContextProvider = ({ children }) => {
 
             addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
             const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
-            setSources(newScene.sources);
-            generateScene(newScene.sources, fetchDataScene[0]);
+            // console.log('fetchDataScene[0].id::: ', );
+
+            const integratedSource = newScene.sources
+              .filter((s) => s.sceneId === fetchDataScene[0].id)
+              .slice() // کپیِ آرایه تا منابع اصلی تغییر نکنند
+              .sort((a, b) => {
+                // پشتیبانی از چند نام فیلد (z یا zIndex) و تبدیل به عدد امن
+                const az = Number(a.z ?? a.zIndex ?? 0);
+                const bz = Number(b.z ?? b.zIndex ?? 0);
+
+                // نزولی: مقدار بزرگتر z اول نمایش داده می‌شود (روی لایه جلوتر)
+                return bz - az;
+              });
+            setSources(integratedSource);
+            generateScene(integratedSource, fetchDataScene[0]);
             setMonitorConnection(true);
             requestAnimationFrame(() => {
               const scn = scenesRef.current.find((s) => s.id === selectedSceneRef.current);
@@ -1937,7 +1998,6 @@ export const MyContextProvider = ({ children }) => {
     if (!scn?.stageData) return;
     if (!videoWalls?.length) return;
     if (isRunFitStage) return;
-    setIsRunFitStage(true);
     fitStageToMonitors({
       stage: scn.stageData,
       monitors: videoWalls,
@@ -1959,15 +2019,36 @@ export const MyContextProvider = ({ children }) => {
     return () => window.removeEventListener("resize", onResize);
   }, [selectedScene, videoWalls]);
 
-  useEffect(() => {
-    const scn = getSelectedScene();
-    if (!scn?.stageData) return;
+  const [flag, setFlag] = useState(true);
 
+  useEffect(() => {
+    if (flag == false) return;
+
+    const scn = getSelectedScene();
+
+    if (!scn?.stageData) return;
     fitStageToMonitors({
       stage: scn.stageData,
       monitors: videoWalls,
     });
-  }, [selectedSceneRef.current]);
+    if (sourcesRef.current.length <= 0) return;
+    setFlag(false);
+    console.log("sourcesRef::: ", sourcesRef);
+    if (sourcesRef.current.length > 0)
+      sourcesRef.current.forEach((item) => {
+        const node = getSelectedScene()?.layer.findOne(`#${item.externalId}`);
+        if (item.z > 0) {
+          for (let index = 0; index < item.z; index++) {
+            node.moveUp();
+          }
+        } else {
+          for (let index = 0; index > item.z; index--) {
+            node.moveDown();
+          }
+        }
+      });
+  }, [selectedSceneRef.current, sourcesRef.current, flag]);
+
   return (
     <MyContext.Provider
       value={{

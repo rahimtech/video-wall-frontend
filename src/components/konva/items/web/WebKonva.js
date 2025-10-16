@@ -32,6 +32,8 @@ export const addWeb = async ({
         source: "iframe:" + content,
         x: targetX,
         y: targetY,
+        z: webResource?.z,
+
         width: 1920,
         height: 1080,
         name: content,

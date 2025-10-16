@@ -28,11 +28,11 @@ export const addVideo = ({
     // do nothing, animation just needs to update the layer
   }, selectedSceneLayer);
   const modifiedVideoURL =
-    videoElement.type === "VIDEO" || videoElement.type === "STREAM"
+    videoElement.type === "VIDEO"
       ? mode
         ? `video:${url}/${videoElement.content}`
         : `video:${videoElement.videoElement.src}`
-      : videoElement.content;
+      : `video:${videoElement.content}`;
 
   // videoElement.videoElement.src = `${url}/uploads/${videoElement.name}`;
 
@@ -44,6 +44,7 @@ export const addVideo = ({
         source: modifiedVideoURL,
         x: targetX,
         y: targetY,
+        z: videoElement?.z,
         width: videoElement.videoElement.width || videoElement.videoElement.videoWidth,
         height: videoElement.videoElement.height || videoElement.videoElement.videoHeight,
         name: videoElement.name,
@@ -99,6 +100,7 @@ export const addVideo = ({
 
     group.add(image);
     group.add(text);
+
     selectedSceneLayer.add(group);
 
     setSources((prev) => [
@@ -201,154 +203,157 @@ export const addVideo = ({
     v.crossOrigin = v.crossOrigin || "anonymous";
 
     // 2) به جای loadeddata از loadedmetadata استفاده کن
-    const onMeta = async () => {
-      v.removeEventListener("loadedmetadata", onMeta);
+    // const onMeta = async () => {
+    //   v.removeEventListener("loadedmetadata", onMeta);
 
-      const text = new Konva.Text({
-        x: 0,
-        y: 0,
-        text: `${videoElement.name}\n(${videoElement.type})`,
-        fontSize: 30,
-        fill: "black",
-        fontFamily: "Arial",
-        padding: 5,
-        id: String(uniqId),
-        uniqId,
-        align: "center",
-        width: videoElement.width,
-        ellipsis: true,
+    const text = new Konva.Text({
+      x: 0,
+      y: 0,
+      text: `${videoElement.name}\n(${videoElement.type})`,
+      fontSize: 30,
+      fill: "black",
+      fontFamily: "Arial",
+      padding: 5,
+      id: String(uniqId),
+      uniqId,
+      align: "center",
+      width: videoElement.width,
+      ellipsis: true,
+    });
+
+    const group = new Konva.Group({
+      x: mode ? targetX : videoElement.x,
+      y: mode ? targetY : videoElement.y,
+      draggable: false,
+      uniqId,
+      id: String(uniqId),
+      rotation: videoElement.rotation || 0,
+    });
+
+    const vw = videoElement.width || v.videoWidth || 640;
+    const vh = videoElement.height || v.videoHeight || 360;
+
+    const image = new Konva.Image({
+      image: v,
+      width: vw,
+      height: vh,
+      name: "object",
+      fill: "gray",
+      id: String(uniqId),
+      stroke: "white",
+      strokeWidth: 2,
+      uniqId,
+      x: 0,
+      y: 0,
+    });
+
+    group.add(image);
+    group.add(text);
+
+    const node = getSelectedScene()?.layer;
+    console.log("node::: ", node);
+
+    selectedSceneLayer.add(group);
+    if (mode) selectedStage.add(selectedSceneLayer);
+    const transformer = new Konva.Transformer({
+      nodes: [group],
+      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      rotateEnabled: true,
+      id: String(uniqId),
+    });
+    transformer.flipEnabled(false);
+
+    group.on("click", () => {
+      group.draggable(true);
+
+      selectedSceneLayer.add(transformer);
+      transformer.attachTo(group);
+      selectedSceneLayer.draw();
+    });
+
+    transformer.on("transformend", (e) => {
+      const newWidth = image.width() * group.scaleX();
+      const newHeight = image.height() * group.scaleY();
+
+      const rotation = Math.round(group.getAttr("rotation"));
+      const x = group.x();
+      const y = group.y();
+
+      sendOperation("source", {
+        action: "resize",
+        id: e.target.attrs.uniqId,
+        payload: {
+          x,
+          y,
+          width: newWidth,
+          height: newHeight,
+          rotation,
+        },
+      });
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? {
+                ...item,
+                x,
+                y,
+                width: newWidth,
+                height: newHeight,
+                rotation,
+                sceneId: getSelectedScene().id,
+              }
+            : item
+        )
+      );
+    });
+
+    group.on("dragend", (e) => {
+      const { x, y } = e.target.position();
+
+      setSources((prev) =>
+        prev.map((item) =>
+          item.uniqId === e.target.attrs.uniqId
+            ? { ...item, x, y, sceneId: getSelectedScene().id }
+            : item
+        )
+      );
+      sendOperation("source", {
+        action: "move",
+        id: e.target.attrs.uniqId,
+        payload: { x, y },
       });
 
-      const group = new Konva.Group({
-        x: mode ? targetX : videoElement.x,
-        y: mode ? targetY : videoElement.y,
-        draggable: false,
-        uniqId,
-        id: String(uniqId),
-        rotation: videoElement.rotation || 0,
-      });
+      selectedSceneLayer.draw();
+    });
 
-      const vw = videoElement.width || v.videoWidth || 640;
-      const vh = videoElement.height || v.videoHeight || 360;
-
-      const image = new Konva.Image({
-        image: v,
-        width: vw,
-        height: vh,
-        name: "object",
-        fill: "gray",
-        id: String(uniqId),
-        stroke: "white",
-        strokeWidth: 2,
-        uniqId,
-        x: 0,
-        y: 0,
-      });
-
-      group.add(image);
-      group.add(text);
-
-      selectedSceneLayer.add(group);
-      if (mode) selectedStage.add(selectedSceneLayer);
-      const transformer = new Konva.Transformer({
-        nodes: [group],
-        enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-        rotateEnabled: true,
-        id: String(uniqId),
-      });
-      transformer.flipEnabled(false);
-
-      group.on("click", () => {
-        group.draggable(true);
-
-        selectedSceneLayer.add(transformer);
-        transformer.attachTo(group);
-        selectedSceneLayer.draw();
-      });
-
-      transformer.on("transformend", (e) => {
-        const newWidth = image.width() * group.scaleX();
-        const newHeight = image.height() * group.scaleY();
-
-        const rotation = Math.round(group.getAttr("rotation"));
-        const x = group.x();
-        const y = group.y();
-
-        sendOperation("source", {
-          action: "resize",
-          id: e.target.attrs.uniqId,
-          payload: {
-            x,
-            y,
-            width: newWidth,
-            height: newHeight,
-            rotation,
-          },
-        });
-        setSources((prev) =>
-          prev.map((item) =>
-            item.uniqId === e.target.attrs.uniqId
-              ? {
-                  ...item,
-                  x,
-                  y,
-                  width: newWidth,
-                  height: newHeight,
-                  rotation,
-                  sceneId: getSelectedScene().id,
-                }
-              : item
-          )
-        );
-      });
-
-      group.on("dragend", (e) => {
-        const { x, y } = e.target.position();
-
-        setSources((prev) =>
-          prev.map((item) =>
-            item.uniqId === e.target.attrs.uniqId
-              ? { ...item, x, y, sceneId: getSelectedScene().id }
-              : item
-          )
-        );
-        sendOperation("source", {
-          action: "move",
-          id: e.target.attrs.uniqId,
-          payload: { x, y },
-        });
-
-        selectedSceneLayer.draw();
-      });
-
-      v.loop = true;
-      try {
-        // await v.play();
-        // await v.muted();
-        // anim.start();
-      } catch (err) {
-        console.warn("Autoplay blocked, will resume on first user gesture", err);
-        // 4) fallback: اولین تعامل کاربر → همه ویدیوهای معلق پلی شوند
-        const resume = async () => {
-          document.removeEventListener("pointerdown", resume, true);
-          document.removeEventListener("keydown", resume, true);
-          try {
-            // await v.play();
-            // anim.start();
-          } catch (e) {
-            /* نادیده بگیر */
-          }
-        };
-        document.addEventListener("pointerdown", resume, true);
-        document.addEventListener("keydown", resume, true);
-      }
-    };
-
-    if (videoElement.type === "STREAM") {
-      onMeta();
+    v.loop = true;
+    try {
+      // await v.play();
+      // await v.muted();
+      // anim.start();
+    } catch (err) {
+      console.warn("Autoplay blocked, will resume on first user gesture", err);
+      // 4) fallback: اولین تعامل کاربر → همه ویدیوهای معلق پلی شوند
+      const resume = async () => {
+        document.removeEventListener("pointerdown", resume, true);
+        document.removeEventListener("keydown", resume, true);
+        try {
+          // await v.play();
+          // anim.start();
+        } catch (e) {
+          /* نادیده بگیر */
+        }
+      };
+      document.addEventListener("pointerdown", resume, true);
+      document.addEventListener("keydown", resume, true);
     }
-    v.addEventListener("loadedmetadata", onMeta);
   }
+
+  //   if (videoElement.type === "STREAM") {
+  //     onMeta();
+  //   }
+  //   v.addEventListener("loadedmetadata", onMeta);
+  // }
 
   // document.getElementById("play").addEventListener("click", function () {
   //   text.destroy();

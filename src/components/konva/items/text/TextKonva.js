@@ -738,6 +738,11 @@ export const addText = ({
     rotation,
   });
 
+  group.add(textNode);
+  selectedSceneLayer.add(group);
+  // group.zIndex(1);
+  selectedSceneLayer.draw();
+
   // --- ارسال به سرور (در حالت آنلاین) ---
   if (mode) {
     sendOperation("source", {
@@ -748,6 +753,8 @@ export const addText = ({
         name: textItem.name ?? textItem.type,
         x: targetX,
         y: targetY,
+        z: textItem?.z,
+
         width: textNode.width() ?? textItem.width ?? undefined,
         height: textNode.height() ?? textItem.height ?? undefined,
         rotation,
@@ -755,7 +762,6 @@ export const addText = ({
         mediaId: textItem.id,
         externalId: uniqId,
         content: initialText,
-        z: 0,
         source: `${textItem.type.toLowerCase()}:${textItem.content}`,
         metadata: {
           rssContent: textItem.metadata.rssContent || [],
@@ -775,9 +781,6 @@ export const addText = ({
       },
     });
   }
-
-  group.add(textNode);
-  selectedSceneLayer.add(group);
 
   // بعد از تغییر اندازه متن، بک‌رکت را هماهنگ نگه داریم
   function syncBGNormal() {
@@ -926,6 +929,4 @@ export const addText = ({
         align: initialAlign,
       },
     ]);
-
-  selectedSceneLayer.draw();
 };

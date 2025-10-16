@@ -57,10 +57,22 @@ const UsageSidebar = () => {
   } = useMyContext();
 
   // فقط منابعِ صحنهٔ انتخاب‌شده
-  const usageSources = useMemo(
-    () => sources.filter((s) => s.sceneId === getSelectedScene()?.id) ?? [],
-    [sources, selectedScene]
-  );
+  const usageSources = useMemo(() => {
+    const sceneId = getSelectedScene()?.id;
+    if (!sceneId) return [];
+
+    return sources
+      .filter((s) => s.sceneId === sceneId)
+      .slice() // کپیِ آرایه تا منابع اصلی تغییر نکنند
+      .sort((a, b) => {
+        // پشتیبانی از چند نام فیلد (z یا zIndex) و تبدیل به عدد امن
+        const az = Number(a.z ?? a.zIndex ?? 0);
+        const bz = Number(b.z ?? b.zIndex ?? 0);
+
+        // نزولی: مقدار بزرگتر z اول نمایش داده می‌شود (روی لایه جلوتر)
+        return bz - az;
+      });
+  }, [sources, selectedScene /* یا getSelectedScene()?.id اگر می‌خواهید */]);
 
   // --- helpers: انتخاب و هایلایت
   const isSelectedRow = (res) =>
@@ -107,23 +119,52 @@ const UsageSidebar = () => {
     }
   };
 
+  let helperSourceUp = 1;
+  let helperSourceDown = 1;
+
   // --- ترتیب Z
   const moveSource = (id, direction) => {
     const arr = [...sources];
     const idx = arr.findIndex((x) => x.externalId === id);
-    if (idx < 0) return;
+    // if (idx < 0) return;
     const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= arr.length) return;
+    // if (newIdx < 0 || newIdx >= arr.length) return;
+    // console.log("newIdx >= arr.length::: ", newIdx >= arr.length);
 
-    const [moved] = arr.splice(idx, 1);
-    arr.splice(newIdx, 0, moved);
-    setSources(arr);
+    // const [moved] = arr.splice(idx, 1);
+    // arr.splice(newIdx, 0, moved);
+    // setSources(arr);
+    let mainsource;
+
+    setSources((prev) => {
+      let obj = [];
+      for (let index = 0; index < sources.length; index++) {
+        if (sources[index].externalId === id) {
+          if (direction < 0) {
+            helperSourceUp = sources[index].z ?? helperSourceUp;
+            sources[index].z = helperSourceUp + 1;
+            helperSourceUp = sources[index].z;
+            obj.push(sources[index]);
+            mainsource = sources[index];
+          } else {
+            helperSourceDown = sources[index].z ?? helperSourceDown;
+            sources[index].z = helperSourceDown - 1;
+            helperSourceDown = sources[index].z;
+            obj.push(sources[index]);
+            mainsource = sources[index];
+          }
+        } else {
+          obj.push(sources[index]);
+        }
+      }
+      return obj;
+    });
 
     const node = getSelectedScene()?.layer.findOne(`#${id}`);
     if (node) {
       if (direction > 0) node.moveDown();
       else node.moveUp();
-      sendOperation("source", { action: "move", id, payload: { z: node.index } });
+      sendOperation("source", { action: "move", id, payload: { z: mainsource.z } });
       getSelectedScene()?.layer.draw();
     }
   };
@@ -225,6 +266,7 @@ const UsageSidebar = () => {
                     className="min-w-[56px] justify-center p-0"
                   >
                     <div className="flex items-center gap-1">
+                      <span>{resource.z ?? 1}</span>
                       <Icon size={12} />
                       <span className="text-[10px]">{type}</span>
                     </div>

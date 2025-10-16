@@ -328,6 +328,7 @@ const ResourcesSidebar = () => {
             height: 100,
             x: 0,
             y: 0,
+            z: 1,
             rotation: 0,
             metadata: {
               bgColor: "transparent",
@@ -407,6 +408,7 @@ const ResourcesSidebar = () => {
             height: 100,
             name: textInit,
             externalId: id,
+            z: 1,
             metadata: {
               rssContent: [],
               bgColor: "transparent",
@@ -435,6 +437,7 @@ const ResourcesSidebar = () => {
             height: 100,
             x: 0,
             y: 0,
+            z: 1,
             rotation: 0,
             metadata: {
               rssContent: media.metadata.rssContent,
@@ -504,7 +507,7 @@ const ResourcesSidebar = () => {
             height: 1080,
             x: 0,
             y: 0,
-            z: 0,
+            z: 1,
             rotation: 0,
           };
           setResources((prev) => [newResource, ...prev]);
@@ -566,6 +569,7 @@ const ResourcesSidebar = () => {
             height: 360,
             x: 0,
             y: 0,
+            z: 1,
             rotation: 0,
           };
           setResources((prev) => [newResource, ...prev]);
@@ -733,6 +737,7 @@ const ResourcesSidebar = () => {
             height: img.height,
             x: 0,
             y: 0,
+            z: 1,
             rotation: 0,
           };
           setResources((prev) => [newResource, ...prev]);
@@ -761,6 +766,7 @@ const ResourcesSidebar = () => {
           height,
           x: 0,
           y: 0,
+          z: 1,
           rotation: 0,
         };
         setResources((prev) => [newResource, ...prev]);
@@ -1287,7 +1293,7 @@ const ResourcesSidebar = () => {
               }`}
             >
               <div className="flex flex-col gap-3 px-1 pb-2">
-                {["IFRAME", "TEXT", "RSS"].map((t) => {
+                {["IFRAME", "TEXT", "STREAM", "RSS"].map((t) => {
                   const Icon = TYPE_META[t].icon;
                   const items = groupedResources[t];
 

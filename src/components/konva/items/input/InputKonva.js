@@ -57,6 +57,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
         source: "input:" + input.content,
         x: targetX,
         y: targetY,
+        z: input?.z,
         width: input.width,
         height: input.height,
         name: input.name,
