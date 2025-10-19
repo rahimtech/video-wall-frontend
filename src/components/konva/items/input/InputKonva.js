@@ -2,6 +2,18 @@ import { v4 as uuidv4 } from "uuid";
 
 export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
   let uniqId = mode ? uuidv4() : input.externalId;
+  console.log("input.metadata?.native::: ", input);
+  let native = input.metadata?.native || false;
+  console.log("native111::: ", native);
+  if (mode) {
+    if (confirm("آیا با رزولیشن دستگاه ساخته شود")) {
+      native = true;
+    } else {
+      native = false;
+    }
+  }
+  console.log("native222::: ", native);
+
   // let uniqId = input.externalId;
 
   const targetX = Number.isFinite(input?.x) ? input.x : 0;
@@ -65,9 +77,9 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
         sceneId: getSelectedScene().id,
         content: input.content,
         mediaId: input.id,
+        source: "input:" + input.content,
         metadata: {
-          source: "input:" + input.content,
-          native: false, // Try to capture at 4K
+          native: native, // Try to capture at 4K
         },
       },
     });

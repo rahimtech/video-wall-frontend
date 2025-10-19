@@ -791,7 +791,7 @@ export const MyContextProvider = ({ children }) => {
   function contentGenerator(type, item) {
     let endObj;
     if (type === "INPUT") {
-      endObj = { name: item.name ?? "INPUT", externalId: item.externalId };
+      endObj = { name: item.name ?? "INPUT", externalId: item.externalId, metadata: item.metadata };
     } else if (type === "IMAGE") {
       const imageURL = `${urlRef.current}/${item.media?.content || item.content}`;
       const img = new Image();
