@@ -62,6 +62,8 @@ export const addScene = async ({
   );
 
   setScenes((prevScenes) => [...prevScenes, newScene]);
+  localStorage.setItem("sceneId", newId);
+
   setSelectedScene(newId);
   // selectedCollection();
 
@@ -160,6 +162,8 @@ export const deleteScene = ({
             setScenes(updatedScenes);
             setSources(updatedSourcesUsage);
             if (selectedScene === id && updatedScenes.length > 0) {
+              localStorage.setItem("sceneId", updatedScenes[0].id);
+
               setSelectedScene(updatedScenes[0].id);
             }
             return;
@@ -184,6 +188,8 @@ export const deleteScene = ({
       setScenes(updatedScenes);
       setSources(updatedSourcesUsage);
       if (selectedScene === id && updatedScenes.length > 0) {
+        localStorage.setItem("sceneId", updatedScenes[0].id);
+
         setSelectedScene(updatedScenes[0].id);
       }
     }

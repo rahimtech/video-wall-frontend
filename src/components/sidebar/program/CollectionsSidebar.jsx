@@ -60,6 +60,10 @@ const CollectionsSidebar = () => {
 
   const handleCollectionClick = (key) => {
     setSelectedCollection(key);
+    localStorage.setItem(
+      "sceneId",
+      collections.find((item) => item.id == key)?.schedules[0]?.scene_id ?? null
+    );
     setSelectedScene(collections.find((item) => item.id == key)?.schedules[0]?.scene_id ?? null);
   };
 
@@ -113,6 +117,7 @@ const CollectionsSidebar = () => {
         setCollections((prev) => [...prev, newCol]);
 
         setSelectedCollection(newCol.id);
+        localStorage.removeItem("sceneId");
         setSelectedScene(null);
       } catch (err) {
         console.log(err);
@@ -162,6 +167,7 @@ const CollectionsSidebar = () => {
 
   const handleSceneSelection = async (scene) => {
     if (selectedScene == scene.id) return;
+    localStorage.setItem("sceneId", scene.id);
     setSelectedScene(scene.id);
     const selectedLayer = scenes.find((sceneItem) => sceneItem.id === scene.id).layer;
     let sceneTarget = scenes.find((sceneItem) => sceneItem.id === scene.id);

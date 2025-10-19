@@ -125,10 +125,14 @@ const UsageSidebar = () => {
   // --- ترتیب Z
   const moveSource = (id, direction) => {
     const arr = [...sources];
-    const idx = arr.findIndex((x) => x.externalId === id);
+    const idx = arr.find((x) => x.externalId === id).z ?? 0;
+
+    console.log("idx::: ", idx);
+
     // if (idx < 0) return;
-    const newIdx = idx + direction;
-    // if (newIdx < 0 || newIdx >= arr.length) return;
+    const newIdx = idx + -direction;
+    console.log("newIdx::: ", newIdx);
+    if (newIdx < 0 || newIdx >= arr.length) return;
     // console.log("newIdx >= arr.length::: ", newIdx >= arr.length);
 
     // const [moved] = arr.splice(idx, 1);

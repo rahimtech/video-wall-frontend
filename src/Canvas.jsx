@@ -1022,7 +1022,7 @@ export default function Canvas({
           <Select
             size="sm"
             aria-label="انتخاب مانیتور کالیبراسیون"
-            className="min-w-[160px]"
+            className={`${darkMode ? "dark" : "light"} min-w-[160px]`}
             selectedKeys={calibMonitorId ? [String(calibMonitorId)] : []}
             onChange={(e) => setCalibMonitorId(Number(e.target.value))}
           >

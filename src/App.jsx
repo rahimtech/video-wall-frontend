@@ -481,11 +481,7 @@ function App() {
         title={
           getSelectedScene()?.name ? `${getSelectedScene()?.name} فعال است` : "خطا در دریافت صحنه"
         }
-        subtitle={
-          collections.find((item) =>
-            item.schedules.find((item2) => item2.scene.id == selectedScene)
-          )?.name || "اختصاص داده نشده"
-        }
+        subtitle={null}
         scenes={scenes}
         selectedScene={selectedScene}
         handleDragOver={handleDragOver}

@@ -65,7 +65,10 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
         sceneId: getSelectedScene().id,
         content: input.content,
         mediaId: input.id,
-        metadata: { source: "input:" + input.content },
+        metadata: {
+          source: "input:" + input.content,
+          native: false, // Try to capture at 4K
+        },
       },
     });
   }

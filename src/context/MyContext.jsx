@@ -899,13 +899,28 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const handleSourceEvent = useCallback(({ action, payload, id }) => {
+    console.log("payload::: ", payload);
+    if (!sourcesRef.current) return;
     if (isRealTimeRef.current) {
       const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
       const scene = getScene();
       if (!scene || !scene.layer) return;
+      const nodes = scene.layer.find(`#${id}`);
+
+      // destroy all nodes that match
+      nodes.forEach((node) => {
+        node.destroy();
+      });
+
+      // redraw layer
+      scene.layer.batchDraw();
+
+      const exist = sourcesRef.current.find((item) => item.externalId == id);
+      console.log("exist::: ", exist);
+      if (!exist) return;
       switch (action) {
         case "add": {
-          const { endObj, type } = contentGenerator(payload.type, payload);
+          const { endObj, type } = contentGenerator(payload.type || payload.media.type, payload);
           console.log("T1");
           const getSelected = () => getScene();
           if (type === "VIDEO") {
@@ -1366,6 +1381,7 @@ export const MyContextProvider = ({ children }) => {
           setScenes,
         });
         setScenes(result);
+        localStorage.setItem("sceneId", 1);
         setSelectedScene(1);
       }
     }
@@ -1476,10 +1492,10 @@ export const MyContextProvider = ({ children }) => {
 
   useEffect(() => {
     selectedSceneRef.current = selectedScene;
+
     async function sceneINDEX() {
       if (!getSelectedScene()?.id) return;
       const newScene = await api.getSceneById(`http://${host}:${port}`, getSelectedScene()?.id);
-      console.log("newScene::: ", newScene);
       // console.log('fetchDataScene[0].id::: ', );
       const integratedSource = newScene?.sources
         .slice() // کپیِ آرایه تا منابع اصلی تغییر نکنند
@@ -1491,22 +1507,19 @@ export const MyContextProvider = ({ children }) => {
           // نزولی: مقدار بزرگتر z اول نمایش داده می‌شود (روی لایه جلوتر)
           return bz - az;
         });
-      console.log("integratedSource::: ", integratedSource);
-      if (integratedSource) console.log("TWRWERWER");
-      integratedSource.forEach((item) => {
-        console.log("item::: ", item);
-        const node = getSelectedScene()?.layer.findOne(`#${item.externalId}`);
-        console.log("node::: ", node);
-        if (item.z > 0) {
-          for (let index = 0; index < item.z; index++) {
-            node?.moveUp();
+      if (integratedSource)
+        integratedSource.forEach((item) => {
+          const node = getSelectedScene()?.layer.findOne(`#${item.externalId}`);
+          if (item.z > 0) {
+            for (let index = 0; index < item.z; index++) {
+              node?.moveUp();
+            }
+          } else {
+            for (let index = 0; index > item.z; index--) {
+              node?.moveDown();
+            }
           }
-        } else {
-          for (let index = 0; index > item.z; index--) {
-            node?.moveDown();
-          }
-        }
-      });
+        });
     }
 
     sceneINDEX();
@@ -1637,23 +1650,25 @@ export const MyContextProvider = ({ children }) => {
             await initData();
             setVideoWalls(displays);
 
-            addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
-            const newScene = await api.getSceneById(`http://${host}:${port}`, fetchDataScene[0].id);
-            // console.log('fetchDataScene[0].id::: ', );
+            const savedScene = parseInt(localStorage.getItem("sceneId"));
+            let checkSavedScene = savedScene ?? fetchDataScene[0].id;
 
+            addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
+
+            const newScene = await api.getSceneById(`http://${host}:${port}`, checkSavedScene);
             const integratedSource = newScene.sources
-              .filter((s) => s.sceneId === fetchDataScene[0].id)
-              .slice() // کپیِ آرایه تا منابع اصلی تغییر نکنند
+              .filter((s) => s.sceneId == checkSavedScene)
+              .slice()
               .sort((a, b) => {
-                // پشتیبانی از چند نام فیلد (z یا zIndex) و تبدیل به عدد امن
                 const az = Number(a.z ?? a.zIndex ?? 0);
                 const bz = Number(b.z ?? b.zIndex ?? 0);
 
-                // نزولی: مقدار بزرگتر z اول نمایش داده می‌شود (روی لایه جلوتر)
                 return bz - az;
               });
             setSources(integratedSource);
-            generateScene(integratedSource, fetchDataScene[0]);
+            const sceneNeedToGenerating = fetchDataScene.find((item) => item.id == checkSavedScene);
+            console.log("sceneNeedToGenerating::: ", sceneNeedToGenerating);
+            generateScene(integratedSource, sceneNeedToGenerating);
             setMonitorConnection(true);
             requestAnimationFrame(() => {
               const scn = scenesRef.current.find((s) => s.id === selectedSceneRef.current);
@@ -1901,6 +1916,7 @@ export const MyContextProvider = ({ children }) => {
         setSelectedCollection(fetchDataColl[0]?.id);
 
         const dataSen = await api.getScenes(url);
+        console.log("dataSen::: ", dataSen);
         fetchDataScene =
           dataSen?.map((item) => ({
             name: item.name,
@@ -1909,6 +1925,8 @@ export const MyContextProvider = ({ children }) => {
             stageData: null,
             layer: new Konva.Layer(),
           })) ?? [];
+        console.log("fetchDataScene::: ", fetchDataScene);
+
         if (fetchDataScene.length >= 0) {
           setScenes(fetchDataScene);
         } else {
@@ -1921,8 +1939,9 @@ export const MyContextProvider = ({ children }) => {
           });
         }
 
-        const selectedScene = fetchDataScene[0];
-        setSelectedScene(fetchDataScene[0].id);
+        const selectedScene = parseInt(localStorage.getItem("sceneId"));
+        if (!selectedScene) localStorage.setItem("sceneId", fetchDataScene[0].id);
+        setSelectedScene(selectedScene ?? fetchDataScene[0].id);
       } catch (err) {
         console.log(err);
       } finally {
@@ -1998,6 +2017,8 @@ export const MyContextProvider = ({ children }) => {
     if (!scn?.stageData) return;
     if (!videoWalls?.length) return;
     if (isRunFitStage) return;
+    setIsRunFitStage(true);
+
     fitStageToMonitors({
       stage: scn.stageData,
       monitors: videoWalls,
@@ -2033,17 +2054,16 @@ export const MyContextProvider = ({ children }) => {
     });
     if (sourcesRef.current.length <= 0) return;
     setFlag(false);
-    console.log("sourcesRef::: ", sourcesRef);
     if (sourcesRef.current.length > 0)
       sourcesRef.current.forEach((item) => {
         const node = getSelectedScene()?.layer.findOne(`#${item.externalId}`);
         if (item.z > 0) {
           for (let index = 0; index < item.z; index++) {
-            node.moveUp();
+            node?.moveUp();
           }
         } else {
           for (let index = 0; index > item.z; index--) {
-            node.moveDown();
+            node?.moveDown();
           }
         }
       });

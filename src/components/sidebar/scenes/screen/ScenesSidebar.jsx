@@ -37,7 +37,8 @@ const ScenesSidebar = () => {
 
   const handleSceneSelection = async (scene) => {
     if (selectedScene == scene.id) return;
-    console.log("scene.id::: ", scene.id);
+    localStorage.setItem("sceneId", scene.id);
+
     setSelectedScene(scene.id);
     const selectedLayer = scenes.find((sceneItem) => sceneItem.id === scene.id).layer;
     let sceneTarget = scenes.find((sceneItem) => sceneItem.id === scene.id);
