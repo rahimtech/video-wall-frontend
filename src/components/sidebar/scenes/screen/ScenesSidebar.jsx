@@ -129,8 +129,8 @@ const ScenesSidebar = () => {
                     selectedScene === scene.id
                       ? "bg-blue-500 text-white"
                       : darkMode
-                      ? "bg-green-800 hover:bg-gray-700"
-                      : "bg-green-400 hover:bg-gray-500"
+                      ? " bg-gray-500 hover:bg-gray-700"
+                      : "bg-gray-500 hover:bg-gray-500"
                   }`}
                   onDoubleClick={() => setEditingSceneId(scene.id)}
                   onClick={() => handleSceneSelection(scene)}

@@ -587,6 +587,7 @@ const ResourcesSidebar = () => {
       cancelButtonColor: "#d33",
       confirmButtonText: "بله",
     });
+    console.log(sources);
 
     if (!result.isConfirmed) return;
 
@@ -641,9 +642,11 @@ const ResourcesSidebar = () => {
 
       // رفرش صفحه Konva
       getSelectedScene()?.layer.draw();
-
       // به‌روزرسانی state منابع
-      setSources((prev) => prev.filter((item) => item.media?.id != id));
+
+      setSources((prev) => {
+        return prev.filter((item) => (item?.media?.id || item.id) != id);
+      });
 
       // حذف از collections
       setCollections((prev) =>

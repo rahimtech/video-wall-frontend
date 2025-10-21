@@ -1334,14 +1334,14 @@ export default function SecuritySettingsModal({ darkMode }) {
                                   setEditingUser((s) => ({ ...s, lastName: e.target.value }))
                                 }
                               />
-                              <Input
+                              {/* <Input
                                 label="پسوورد"
                                 type="password"
                                 value={editingUser.password}
                                 onChange={(e) =>
                                   setEditingUser((s) => ({ ...s, password: e.target.value }))
                                 }
-                              />
+                              /> */}
                               <div className="md:col-span-2 flex items-center gap-3">
                                 <Checkbox
                                   isSelected={editingUser.isActive}

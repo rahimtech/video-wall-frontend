@@ -1521,22 +1521,22 @@ export const MyContextProvider = ({ children }) => {
 
   useEffect(() => {
     const hostURL = window.location.hostname;
-    // if (!localStorage.getItem("host")) {
-    //   if (localStorage.getItem("host")) {
-    //     localStorage.setItem("host", config.host);
-    //   } else {
-    //     localStorage.setItem("host", hostURL);
-    //   }
-    //   localStorage.setItem("port", config.port);
-    // } else {
-    //   host = localStorage.getItem("host");
-    //   localStorage.setItem("port", 4000);
-    //   port = localStorage.getItem("port") || 4000;
-    // }
+    if (!localStorage.getItem("host")) {
+      if (localStorage.getItem("host")) {
+        localStorage.setItem("host", config.host);
+      } else {
+        localStorage.setItem("host", hostURL);
+      }
+      localStorage.setItem("port", config.port);
+    } else {
+      host = localStorage.getItem("host");
+      localStorage.setItem("port", 4000);
+      port = localStorage.getItem("port") || 4000;
+    }
 
     // PRODUCTION_MODE
-    host = hostURL || localStorage.setItem("host", hostURL);
-    port = 4000;
+    // host = hostURL || localStorage.setItem("host", hostURL);
+    // port = 4000;
     const u = `http://${host}:${port}`;
     setUrl(u);
     urlRef.current = u;

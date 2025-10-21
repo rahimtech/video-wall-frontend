@@ -91,6 +91,13 @@ const ModalTimeLine = ({
         newTimeline = [...prev, newLine];
 
         // updateCollectionSchedules(newTimeline);
+        const colEndPoint = collections.map((col) => {
+          if (col.id === collectionSelected.id) {
+            return { ...col, schedules: newTimeline };
+          }
+          return col;
+        });
+        setCollections(colEndPoint);
 
         return newTimeline;
       });
@@ -140,6 +147,13 @@ const ModalTimeLine = ({
     setTimeLine((prev) => {
       const newTimeline = changeOrderTimeLine(prev);
       // updateCollectionSchedules(newTimeline);
+      const colEndPoint = collections.map((col) => {
+        if (col.id === collectionSelected.id) {
+          return { ...col, schedules: newTimeline };
+        }
+        return col;
+      });
+      setCollections(colEndPoint);
       return newTimeline;
     });
 
@@ -160,6 +174,13 @@ const ModalTimeLine = ({
     setTimeLine((prev) => {
       const newTimeline = changeOrderTimeLine(prev);
       // updateCollectionSchedules(newTimeline);
+      const colEndPoint = collections.map((col) => {
+        if (col.id === collectionSelected.id) {
+          return { ...col, schedules: newTimeline };
+        }
+        return col;
+      });
+      setCollections(colEndPoint);
       return newTimeline;
     });
 
@@ -312,7 +333,7 @@ const ModalTimeLine = ({
                           className={`flex items-center justify-between p-3 shadow-md bg-gray-100 text-black rounded-md`}
                         >
                           <div className="text-sm">
-                            <strong dir="rtl">{entry.scene.name}:</strong>
+                            <strong dir="rtl">{entry?.scene?.name}:</strong>
                             {/* {collectionScenes.find((s) => s.id === entry.scene_id)?.name} */}
                             {/* <br />
                             <strong>تاریخ:</strong> {entry.startDate} تا {entry.endDate}
