@@ -121,8 +121,6 @@ export default function Auth() {
                 />
                 <Input
                   onChange={(e) => {
-                    console.log("password::: ", password);
-                    console.log("e.target.value::: ", e.target.value);
                     if (e.target.value != password) {
                       setErrorHandle(true);
                     } else {

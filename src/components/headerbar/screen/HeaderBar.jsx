@@ -475,7 +475,7 @@ const HeaderBar = ({ toggleLayout }) => {
       {/* تنظیمات شبکه */}
       {/* PRODUCTION_MODE */}
 
-      <Button
+      {/* <Button
         size="sm"
         color={connecting ? "success" : "danger"}
         variant="solid"
@@ -584,7 +584,7 @@ const HeaderBar = ({ toggleLayout }) => {
         }}
       >
         <PiNetwork size={18} /> <span>شبکه</span>
-      </Button>
+      </Button> */}
 
       {/* پنهان‌سازی */}
       <Button
