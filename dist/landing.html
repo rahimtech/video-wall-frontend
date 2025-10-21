@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VideoWall Controller — لندینگ‌پیج</title>
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html { scroll-behavior: smooth; }
+      body { background: radial-gradient(1200px 600px at 80% -10%, rgba(56,189,248,.35), transparent),
+                               radial-gradient(900px 500px at -10% 20%, rgba(168,85,247,.25), transparent),
+                               radial-gradient(1200px 600px at 50% 120%, rgba(34,197,94,.2), transparent), #0b1020; }
+      .glass { backdrop-filter: blur(10px); background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.15); }
+      .hero-tilt { transform-style: preserve-3d; perspective: 1200px; }
+      .tile { transform-style: preserve-3d; }
+      .card-3d { transform-style: preserve-3d; }
+      .ring-float { animation: ring 12s linear infinite; }
+      @keyframes ring { 0%{ transform: rotate(0deg) translateY(0);} 50%{ transform: rotate(180deg) translateY(-6px);} 100%{ transform: rotate(360deg) translateY(0);} }
+    </style>
+  </head>
+  <body class="text-slate-200 selection:bg-sky-400/30 selection:text-white">
+    <!-- Navbar -->
+    <header class="sticky top-0 z-40 border-b border-white/10 bg-white/5 backdrop-blur">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <a href="#hero" class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-400 to-fuchsia-500 ring-2 ring-white/20 shadow"></span>
+          <span class="font-extrabold">VideoWall Controller</span>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm text-slate-300">
+          <a href="#features" class="hover:text-white">قابلیت‌ها</a>
+          <a href="#showcase" class="hover:text-white">نمایش سه‌بعدی</a>
+          <a href="#how" class="hover:text-white">چطور کار می‌کند؟</a>
+          <a href="#cta" class="hover:text-white">شروع سریع</a>
+        </nav>
+        <div class="flex items-center gap-2">
+          <a href="/docs/" class="hidden sm:inline-flex px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/20 border border-white/15">مستندات</a>
+          <a href="#cta" class="px-3 py-1.5 rounded-lg text-xs bg-sky-500 hover:bg-sky-400 text-white">شروع</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section id="hero" class="relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 py-16 md:py-24">
+        <div class="grid grid-cols-12 gap-8 items-center">
+          <div class="col-span-12 md:col-span-6 space-y-6">
+            <div class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-sky-300">
+              <span class="w-2 h-2 rounded-full bg-green-400 ring ring-green-400/30"></span>
+              کنترل هوشمند ویدیووال — Real-time
+            </div>
+            <h1 class="text-3xl md:text-5xl font-black leading-tight">
+              کنترل، چیدمان و پایش ویدیووال‌ها با یک پنل مدرن
+            </h1>
+            <p class="text-slate-300/90 leading-8">
+              با VideoWall Controller صحنه‌ها را طراحی کنید، منابع را روی مانیتورها بچینید و به‌صورت بلادرنگ وضعیت را پایش کنید.
+              انیمیشن‌های اسکرولی و تعامل سه‌بعدی یک تجربه متمایز ارائه می‌دهند.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+              <a href="#cta" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold">همین حالا شروع کن</a>
+              <a href="#showcase" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15">نمایش سه‌بعدی</a>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-slate-300/80">
+              <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Socket.IO</span>
+              <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span> Konva</span>
+              <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> React + Vite</span>
+            </div>
+          </div>
+
+          <!-- 3D Wall -->
+          <div class="col-span-12 md:col-span-6">
+            <div id="wallScene" class="hero-tilt relative mx-auto w-full aspect-[4/3] rounded-2xl border border-white/10 glass shadow-2xl">
+              <div class="absolute inset-0 rounded-2xl bg-gradient-to-tr from-sky-500/10 via-fuchsia-500/10 to-emerald-400/10"></div>
+              <!-- Floating rings -->
+              <div class="ring-float absolute -left-10 -top-10 w-40 h-40 rounded-full border-4 border-fuchsia-400/30"></div>
+              <div class="ring-float absolute -right-6 top-16 w-24 h-24 rounded-full border-4 border-sky-400/30"></div>
+              <div class="ring-float absolute right-16 -bottom-10 w-32 h-32 rounded-full border-4 border-emerald-400/30"></div>
+
+              <!-- Tiles grid -->
+              <div id="tiles" class="absolute inset-5 grid grid-cols-4 grid-rows-3 gap-3">
+                <!-- 12 tiles -->
+                <template id="tileTemplate">
+                  <div class="tile relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 border border-white/15 shadow-lg overflow-hidden">
+                    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,.06),transparent_60%)]"></div>
+                    <div class="absolute bottom-2 left-2 text-[10px] text-white/70">MON</div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="relative py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-extrabold mb-8">قابلیت‌های برجسته</h2>
+        <div class="grid grid-cols-12 gap-5">
+          <!-- Cards -->
+          <div class="card-3d col-span-12 sm:col-span-6 lg:col-span-3 glass border rounded-2xl p-5">
+            <div class="text-sky-300 font-bold">چیدمان مجازی</div>
+            <p class="mt-2 text-sm text-slate-300">گرید تکی/جمعی، گروه‌بندی مانیتورها و جایگذاری خودکار منابع با یک کلیک.</p>
+          </div>
+          <div class="card-3d col-span-12 sm:col-span-6 lg:col-span-3 glass border rounded-2xl p-5">
+            <div class="text-fuchsia-300 font-bold">بلادرنگ</div>
+            <p class="mt-2 text-sm text-slate-300">اتصال Socket.IO، پایش وضعیت مانیتورها و اعمال تغییرات آنی.</p>
+          </div>
+          <div class="card-3d col-span-12 sm:col-span-6 lg:col-span-3 glass border rounded-2xl p-5">
+            <div class="text-emerald-300 font-bold">درگ‌ـ‌دراپ</div>
+            <p class="mt-2 text-sm text-slate-300">افزودن تصویر/ویدیو/ورودی/وب به صحنه‌ها با کشیدن و رهاکردن.</p>
+          </div>
+          <div class="card-3d col-span-12 sm:col-span-6 lg:col-span-3 glass border rounded-2xl p-5">
+            <div class="text-amber-300 font-bold">مدیریت برنامه‌ها</div>
+            <p class="mt-2 text-sm text-slate-300">تعریف برنامه‌ها، زمان‌بندی‌ها و سناریوهای پخش منظم.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3D Showcase (Scroll) -->
+    <section id="showcase" class="relative py-16 md:py-28 overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-12 gap-8 items-center">
+          <div class="col-span-12 md:col-span-6 order-2 md:order-1">
+            <h3 class="text-xl md:text-2xl font-extrabold mb-4">نمایش سه‌بعدی و پارالاکس</h3>
+            <p class="text-slate-300 leading-8">
+              با اسکرول، کاشی‌های ویدیووال به‌صورت استَگِر از هم جدا می‌شوند، می‌چرخند و دوباره کنار هم قرار می‌گیرند.
+              کارت‌ها نسبت به حرکت ماوس در عمق می‌چرخند و نمایی زنده ایجاد می‌کنند.
+            </p>
+          </div>
+          <div class="col-span-12 md:col-span-6 order-1 md:order-2">
+            <div id="stage3d" class="relative w-full aspect-[16/10] rounded-2xl border border-white/10 glass">
+              <div id="stack" class="absolute inset-5 grid grid-cols-5 grid-rows-3 gap-3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="relative py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-extrabold mb-8">چطور کار می‌کند؟</h2>
+        <div class="grid grid-cols-12 gap-6">
+          <div class="col-span-12 md:col-span-4 glass border rounded-xl p-5">
+            <div class="text-sky-300 font-bold">۱) اتصال</div>
+            <p class="mt-2 text-sm text-slate-300">اتصال به درایور ویدیووال با Socket.IO (host/port از config.json).</p>
+          </div>
+          <div class="col-span-12 md:col-span-4 glass border rounded-xl p-5">
+            <div class="text-fuchsia-300 font-bold">۲) صحنه‌ها</div>
+            <p class="mt-2 text-sm text-slate-300">ساخت صحنه‌ها، چیدمان مانیتورها، و افزودن منابع روی Konva Stage.</p>
+          </div>
+          <div class="col-span-12 md:col-span-4 glass border rounded-xl p-5">
+            <div class="text-emerald-300 font-bold">۳) اجرا</div>
+            <p class="mt-2 text-sm text-slate-300">پخش برنامه‌ها، پایش وضعیت و انجام عملیات آنی.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta" class="relative py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="glass border rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <h3 class="text-xl md:text-2xl font-extrabold">شروع سریع</h3>
+            <p class="text-slate-300 mt-2 text-sm">نصب وابستگی‌ها و اجرای محیط توسعه:</p>
+            <pre class="mt-3 bg-slate-900 text-slate-100 rounded-lg p-3 text-xs"><code>npm install
+npm run dev</code></pre>
+          </div>
+          <div class="flex items-center gap-3">
+            <a href="/docs/" class="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15">مستندات</a>
+            <a href="/" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold">ورود به برنامه</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="py-10 text-center text-xs text-slate-400/80 border-t border-white/10">
+      ساخته‌شده با ❤️ — VideoWall Controller
+    </footer>
+
+    <!-- GSAP -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js"></script>
+    <script>
+      // Register
+      if (window.gsap && window.ScrollTrigger) {
+        gsap.registerPlugin(ScrollTrigger);
+      }
+
+      // Create tiles for hero wall
+      (function initHeroTiles(){
+        const wrap = document.getElementById('tiles');
+        const tpl = document.getElementById('tileTemplate');
+        for(let i=1;i<=12;i++){
+          const node = tpl.content.firstElementChild.cloneNode(true);
+          node.querySelector('.absolute.bottom-2').textContent = `MON ${i}`;
+          wrap.appendChild(node);
+        }
+      })();
+
+      // Create stack tiles in showcase
+      (function initStack(){
+        const stack = document.getElementById('stack');
+        for(let i=1;i<=15;i++){
+          const el = document.createElement('div');
+          el.className = 'tile relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 border border-white/15 shadow-lg overflow-hidden';
+          const badge = document.createElement('div');
+          badge.className = 'absolute bottom-2 left-2 text-[10px] text-white/70';
+          badge.textContent = `TILE ${i}`;
+          el.appendChild(badge);
+          stack.appendChild(el);
+        }
+      })();
+
+      // Hero entrance animation
+      gsap.set('#wallScene',{ rotateY:-14, rotateX:8, y:20, transformPerspective:1200 });
+      gsap.from('#hero h1',{ y:40, opacity:0, duration:0.9, ease:'power3.out' });
+      gsap.from('#hero p',{ y:20, opacity:0, duration:0.8, delay:.2, ease:'power3.out' });
+      gsap.from('#hero a',{ y:10, opacity:0, duration:0.6, delay:.35, stagger:.05, ease:'power2.out' });
+
+      // Hero parallax tilt by mouse
+      const wall = document.getElementById('wallScene');
+      wall.addEventListener('mousemove', (e)=>{
+        const r = wall.getBoundingClientRect();
+        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+        const dx = (e.clientX - cx) / r.width;  // -0.5..0.5
+        const dy = (e.clientY - cy) / r.height; // -0.5..0.5
+        gsap.to('#wallScene',{ rotateY: -14 + dx*12, rotateX: 8 - dy*10, duration: .3, ease:'power2.out' });
+      });
+      wall.addEventListener('mouseleave', ()=> gsap.to('#wallScene',{ rotateY:-14, rotateX:8, duration:.6, ease:'power3.out' }));
+
+      // Tiles subtle float
+      gsap.utils.toArray('#tiles .tile').forEach((t,i)=>{
+        gsap.to(t,{ y: gsap.utils.random(-6,6), x: gsap.utils.random(-4,4), rotateZ: gsap.utils.random(-1,1), duration: gsap.utils.random(2,3.5), yoyo:true, repeat:-1, ease:'sine.inOut', delay: i*0.05 });
+      });
+
+      // Cards 3D tilt on hover
+      document.querySelectorAll('.card-3d').forEach((card)=>{
+        card.addEventListener('mousemove', (e)=>{
+          const r = card.getBoundingClientRect();
+          const rx = ((e.clientY - r.top)/r.height - .5) * -12;
+          const ry = ((e.clientX - r.left)/r.width - .5) * 12;
+          gsap.to(card,{ rotateX: rx, rotateY: ry, duration:.2, transformPerspective:800 });
+        });
+        card.addEventListener('mouseleave', ()=> gsap.to(card,{ rotateX:0, rotateY:0, duration:.5, ease:'power3.out' }));
+      });
+
+      // Scroll scene: split & rotate tiles in showcase
+      if (window.ScrollTrigger) {
+        const tiles = gsap.utils.toArray('#stack .tile');
+        gsap.set('#stage3d',{ rotateX:10, rotateY:-10, transformPerspective:1200 });
+        tiles.forEach((t, i)=>{
+          gsap.set(t,{ z: gsap.utils.random(-80,80), rotateY: gsap.utils.random(-12,12), rotateX: gsap.utils.random(-8,8) });
+        });
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: '#showcase', start: 'top 70%', end: 'bottom 30%', scrub: true,
+          }
+        })
+        .to('#stage3d',{ rotateY:10, rotateX:-6, ease:'none' }, 0)
+        .to(tiles,{
+          x: (i)=> (i%5 - 2)*30,
+          y: (i)=> (Math.floor(i/5) - 1)*30,
+          z: (i)=> gsap.utils.random(-120,120),
+          rotateY:(i)=> gsap.utils.random(-30,30),
+          rotateX:(i)=> gsap.utils.random(-18,18),
+          stagger: { each: .02 }, ease:'none'
+        }, 0)
+        .to(tiles,{ x:0, y:0, z:0, rotateY:0, rotateX:0, stagger:{ each:.02 }, ease:'none' }, 0.6);
+
+        // Feature cards pop on scroll
+        gsap.from('#features .card-3d',{
+          y: 40, opacity: 0, rotateX: 8, transformPerspective: 900,
+          duration: .8, ease: 'power3.out', stagger: .1,
+          scrollTrigger: { trigger: '#features', start: 'top 70%' }
+        });
+      }
+    </script>
+  </body>
+  </html>
+

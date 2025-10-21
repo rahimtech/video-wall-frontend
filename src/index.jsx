@@ -4,6 +4,7 @@ import App from "./App.jsx";
 import "./style/input.css";
 import { MyContextProvider } from "./context/MyContext";
 import config from "../public/config.json";
+import Swal from "sweetalert2";
 
 // ---------------------------
 // Helper: parse JWT payload safely
@@ -525,7 +526,10 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 
 const Main = () => {
   const [checkLogin, setCheckLogin] = useState(() => localStorage.getItem("isLoggedIn") === "true");
-
+  // useEffect(() => {
+  //   localStorage.setItem("host", window.location.hostname);
+  //   localStorage.setItem("port", 4000);
+  // }, []);
   return (
     <AuthProvider>
       <MyContextProvider>

@@ -1,14 +1,26 @@
+import Swal from "sweetalert2";
 import { v4 as uuidv4 } from "uuid";
 
 export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
   let uniqId = mode ? uuidv4() : input.externalId;
   let native = input.metadata?.native || false;
+
   if (mode) {
-    if (confirm("آیا با رزولیشن دستگاه ساخته شود")) {
-      native = true;
-    } else {
-      native = false;
-    }
+    Swal.fire({
+      title: "رزولیشن ورودی را مشخص کنید",
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "معمولی",
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "gray",
+      confirmButtonText: "بالا",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        native = false;
+      } else {
+        native = true;
+      }
+    });
   }
 
   // let uniqId = input.externalId;

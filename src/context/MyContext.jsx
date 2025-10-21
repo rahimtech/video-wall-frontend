@@ -475,9 +475,9 @@ export const MyContextProvider = ({ children }) => {
   const [flagReset, setFlagReset] = useState(false);
   const [dataDrag, setDataDrag] = useState({});
   const [filteredScenes, setFilteredScenes] = useState([]);
-  const [isChangeRealTime, setIsChangeRealTime] = useState(ChangeRT.CANCEL);
+  const [isChangeRealTime, setIsChangeRealTime] = useState(false);
   const [dataChangeRealTime, setDataChangeRealTime] = useState([]);
-  const [isRealTime, setIsRealTime] = useState(true);
+  const [isRealTime, setIsRealTime] = useState(false);
   const isRealTimeRef = useRef(isRealTime);
 
   const [isRunFitStage, setIsRunFitStage] = useState(false);
@@ -849,13 +849,39 @@ export const MyContextProvider = ({ children }) => {
     return { endObj, type };
   }
 
+  // برای دیباگ بهتر، این را به context اضافه کنید
+  const logRealTimeEvent = (type, id, data = {}) => {
+    console.log(`🎯 ${type}: ${id}`, {
+      scene: selectedSceneRef.current,
+      realTime: isRealTimeRef.current,
+      sourcesCount: sourcesRef.current.length,
+      ...data,
+    });
+  };
+
   const removeSource = (id) => {
     const scene = scenesRef.current.find((s) => s.id === selectedSceneRef.current);
-    if (!scene) return;
+    if (!scene) {
+      console.log("❌ Scene not found for removal");
+      return;
+    }
+
+    // حذف از Konva
     const toRemove = scene.layer.find(`#${id}`);
-    toRemove.forEach((g) => g.destroy());
-    scene.layer.draw();
-    setSources((prev) => prev.filter((item) => item.externalId !== id));
+    if (toRemove.length > 0) {
+      toRemove.forEach((g) => g.destroy());
+      scene.layer.batchDraw();
+      console.log("✅ Removed from Konva:", id);
+    } else {
+      console.log("⚠️ Not found in Konva:", id);
+    }
+
+    // حذف از state
+    setSources((prev) => {
+      const newSources = prev.filter((item) => item.externalId !== id);
+      console.log("✅ Removed from state:", id, "Remaining:", newSources.length);
+      return newSources;
+    });
   };
 
   const updateSourceRealTime = (id, attrs) => {
@@ -867,6 +893,7 @@ export const MyContextProvider = ({ children }) => {
     const group = scene.layer.findOne(`#${id}`);
     if (!group) return;
 
+    // موقعیت
     if (attrs.x !== undefined || attrs.y !== undefined) {
       group.position({
         x: attrs.x !== undefined ? attrs.x : group.x(),
@@ -874,54 +901,82 @@ export const MyContextProvider = ({ children }) => {
       });
     }
 
-    const imageNode = group.findOne("Image");
-    const rectNode = group.findOne("Rect");
+    // اندازه‌گیری برای انواع مختلف محتوا
+    const contentNode = group.findOne("Image") || group.findOne("Rect") || group.findOne("Text");
 
-    if (imageNode && (attrs.width !== undefined || attrs.height !== undefined)) {
-      if (attrs.width !== undefined) imageNode.width(attrs.width);
-      if (attrs.height !== undefined) imageNode.height(attrs.height);
+    if (contentNode && (attrs.width !== undefined || attrs.height !== undefined)) {
+      if (attrs.width !== undefined) contentNode.width(attrs.width);
+      if (attrs.height !== undefined) contentNode.height(attrs.height);
       group.scale({ x: 1, y: 1 });
     }
 
-    if (rectNode && (attrs.width !== undefined || attrs.height !== undefined)) {
-      if (attrs.width !== undefined) rectNode.width(attrs.width);
-      if (attrs.height !== undefined) rectNode.height(attrs.height);
-      group.scale({ x: 1, y: 1 });
-    }
-
+    // چرخش
     if (attrs.rotation !== undefined) {
       group.rotation(attrs.rotation);
     }
 
+    // z-index (لایه‌بندی)
+    if (attrs.z !== undefined) {
+      // حذف از موقعیت فعلی
+      group.remove();
+
+      // اضافه کردن در موقعیت جدید بر اساس z-index
+      const children = scene.layer.getChildren();
+      const insertIndex = children.findIndex((child) => {
+        const childZ = sourcesRef.current.find((s) => s.externalId === child.id())?.z ?? 0;
+        return childZ <= attrs.z;
+      });
+
+      if (insertIndex === -1) {
+        scene.layer.add(group);
+      } else {
+        scene.layer.add(group);
+        group.moveToBottom();
+        for (let i = 0; i < insertIndex; i++) {
+          group.moveUp();
+        }
+      }
+    }
+
+    // نام
+    if (attrs.name !== undefined) {
+      const textNode = group.findOne("Text");
+      if (textNode && group.attrs.type === "TEXT") {
+        textNode.text(attrs.name);
+      }
+    }
+
     scene.layer.batchDraw();
 
+    // به‌روزرسانی state
     setSources((prev) => prev.map((src) => (src.externalId === id ? { ...src, ...attrs } : src)));
   };
 
   const handleSourceEvent = useCallback(({ action, payload, id }) => {
     if (!sourcesRef.current) return;
+
     if (isRealTimeRef.current) {
       const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
       const scene = getScene();
       if (!scene || !scene.layer) return;
-      const nodes = scene.layer.find(`#${id}`);
-
-      // destroy all nodes that match
-      nodes.forEach((node) => {
-        node.destroy();
-      });
-
-      // redraw layer
-      scene.layer.batchDraw();
 
       const exist = sourcesRef.current.find((item) => item.externalId == id);
-      if (!exist) return;
+
       switch (action) {
         case "add": {
-          const { endObj, type } = contentGenerator(payload.type || payload.media.type, payload);
-          console.log("T1");
+          // اگر از قبل وجود دارد، اول حذفش کن
+          const existingNodes = scene.layer.find(`#${id}`);
+          existingNodes.forEach((node) => node.destroy());
+          scene.layer.batchDraw();
+
+          if (!exist) return;
+
+          const { endObj, type } = contentGenerator(payload.type || payload.media?.type, payload);
+          console.log("🟢 Real-time ADD:", type, id);
+
           const getSelected = () => getScene();
-          if (type === "VIDEO") {
+
+          if (type === "VIDEO" || type === "STREAM") {
             addVideo({
               videoElement: endObj,
               mode: false,
@@ -957,55 +1012,52 @@ export const MyContextProvider = ({ children }) => {
               setSources,
               sendOperation,
             });
-          } else if (type === "TEXT") {
+          } else if (type === "TEXT" || type === "RSS") {
             addText({
               textItem: endObj,
               mode: false,
               getSelectedScene: getSelected,
               setSources,
               sendOperation,
-            });
-          } else if (type === "RSS") {
-            addText({
-              textItem: endObj,
-              mode: false,
-              getSelectedScene: getSelected,
-              setSources,
-              sendOperation,
-            });
-          } else if (type === "STREAM") {
-            addVideo({
-              videoElement: endObj,
-              mode: false,
-              getSelectedScene: getSelected,
-              setSources,
-              sendOperation,
-              url: urlRef.current,
-              loopVideos,
             });
           }
           break;
         }
+
         case "remove":
+          console.log("🔴 Real-time REMOVE:", id);
           removeSource(id);
           break;
+
         case "update":
         case "move":
         case "resize":
-          updateSourceRealTime(id, payload);
-        case "rotate":
+          console.log("🟡 Real-time UPDATE:", action, id, payload);
           updateSourceRealTime(id, payload);
           break;
+
+        case "rotate":
+          console.log("🟠 Real-time ROTATE:", id, payload);
+          updateSourceRealTime(id, { rotation: payload.rotation });
+          break;
+
         case "play":
+          console.log("▶️ Real-time PLAY:", id);
           playVideo({ id, sources });
           break;
+
         case "pause":
+          console.log("⏸️ Real-time PAUSE:", id);
           pauseVideo({ id, sources });
           break;
+
         case "loop":
+          console.log("🔁 Real-time LOOP:", id);
           toggleLoopVideo({ id, sources });
           break;
+
         case "fit":
+          console.log("📐 Real-time FIT:", id, payload);
           fitToMonitors({
             uniqId: id,
             selectedMonitors: payload?.selectedMonitors || [],
@@ -1015,14 +1067,17 @@ export const MyContextProvider = ({ children }) => {
             id,
           });
           break;
+
         case "reset":
-          console.log("Resetting all sources and the entire driver canvas");
+          console.log("🔄 Real-time RESET");
           break;
+
         default:
-          console.log(`Unsupported action ${action}:${id}`, payload);
+          console.log(`❓ Unsupported action ${action}:${id}`, payload);
           break;
       }
     } else {
+      console.log("📦 Buffering operation:", action, id);
       setIsChangeRealTime(ChangeRT.PENDING);
       setDataChangeRealTime((prev) => [...prev, { action, payload, id }]);
     }
@@ -1480,10 +1535,8 @@ export const MyContextProvider = ({ children }) => {
     // }
 
     // PRODUCTION_MODE
-    console.log("hostURL::: ", 4000);
-    localStorage.setItem("port", hostURL);
-    host = hostURL || localStorage.setItem("port", hostURL);
-    port = localStorage.getItem("port") || 4000;
+    host = hostURL || localStorage.setItem("host", hostURL);
+    port = 4000;
     const u = `http://${host}:${port}`;
     setUrl(u);
     urlRef.current = u;
@@ -1552,7 +1605,7 @@ export const MyContextProvider = ({ children }) => {
         socketRef.current = s;
         setSocket(s);
 
-        s.on("source", handleSourceEvent);
+        // s.on("source", handleSourceEvent);
 
         s.on("connect", () => {
           console.log("✅ Socket connected");
@@ -1953,7 +2006,7 @@ export const MyContextProvider = ({ children }) => {
 
     return () => {
       if (socketRef.current) {
-        socketRef.current.off("source", handleSourceEvent);
+        // socketRef.current.off("source", handleSourceEvent);
         socketRef.current.disconnect();
         socketRef.current = null;
       }

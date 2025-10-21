@@ -321,8 +321,8 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
             bgColor: "transparent",
             marquee: { enabled: false },
           },
-          width: "fit-content",
-          height: "auto",
+          width: textNode?.width(),
+          height: textNode?.height(),
         },
       });
       // syncBGNormal();
@@ -837,7 +837,7 @@ export const addText = ({
     );
     sendOperation("source", {
       action: "move",
-      id: uniqId,
+      id: e.target.attrs.uniqId,
       payload: { x, y },
     });
   });

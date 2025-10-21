@@ -951,7 +951,7 @@ export default function Canvas({
           >
             چیدمان مجازی
           </Switch>
-          <Switch
+          {/* <Switch
             classNames={{ label: `${darkMode ? "dark" : "light"}` }}
             size="sm"
             isSelected={isRealTime}
@@ -959,7 +959,7 @@ export default function Canvas({
             className="ml-1"
           >
             RealTime
-          </Switch>
+          </Switch> */}
           <Switch
             classNames={{ label: `${darkMode ? "dark" : "light"}` }}
             size="sm"

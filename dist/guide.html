@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>راهنمای اپراتور — VideoWall Controller</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      .active-link {
+        color: #0284c7;
+        font-weight: 700;
+      }
+      pre code {
+        direction: ltr;
+        display: block;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-800">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-extrabold text-sky-700">VideoWall Controller</span>
+          <span class="text-xs text-slate-500">راهنمای اپراتور</span>
+        </div>
+        <nav class="hidden md:flex items-center gap-4 text-sm">
+          <a href="/landing.html" class="hover:text-sky-700">لندینگ</a>
+          <a href="/docs/" class="hover:text-sky-700">مستندات توسعه</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-12 gap-6">
+      <!-- TOC -->
+      <aside class="col-span-12 md:col-span-3 lg:col-span-3">
+        <div
+          class="sticky top-20 space-y-1 p-3 bg-white border border-slate-200 rounded-xl shadow-sm"
+        >
+          <div class="text-sm font-bold text-slate-600 mb-2">فهرست</div>
+          <a href="#intro" class="block py-1 text-sm hover:text-sky-700">۱) شروع سریع</a>
+          <a href="#login" class="block py-1 text-sm hover:text-sky-700">۲) ورود و احراز هویت</a>
+          <a href="#online" class="block py-1 text-sm hover:text-sky-700">۳) حالت آنلاین و شبکه</a>
+          <a href="#status" class="block py-1 text-sm hover:text-sky-700"
+            >۴) وضعیت درایور و مانیتورها</a
+          >
+          <a href="#canvas" class="block py-1 text-sm hover:text-sky-700">۵) کار با بوم (Canvas)</a>
+          <a href="#resources" class="block py-1 text-sm hover:text-sky-700"
+            >۶) منابع (تصویر، ویدیو، ورودی، متن/وب)</a
+          >
+          <a href="#scenes" class="block py-1 text-sm hover:text-sky-700">۷) صحنه‌ها</a>
+          <a href="#programs" class="block py-1 text-sm hover:text-sky-700"
+            >۸) برنامه‌ها و زمان‌بندی</a
+          >
+          <a href="#export" class="block py-1 text-sm hover:text-sky-700">۹) ورود/خروج پروژه</a>
+          <a href="#update" class="block py-1 text-sm hover:text-sky-700"
+            >۱۰) به‌روزرسانی نرم‌افزار</a
+          >
+          <a href="#power" class="block py-1 text-sm hover:text-sky-700">۱۱) پاور (ریست/خاموش)</a>
+          <a href="#tips" class="block py-1 text-sm hover:text-sky-700">۱۲) نکات کاربردی</a>
+          <a href="#troubleshooting" class="block py-1 text-sm hover:text-sky-700"
+            >۱۳) اشکال‌زدایی</a
+          >
+          <a href="#faq" class="block py-1 text-sm hover:text-sky-700">۱۴) پرسش‌های متداول</a>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <section class="col-span-12 md:col-span-9 lg:col-span-9 space-y-10">
+        <!-- Intro -->
+        <article id="intro" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">شروع سریع</h2>
+          <p class="mt-3 leading-8">
+            این راهنما برای اپراتورهایی طراحی شده که می‌خواهند با کمترین زمان، نرم‌افزار را
+            راه‌اندازی و کار روزانه را انجام دهند. مراحل پایه شامل ورود، اتصال آنلاین، انتخاب صحنه،
+            چیدمان منابع و پایش وضعیت مانیتورها است.
+          </p>
+        </article>
+
+        <!-- Login -->
+        <article id="login" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">ورود و احراز هویت</h2>
+          <ol class="mt-3 list-decimal pr-6 leading-8">
+            <li>نرم‌افزار را اجرا کنید و فرم ورود را مشاهده می‌کنید.</li>
+            <li>نام کاربری و رمز عبور را مطابق اطلاعات دریافتی وارد کنید.</li>
+            <li>در صورت خطا، با مدیر سیستم برای بازیابی اطلاعات تماس بگیرید.</li>
+          </ol>
+          <p class="mt-2 text-xs text-slate-500">
+            توجه: در نسخه فعلی، اطلاعات اولیه ورود از فایل <code>public/config.json</code> خوانده
+            می‌شود.
+          </p>
+        </article>
+
+        <!-- Online Mode -->
+        <article id="online" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">حالت آنلاین و تنظیم شبکه</h2>
+          <p class="mt-2 leading-8">برای اتصال به درایور ویدیووال:</p>
+          <ol class="list-decimal pr-6 leading-8">
+            <li>از هدر برنامه گزینه اتصال/آنلاین را فعال کنید.</li>
+            <li>
+              در صورت نیاز، در پنجره تنظیمات شبکه، آدرس <strong>Static IP</strong> مقصد را تنظیم
+              کنید.
+            </li>
+            <li>پس از اتصال موفق، اطلاعات مانیتورها و ورودی‌ها دریافت می‌شود.</li>
+          </ol>
+          <div class="mt-3 p-3 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-sm">
+            نکته: در اولین راه‌اندازی، ممکن است لازم باشد آدرس IP درایور را به‌صورت دستی وارد یا
+            اصلاح کنید.
+          </div>
+        </article>
+
+        <!-- Status -->
+        <article id="status" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">وضعیت درایور و مانیتورها</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8">
+            <li>نشانگر «اتصال به درایور»: سبز = متصل، نارنجی = آفلاین، قرمز = در حال اتصال.</li>
+            <li>
+              نشانگر «وضعیت مانیتورها»: سبز = همه متصل، نارنجی = آفلاین، قرمز = انتظار برای اتصال.
+            </li>
+            <li>
+              در صورت قطعی مانیتور، در Canvas آن مانیتور به رنگ قرمز و با علامت ❌ نمایش می‌شود.
+            </li>
+          </ul>
+        </article>
+
+        <!-- Canvas -->
+        <article id="canvas" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">کار با بوم (Canvas)</h2>
+          <ol class="mt-3 list-decimal pr-6 leading-8">
+            <li>از سایدبار «صحنه‌ها»، یک صحنه را انتخاب کنید.</li>
+            <li>
+              برای تنظیم نمای مانیتورها از دکمه‌های «کالیبره»، «مرکز صفحه»، «۱۰۰٪»، «Zoom+/−»
+              استفاده کنید.
+            </li>
+            <li>برای حرکت کل صفحه، «درگ کردن» را روشن کرده و صفحه را بکشید.</li>
+            <li>
+              برای چیدمان دقیق:
+              <ul class="list-disc pr-6 mt-2 text-sm">
+                <li>«چیدمان مجازی» را فعال کنید.</li>
+                <li>گرید مانیتور (تکی) یا گرید جمعی را اعمال کنید.</li>
+                <li>سلول(ها) و منبع را انتخاب و «قراردهی منابع» را بزنید.</li>
+                <li>
+                  می‌توانید مانیتورها را «گروه‌بندی» و در یک محدوده مشترک منابع را جای‌گذاری کنید.
+                </li>
+              </ul>
+            </li>
+          </ol>
+        </article>
+
+        <!-- Resources -->
+        <article id="resources" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">منابع</h2>
+          <p class="mt-2 leading-8">از سایدبار «منابع» می‌توانید انواع محتوای زیر را اضافه کنید:</p>
+          <ul class="list-disc pr-6 leading-8">
+            <li><strong>تصویر</strong>: PNG/JPG/WEBP — قابل تغییر اندازه، چرخش و جابه‌جایی.</li>
+            <li><strong>ویدیو</strong>: MP4/HLS — امکان Loop و کنترل پخش/توقف.</li>
+            <li>
+              <strong>ورودی</strong>: HDMI/کارت کپچر — انتخاب دیوایس ورودی و قراردهی روی صحنه.
+            </li>
+            <li>
+              <strong>متن/RSS</strong>: افزودن متن و نوار خبری. (در صورت فعال بودن در نسخه شما)
+            </li>
+            <li><strong>وب/iframe</strong>: نمایش یک وب‌سایت یا داشبورد.</li>
+          </ul>
+          <p class="mt-2 text-sm text-slate-600">
+            افزودن با کشیدن و رهاکردن روی Canvas یا از طریق ابزار «قراردهی منابع» انجام می‌شود.
+          </p>
+        </article>
+
+        <!-- Scenes -->
+        <article id="scenes" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">صحنه‌ها</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8">
+            <li>افزودن صحنه جدید از طریق دکمه + در سایدبار «صحنه‌ها».</li>
+            <li>تغییر نام صحنه با دوبارکلیک روی نام.</li>
+            <li>حذف صحنه با آیکون سطل (در صورت داشتن حداقل یک صحنه دیگر).</li>
+            <li>انتخاب صحنه برای نمایش و ویرایش محتویات آن.</li>
+          </ul>
+        </article>
+
+        <!-- Programs / Schedules -->
+        <article id="programs" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">برنامه‌ها و زمان‌بندی</h2>
+          <p class="mt-2 leading-8">
+            در بخش «برنامه‌ها»، می‌توانید صحنه‌ها را در قالب برنامه و زمان‌بندی تعریف کنید.
+          </p>
+          <ul class="list-disc pr-6 leading-8">
+            <li>ایجاد برنامه جدید و افزودن صحنه‌ها به آن.</li>
+            <li>تعریف بازه‌های زمانی اجرای هر صحنه.</li>
+            <li>مدیریت ترتیب اجرا و فعال‌سازی برنامه جاری.</li>
+          </ul>
+        </article>
+
+        <!-- Import / Export -->
+        <article id="export" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">ورود/خروج پروژه</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8">
+            <li>
+              <strong>خروجی (Export)</strong>: از منوی بالای برنامه، «خروجی پروژه» را انتخاب کنید تا
+              فایل JSON شامل صحنه‌ها، منابع، ورودی‌ها و مانیتورها دانلود شود.
+            </li>
+            <li>
+              <strong>ورود (Import)</strong>: از همان منو «بارگذاری پروژه» را انتخاب و فایل JSON را
+              وارد کنید.
+            </li>
+          </ul>
+          <div
+            class="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm"
+          >
+            حتماً از فایل‌های خروجی نسخه پشتیبان تهیه کنید تا در صورت نیاز بتوانید سریعاً وضعیت را
+            برگردانید.
+          </div>
+        </article>
+
+        <!-- Update -->
+        <article id="update" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">به‌روزرسانی نرم‌افزار</h2>
+          <p class="mt-2 leading-8">
+            از منوی بالای برنامه، گزینه به‌روزرسانی را انتخاب کنید تا فایل بسته (مثلاً dist.zip)
+            دانلود و محتوا استخراج شود.
+          </p>
+          <p class="text-sm text-slate-600 mt-2">
+            در طول به‌روزرسانی از بستن نرم‌افزار خودداری کنید.
+          </p>
+        </article>
+
+        <!-- Power -->
+        <article id="power" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">پاور (ریست/خاموش)</h2>
+          <p class="mt-2 leading-8">
+            از منوی «پاور» می‌توانید سیستم مقصد را ریستارت یا خاموش کنید. این عملیات از طریق اتصال
+            سوکت اجرا می‌شود.
+          </p>
+          <div class="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-sm">
+            هشدار: قبل از اجرای هر فرمان، از عدم اجرای پخش حساس مطمئن شوید.
+          </div>
+        </article>
+
+        <!-- Tips -->
+        <article id="tips" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">نکات کاربردی</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8 text-sm">
+            <li>از «کالیبره» برای متناسب‌سازی سریع نمای مانیتورها استفاده کنید.</li>
+            <li>از «مرکز صفحه» برای بازگرداندن تمرکز به مرکز استفاده کنید.</li>
+            <li>
+              برای تغییرات سریع، حالت «RealTime» را روشن نگه دارید؛ در برخی سناریوها تایید تغییرات
+              لازم می‌شود.
+            </li>
+            <li>برای دید بهتر، تم «تیره/روشن» را از منوی بالایی تغییر دهید.</li>
+            <li>در صورت تعدد مانیتورها، از «گرید جمعی» برای جایگذاری منظم محتوا استفاده کنید.</li>
+          </ul>
+        </article>
+
+        <!-- Troubleshooting -->
+        <article
+          id="troubleshooting"
+          class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm"
+        >
+          <h2 class="text-xl font-extrabold">اشکال‌زدایی</h2>
+          <ul class="mt-3 list-disc pr-6 leading-8 text-sm">
+            <li>
+              اتصال برقرار نمی‌شود: آدرس <code>host/port</code> را بررسی کنید و از دسترسی شبکه
+              اطمینان حاصل کنید.
+            </li>
+            <li>
+              مانیتورها قرمز شده‌اند: کابل‌ها/آداپتورها را بررسی کنید؛ پس از اتصال مجدد، وضعیت سبز
+              می‌شود.
+            </li>
+            <li>
+              ویدیو پخش نمی‌شود: فرمت فایل و دسترسی به مسیر (URL) را بررسی کنید؛ در صورت نیاز از HLS
+              استفاده کنید.
+            </li>
+            <li>
+              گرید/گروه‌بندی کار نمی‌کند: ابتدا صحنه فعال و مانیتورها را انتخاب و سپس گرید را
+              «اعمال» کنید.
+            </li>
+          </ul>
+        </article>
+
+        <!-- FAQ -->
+        <article id="faq" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <h2 class="text-xl font-extrabold">پرسش‌های متداول</h2>
+          <div class="mt-4 space-y-4 text-sm leading-8">
+            <div>
+              <p class="font-bold">چطور یک منبع را جابه‌جا یا اندازه‌اش را تغییر دهم؟</p>
+              <p>
+                روی منبع کلیک کنید تا ابزار تغییر اندازه ظاهر شود؛ سپس گوشه‌ها را بکشید یا با ماوس
+                جابه‌جا کنید.
+              </p>
+            </div>
+            <div>
+              <p class="font-bold">چطور یک ویدیو را Loop کنم؟</p>
+              <p>از تنظیمات منبع ویدیو یا گزینه‌های مربوطه در سایدبار استفاده کنید.</p>
+            </div>
+            <div>
+              <p class="font-bold">چطور پروژه را ذخیره کنم؟</p>
+              <p>
+                از «خروجی پروژه» یک فایل JSON دریافت کنید و برای بازیابی از «بارگذاری پروژه» استفاده
+                کنید.
+              </p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="py-10 text-center text-xs text-slate-500">
+      راهنمای اپراتور — آخرین به‌روزرسانی: <span id="ver"></span>
+    </footer>
+
+    <script>
+      // Active link highlight
+      const links = Array.from(document.querySelectorAll('aside a[href^="#"]'));
+      const sections = links
+        .map((a) => document.querySelector(a.getAttribute("href")))
+        .filter(Boolean);
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const id = "#" + entry.target.id;
+            const link = links.find((a) => a.getAttribute("href") === id);
+            if (link) {
+              if (entry.isIntersecting) link.classList.add("active-link");
+              else link.classList.remove("active-link");
+            }
+          });
+        },
+        { rootMargin: "0px 0px -70% 0px", threshold: 0.1 }
+      );
+      sections.forEach((sec) => observer.observe(sec));
+      // version footer
+      document.getElementById("ver").textContent = new Date().toLocaleDateString("fa-IR");
+    </script>
+  </body>
+</html>

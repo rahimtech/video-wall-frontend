@@ -408,7 +408,6 @@ const ResourcesSidebar = () => {
             height: 100,
             name: textInit,
             externalId: id,
-            z: 1,
             metadata: {
               rssContent: [],
               bgColor: "transparent",
@@ -437,7 +436,7 @@ const ResourcesSidebar = () => {
             height: 100,
             x: 0,
             y: 0,
-            z: 1,
+            // z: 1,
             rotation: 0,
             metadata: {
               rssContent: media.metadata.rssContent,
@@ -578,9 +577,8 @@ const ResourcesSidebar = () => {
     }
   };
 
-  const deleteResource = (id) => {
-    // let newfileName = trimPrefix(fileName, "uploads\\");
-    Swal.fire({
+  const deleteResource = async (id) => {
+    const result = await Swal.fire({
       title: "آیا مطمئن هستید؟",
       icon: "warning",
       showCancelButton: true,
@@ -588,127 +586,107 @@ const ResourcesSidebar = () => {
       confirmButtonColor: "limegreen",
       cancelButtonColor: "#d33",
       confirmButtonText: "بله",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        let flagCheckIsResourceUse = false;
+    });
 
-        const newSources = await api.getSources(url);
-        flagCheckIsResourceUse = newSources.find((item) => item.media.id == id) ? true : false;
+    if (!result.isConfirmed) return;
 
-        const checkExId = newSources.find((item) => item.media.id == id)?.externalId;
+    try {
+      setMiniLoad(true);
 
-        if (!flagCheckIsResourceUse) {
-          try {
-            setMiniLoad(true);
-            // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
-            await api.deleteMedia(url, id);
-          } finally {
-            setMiniLoad(false);
-          }
-        }
+      const newSources = await api.getSources(url);
+      const isResourceUsed = newSources.some((item) => item.media?.id == id);
+      console.log("isResourceUsed::: ", isResourceUsed);
 
-        if (flagCheckIsResourceUse) {
-          Swal.fire({
-            title: "هشدار مهم این محتوا در جای دیگر استفاده شده",
-            text: ".با پاک کردن این محتوا در تمامی صحنه‌ها این محتوا پاک خواهد شد",
-            showDenyButton: true,
-            showCancelButton: false,
-            icon: "warning",
-            confirmButtonText: "بله",
-            denyButtonText: `خیر`,
-            confirmButtonColor: "green",
-            denyButtonColor: "gray",
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              const colEndPoint = collections.map((so) => {
-                so.schedules.map((s) => {
-                  const newSch = newSources.filter((sch) => {
-                    if (sch.media.id !== id) {
-                      return sch;
-                    } else {
-                      let groupToRemove = getSelectedScene()
-                        ?.layer.getParent()
-                        .find(`#${checkExId}`);
-                      if (groupToRemove) {
-                        for (let index = 0; index < groupToRemove.length; index++) {
-                          groupToRemove[index].remove();
-                        }
-                        getSelectedScene()?.layer.getParent().draw();
-                      } else {
-                        // console.error(`Group with id ${id} not found`);
-                      }
-                    }
-                  });
-
-                  setSources(newSch || []);
-                  return { ...newSources, schedules: newSch };
-                });
-                return so;
-              });
-
-              sendOperation("source", {
-                action: "remove",
-                id: checkExId,
-                payload: {},
-              });
-
-              // داخل deleteResource وقتی confirmed و قبل از setResources(...)
-              const resObj = resources.find((r) => r.id === id);
-              if (resObj?.type === "STREAM") {
-                try {
-                  setMiniLoad(true);
-                  const streamId = resObj.externalId || resObj.id;
-                  // call stop endpoint
-                  await axios.get(`${MEDIA_SERVER_BASE}/stream/stop/${streamId}`);
-                } catch (err) {
-                  console.warn("Failed to stop stream on media server", err);
-                } finally {
-                  setMiniLoad(false);
-                }
-              }
-
-              try {
-                setMiniLoad(true);
-                // await axios.delete(`${url}/delete/${fileName}`).then(console.log("deleted"));
-                await api.deleteMedia(url, id);
-              } finally {
-                setMiniLoad(false);
-              }
-
-              // const colEndPoint2 = collections.map((col) => {
-              //   const newSch = col.schedules.filter((sch) => sch.scene_id !== id);
-              //   return { ...col, schedules: newSch };
-              //   // return col;
-              // });
-
-              setCollections(colEndPoint);
-              setResources(resources.filter((res) => res.id !== id));
-
-              return;
-            }
-          });
-          return;
-        }
-
-        setResources(resources.filter((res) => res.id !== id));
-
-        const groupToRemove = getSelectedScene()?.layer.findOne(`#${id}`);
-        if (groupToRemove) {
-          groupToRemove.destroy();
-          getSelectedScene()?.layer.draw();
-        } else {
-          // console.error(`Group with id ${id} not found`);
-        }
-
-        // const videoElement = resources.find((item) => item.id === id)?.videoElement;
-        // if (videoElement) {
-        //   videoElement.pause();
-        //   videoElement.src = "";
-        // }
-      } else {
+      if (!isResourceUsed) {
+        // اگر منبع استفاده نشده، مستقیم پاک کن
+        await handleDeleteMedia(id);
+        setResources((prev) => prev.filter((res) => res.id !== id));
         return;
       }
-    });
+
+      // اگر منبع استفاده شده
+      const deleteConfirmed = await Swal.fire({
+        title: "هشدار مهم این محتوا در جای دیگر استفاده شده",
+        text: ".با پاک کردن این محتوا در تمامی صحنه‌ها این محتوا پاک خواهد شد",
+        showDenyButton: true,
+        showCancelButton: false,
+        icon: "warning",
+        confirmButtonText: "بله",
+        denyButtonText: `خیر`,
+        confirmButtonColor: "green",
+        denyButtonColor: "gray",
+      });
+
+      if (!deleteConfirmed.isConfirmed) return;
+
+      // پیدا کردن همه سورس‌های مربوط به این media
+      const sourcesToRemove = newSources.filter((item) => item.media?.id == id);
+      console.log("sourcesToRemove::: ", sourcesToRemove);
+
+      // حذف از Konva و ارسال درخواست به سرور
+      for (const source of sourcesToRemove) {
+        // حذف از Konva
+        const groupToRemove = getSelectedScene()?.layer.findOne(`#${source.externalId}`);
+        if (groupToRemove) {
+          groupToRemove.destroy();
+        }
+
+        // ارسال درخواست remove به سرور
+        sendOperation("source", {
+          action: "remove",
+          id: source.externalId,
+          payload: {},
+        });
+      }
+
+      // رفرش صفحه Konva
+      getSelectedScene()?.layer.draw();
+
+      // به‌روزرسانی state منابع
+      setSources((prev) => prev.filter((item) => item.media?.id != id));
+
+      // حذف از collections
+      setCollections((prev) =>
+        prev.map((col) => ({
+          ...col,
+          schedules: col.schedules.filter((sch) => {
+            const sourceExists = sourcesToRemove.some((s) => s.externalId === sch.externalId);
+            return !sourceExists;
+          }),
+        }))
+      );
+
+      // اگر استریم هست، توقفش کن
+      const resObj = resources.find((r) => r.id === id);
+      if (resObj?.type === "STREAM") {
+        try {
+          const streamId = resObj.externalId || resObj.id;
+          await axios.get(`${MEDIA_SERVER_BASE}/stream/stop/${streamId}`);
+        } catch (err) {
+          console.warn("Failed to stop stream on media server", err);
+        }
+      }
+
+      // حذف مدیا
+      await handleDeleteMedia(id);
+
+      // به‌روزرسانی resources
+      setResources((prev) => prev.filter((res) => res.id !== id));
+    } catch (error) {
+      console.error("Error deleting resource:", error);
+    } finally {
+      setMiniLoad(false);
+    }
+  };
+
+  // تابع کمکی برای حذف مدیا
+  const handleDeleteMedia = async (id) => {
+    try {
+      await api.deleteMedia(url, id);
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      throw error;
+    }
   };
 
   const handleFileInput = async (e, type) => {

@@ -37,6 +37,7 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, i
       id: uniqId,
     });
     onClose();
+    location.reload();
     // onOpenChange(false); // Close the modal after applying
   };
 
