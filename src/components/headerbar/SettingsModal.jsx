@@ -86,6 +86,75 @@ async function apiFetchRoles() {
     },
   ];
 }
+
+// ---------------- API Functions for User Management ----------------
+
+async function apiDeleteUser(userId) {
+  try {
+    const response = await axios.delete(`${API_ROOT}/users/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${userAccessToken}`,
+      },
+    });
+
+    return {
+      ok: true,
+      data: response.data,
+      message: "کاربر با موفقیت حذف شد",
+    };
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    return {
+      ok: false,
+      error: err.response?.data?.message || err.message || "خطا در حذف کاربر",
+    };
+  }
+}
+
+async function apiChangePassword(passwordData) {
+  try {
+    const response = await axios.post(`${API_ROOT}/auth/change-password`, passwordData, {
+      headers: {
+        Authorization: `Bearer ${userAccessToken}`,
+      },
+    });
+
+    return {
+      ok: true,
+      data: response.data,
+      message: "رمز عبور با موفقیت تغییر یافت",
+    };
+  } catch (err) {
+    console.error("Error changing password:", err);
+    return {
+      ok: false,
+      error: err.response?.data?.message || err.message || "خطا در تغییر رمز عبور",
+    };
+  }
+}
+
+async function apiResetPassword(resetData) {
+  try {
+    const response = await axios.post(`${API_ROOT}/auth/reset-password`, resetData, {
+      headers: {
+        Authorization: `Bearer ${userAccessToken}`,
+      },
+    });
+
+    return {
+      ok: true,
+      data: response.data,
+      message: "رمز عبور با موفقیت بازنشانی شد",
+    };
+  } catch (err) {
+    console.error("Error resetting password:", err);
+    return {
+      ok: false,
+      error: err.response?.data?.message || err.message || "خطا در بازنشانی رمز عبور",
+    };
+  }
+}
+
 async function apiFetchPermissions() {
   await wait(120);
   return [
@@ -178,25 +247,7 @@ async function apiSaveUser(u) {
   }
   return { ok: true, data: { ...u, id: u.id || Math.floor(Math.random() * 90000) + 1000 } };
 }
-async function apiDeleteUser(id) {
-  try {
-    if (id) {
-      await axios.delete(`${API_ROOT}/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${userAccessToken}`,
-        },
-      });
-    }
-    // localStorage.setItem("isLoggedIn", "true");
-    // onSignupSuccess?.();
-  } catch (err) {
-    return err;
-  } finally {
-    // setLoading(false);
-  }
 
-  return { ok: true };
-}
 async function apiSaveRole(r) {
   await wait(180);
   // console.log("apiSaveRole", r);
@@ -503,11 +554,61 @@ export default function SecuritySettingsModal({ darkMode }) {
     }
   };
 
+  // const handleChangePassword = async (userId, currentPassword, newPassword, confirmPassword) => {
+  //   if (!currentPassword || !newPassword || !confirmPassword) {
+  //     return alert("لطفاً تمام فیلدهای رمز عبور را پر کنید");
+  //   }
+
+  //   if (newPassword !== confirmPassword) {
+  //     return alert("رمز عبور جدید و تأیید آن مطابقت ندارند");
+  //   }
+
+  //   const res = await apiChangePassword({
+  //     currentPassword,
+  //     newPassword,
+  //     confirmPassword,
+  //   });
+
+  //   if (res.ok) {
+  //     alert("✅ رمز عبور با موفقیت تغییر یافت");
+  //     // بستن مودال یا ریست فرم
+  //   } else {
+  //     alert(`❌ ${res.error}`);
+  //   }
+  // };
+
+  const handleResetPassword = async (userEmail, newPassword, confirmPassword) => {
+    if (!userEmail || !newPassword || !confirmPassword) {
+      return alert("لطفاً تمام فیلدها را پر کنید");
+    }
+
+    if (newPassword !== confirmPassword) {
+      return alert("رمز عبور جدید و تأیید آن مطابقت ندارند");
+    }
+
+    const res = await apiResetPassword({
+      email: userEmail,
+      newPassword,
+      confirmPassword,
+    });
+
+    if (res.ok) {
+      alert("✅ رمز عبور کاربر با موفقیت بازنشانی شد");
+    } else {
+      alert(`❌ ${res.error}`);
+    }
+  };
+
   const removeUser = async (id) => {
-    if (!confirm("آیا از حذف کاربر مطمئن هستید؟")) return;
+    if (!confirm("آیا از حذف کاربر مطمئن هستید؟ این عمل غیرقابل بازگشت است.")) return;
+
     const res = await apiDeleteUser(id);
-    if (res.ok) setUsers((prev) => prev.filter((u) => u.id !== id));
-    // location.reload();
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      alert("✅ کاربر با موفقیت حذف شد");
+    } else {
+      alert(`❌ ${res.error}`);
+    }
   };
   const toggleUserRole = (userId, roleId) => {
     setUsers((prev) =>
@@ -735,8 +836,247 @@ export default function SecuritySettingsModal({ darkMode }) {
   };
 
   // ---------------- Render ----------------
+
+  const [changePasswordModal, setChangePasswordModal] = useState(false);
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState(null);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // تابع اعتبارسنجی رمز عبور
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < minLength) {
+      return "رمز عبور باید حداقل ۸ کاراکتر باشد";
+    }
+
+    if (!hasUpperCase) {
+      return "رمز عبور باید شامل حروف بزرگ انگلیسی باشد";
+    }
+
+    if (!hasLowerCase) {
+      return "رمز عبور باید شامل حروف کوچک انگلیسی باشد";
+    }
+
+    if (!hasNumbers) {
+      return "رمز عبور باید شامل اعداد باشد";
+    }
+
+    if (!hasSpecialChars) {
+      return "رمز عبور باید شامل کاراکترهای ویژه (!@#$%^&* و ...) باشد";
+    }
+
+    return null; // رمز عبور معتبر
+  };
+
+  // سپس این تابع را اضافه کنید:
+  const handleChangePassword = async () => {
+    // اعتبارسنجی اولیه
+    if (selectedUserForPassword) {
+      // حالت ادمین - بازنشانی رمز عبور
+      if (!passwordData.newPassword || !passwordData.confirmPassword) {
+        return alert("لطفاً رمز عبور جدید و تأیید آن را وارد کنید");
+      }
+    } else {
+      // حالت کاربر عادی - تغییر رمز عبور
+      if (
+        !passwordData.currentPassword ||
+        !passwordData.newPassword ||
+        !passwordData.confirmPassword
+      ) {
+        return alert("لطفاً تمام فیلدهای رمز عبور را پر کنید");
+      }
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      return alert("رمز عبور جدید و تأیید آن مطابقت ندارند");
+    }
+
+    // اعتبارسنجی پیشرفته رمز عبور
+    const passwordValidation = validatePassword(passwordData.newPassword);
+    if (passwordValidation) {
+      return alert(`❌ ${passwordValidation}`);
+    }
+
+    setChangingPassword(true);
+
+    try {
+      let res;
+      if (selectedUserForPassword) {
+        // ادمین در حال بازنشانی رمز عبور کاربر
+        res = await apiResetPassword({
+          email: selectedUserForPassword.email,
+          newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
+        });
+      } else {
+        // کاربر در حال تغییر رمز عبور خودش
+        res = await apiChangePassword({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
+        });
+      }
+
+      if (res.ok) {
+        alert(`✅ ${res.message}`);
+        setChangePasswordModal(false);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setSelectedUserForPassword(null);
+      } else {
+        alert(`❌ ${res.error}`);
+      }
+    } catch (err) {
+      alert("❌ خطا در انجام عملیات");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <>
+      <Modal
+        dir="rtl"
+        isOpen={changePasswordModal}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setChangePasswordModal(false);
+            setSelectedUserForPassword(null);
+            setPasswordData({
+              currentPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            });
+          } else {
+            setChangePasswordModal(true);
+          }
+        }}
+        size="md"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                {selectedUserForPassword
+                  ? `تغییر رمز عبور برای ${selectedUserForPassword.email}`
+                  : "تغییر رمز عبور"}
+              </ModalHeader>
+              <ModalBody>
+                <div className="grid gap-4">
+                  {selectedUserForPassword ? (
+                    // حالت ادمین - فقط رمز جدید
+                    <>
+                      <div className="text-sm text-warning-600 bg-warning-50 p-2 rounded">
+                        در حال تغییر رمز عبور برای کاربر:{" "}
+                        <strong>{selectedUserForPassword.email}</strong>
+                      </div>
+                      <Input
+                        label="رمز عبور جدید"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            newPassword: e.target.value,
+                          }))
+                        }
+                        placeholder="رمز عبور جدید را وارد کنید"
+                      />
+                      <Input
+                        label="تأیید رمز عبور جدید"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            confirmPassword: e.target.value,
+                          }))
+                        }
+                        placeholder="رمز عبور جدید را مجدداً وارد کنید"
+                      />
+                    </>
+                  ) : (
+                    // حالت کاربر عادی - رمز فعلی و جدید
+                    <>
+                      <Input
+                        label="رمز عبور فعلی"
+                        type="password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            currentPassword: e.target.value,
+                          }))
+                        }
+                        placeholder="رمز عبور فعلی خود را وارد کنید"
+                      />
+                      <Input
+                        label="رمز عبور جدید"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            newPassword: e.target.value,
+                          }))
+                        }
+                        placeholder="رمز عبور جدید را وارد کنید"
+                      />
+                      <Input
+                        label="تأیید رمز عبور جدید"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            confirmPassword: e.target.value,
+                          }))
+                        }
+                        placeholder="رمز عبور جدید را مجدداً وارد کنید"
+                      />
+                    </>
+                  )}
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="danger"
+                  variant="light"
+                  onPress={onClose}
+                  disabled={changingPassword}
+                >
+                  انصراف
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={handleChangePassword}
+                  disabled={changingPassword}
+                  startContent={changingPassword ? <Spinner size="sm" /> : <FiSave />}
+                >
+                  {changingPassword
+                    ? "در حال تغییر..."
+                    : selectedUserForPassword
+                    ? "بازنشانی رمز"
+                    : "تغییر رمز عبور"}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
       <Tooltip content="تنظیمات امنیتی و دسترسی‌ها">
         <Button
           className={`${darkMode ? "dark" : "light"} min-w-[35px] h-[33px] rounded-lg p-1`}
@@ -888,6 +1228,18 @@ export default function SecuritySettingsModal({ darkMode }) {
                                           startContent={<FiEdit />}
                                         >
                                           ویرایش
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="light"
+                                          color="warning"
+                                          onPress={() => {
+                                            setSelectedUserForPassword(u);
+                                            setChangePasswordModal(true);
+                                          }}
+                                          startContent={<FiShield />}
+                                        >
+                                          تغییر رمز
                                         </Button>
                                         {!u.isSuperAdmin && (
                                           <Button

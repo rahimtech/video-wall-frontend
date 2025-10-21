@@ -21,7 +21,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
 
   return (
     <>
-      <Tooltip content="جزئیات ویدئووال">
+      <Tooltip content="جزئیات مانیتور‌ها">
         <Button
           className={` min-w-[35px] h-[33px] rounded-lg p-1`}
           size="sm"
@@ -44,7 +44,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-lg font-bold">
-                {videoWall.length > 0 ? "جزئیات ویدیووال" : "مانیتوری وجود ندارد ⚠️"}
+                {videoWall.length > 0 ? "جزئیات مانیتور‌ها" : "مانیتوری وجود ندارد ⚠️"}
               </ModalHeader>
               <ModalBody>
                 <div dir="rtl" className="w-full h-full flex flex-col gap-4 overflow-auto">
@@ -101,10 +101,10 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
                               <Chip size="sm" color="primary">{`Y: ${item.y}`}</Chip>
                             </div>
                           </div>
-                          <div className="flex gap-1">
+                          {/* <div className="flex gap-1">
                             <strong>آی‌دی مانیتور:</strong>
                             <Chip size="sm" color="primary">{`${item.id}`}</Chip>
-                          </div>
+                          </div> */}
                           {/* <div>
                             <strong>رزولوشن حداکثری:</strong> {item["Maximum Resolution"]}
                           </div> */}

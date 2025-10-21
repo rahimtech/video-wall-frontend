@@ -258,7 +258,7 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
 
   return (
     <div dir="rtl" className="flex flex-col justify-center items-center h-screen bg-slate-200">
-      <Network />
+      {/* <Network /> */}
       <div className="max-w-md mx-auto relative overflow-hidden z-10 bg-white p-8 rounded-lg shadow-md before:w-24 before:h-24 before:absolute before:bg-purple-500 before:rounded-full before:-z-10 before:blur-2xl after:w-32 after:h-32 after:absolute after:bg-sky-400 after:rounded-full after:-z-10 after:blur-xl after:top-24 after:-right-12">
         <h2 className="text-2xl text-sky-900 font-bold mb-6">ورود به نرم‌افزار</h2>
         <form onSubmit={handleSubmit}>
@@ -291,13 +291,13 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
 
           <div className="flex justify-between items-center gap-3 mt-6">
-            <button
+            {/* <button
               type="button"
               onClick={switchToSignup}
               className="text-sm underline text-sky-700"
             >
               ثبت‌نام
-            </button>
+            </button> */}
 
             <button
               disabled={loading}
@@ -315,10 +315,10 @@ const Login = ({ onLoginSuccess, switchToSignup }) => {
   );
 };
 
+// console.log("process.env.PRODUCTION::: ", process.env.PRODUCTION);
 const Network = () => {
   const host = window.location.hostname;
   const [form, setForm] = useState(() => localStorage.getItem("host") || host);
-
   // اگر خواستی هنگام mount هر بار از localStorage تازه بخوانی:
   useEffect(() => {
     const stored = localStorage.getItem("host") || host;
@@ -414,7 +414,7 @@ const Signup = ({ onSignupSuccess, switchToLogin }) => {
 
   return (
     <div dir="rtl" className="flex flex-col justify-center items-center h-screen bg-slate-200">
-      <Network />
+      {/* <Network /> */}
       <div className="max-w-md mx-auto relative overflow-hidden z-10 bg-white p-8 rounded-lg shadow-md before:w-24 before:h-24 before:absolute before:bg-purple-500 before:rounded-full before:-z-10 before:blur-2xl after:w-32 after:h-32 after:absolute after:bg-sky-400 after:rounded-full after:-z-10 after:blur-xl after:top-24 after:-right-12">
         <h2 className="text-2xl text-sky-900 font-bold mb-6">ثبت‌نام</h2>
         <form onSubmit={handleSubmit}>

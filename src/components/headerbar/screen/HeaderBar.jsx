@@ -473,6 +473,8 @@ const HeaderBar = ({ toggleLayout }) => {
       </Dropdown>
 
       {/* تنظیمات شبکه */}
+      {/* PRODUCTION_MODE */}
+
       <Button
         size="sm"
         color={connecting ? "success" : "danger"}

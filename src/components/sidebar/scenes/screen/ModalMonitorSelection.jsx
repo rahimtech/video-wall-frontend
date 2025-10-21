@@ -66,7 +66,7 @@ const ModalMonitorSelection = ({ videoName, monitors, fitToMonitors, darkMode, i
                         isSelected={selectedMonitors.includes(index)}
                         onChange={() => handleMonitorSelection(index)}
                       >
-                        {`Monitor ${monitor.id} (${monitor.width}x${monitor.height})`}
+                        {`Monitor ${monitor.name} (${monitor.width}x${monitor.height})`}
                       </Checkbox>
                     </div>
                   ))}

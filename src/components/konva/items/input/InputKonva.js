@@ -2,9 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
   let uniqId = mode ? uuidv4() : input.externalId;
-  console.log("input.metadata?.native::: ", input);
   let native = input.metadata?.native || false;
-  console.log("native111::: ", native);
   if (mode) {
     if (confirm("آیا با رزولیشن دستگاه ساخته شود")) {
       native = true;
@@ -12,7 +10,6 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
       native = false;
     }
   }
-  console.log("native222::: ", native);
 
   // let uniqId = input.externalId;
 
@@ -58,10 +55,6 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
   group.add(text);
 
   if (mode) {
-    setSources((prev) => [
-      ...prev,
-      { ...input, externalId: uniqId, sceneId: getSelectedScene().id },
-    ]);
     sendOperation("source", {
       action: "add",
       id: uniqId,
@@ -83,6 +76,10 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
         },
       },
     });
+    setSources((prev) => [
+      ...prev,
+      { ...input, externalId: uniqId, sceneId: getSelectedScene().id },
+    ]);
   }
 
   selectedSceneLayer.add(group);

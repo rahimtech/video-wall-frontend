@@ -899,7 +899,6 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const handleSourceEvent = useCallback(({ action, payload, id }) => {
-    console.log("payload::: ", payload);
     if (!sourcesRef.current) return;
     if (isRealTimeRef.current) {
       const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
@@ -916,7 +915,6 @@ export const MyContextProvider = ({ children }) => {
       scene.layer.batchDraw();
 
       const exist = sourcesRef.current.find((item) => item.externalId == id);
-      console.log("exist::: ", exist);
       if (!exist) return;
       switch (action) {
         case "add": {
@@ -1168,8 +1166,6 @@ export const MyContextProvider = ({ children }) => {
         return sceneData;
       };
       if (type === "IMAGE") {
-        console.log("type::: ", type);
-
         addImage({
           img: endObj,
           mode: false,
@@ -1188,7 +1184,6 @@ export const MyContextProvider = ({ children }) => {
           sendOperation,
         });
       } else if (type === "VIDEO") {
-        console.log("type::: ", type);
         addVideo({
           videoElement: endObj,
           mode: false,
@@ -1207,7 +1202,6 @@ export const MyContextProvider = ({ children }) => {
           sendOperation,
         });
       } else if (type === "TEXT") {
-        console.log("type::: ", type);
         addText({
           textItem: endObj,
           mode: false,
@@ -1345,8 +1339,11 @@ export const MyContextProvider = ({ children }) => {
       } else {
         socket?.emit(action, payload);
       }
-      // api.createSource(url, payload.payload);
+      // api.createSource(url
+      // , payload.payload);
     } else {
+      console.log(pendingOperations);
+
       setPendingOperation((prev) => [...prev, { action, payload }]);
     }
   };
@@ -1469,7 +1466,6 @@ export const MyContextProvider = ({ children }) => {
 
   useEffect(() => {
     const hostURL = window.location.hostname;
-
     if (!localStorage.getItem("host")) {
       if (localStorage.getItem("host")) {
         localStorage.setItem("host", config.host);
@@ -1479,8 +1475,14 @@ export const MyContextProvider = ({ children }) => {
       localStorage.setItem("port", config.port);
     } else {
       host = localStorage.getItem("host");
-      port = localStorage.getItem("port");
+      localStorage.setItem("port", 4000);
+      port = localStorage.getItem("port") || 4000;
     }
+
+    // PRODUCTION_MODE
+    // localStorage.setItem("port", hostURL);
+    // host = hostURL || localStorage.setItem("port", hostURL);
+    port = localStorage.getItem("port") || 4000;
     const u = `http://${host}:${port}`;
     setUrl(u);
     urlRef.current = u;
@@ -1667,7 +1669,6 @@ export const MyContextProvider = ({ children }) => {
               });
             setSources(integratedSource);
             const sceneNeedToGenerating = fetchDataScene.find((item) => item.id == checkSavedScene);
-            console.log("sceneNeedToGenerating::: ", sceneNeedToGenerating);
             generateScene(integratedSource, sceneNeedToGenerating);
             setMonitorConnection(true);
             requestAnimationFrame(() => {
@@ -1916,7 +1917,6 @@ export const MyContextProvider = ({ children }) => {
         setSelectedCollection(fetchDataColl[0]?.id);
 
         const dataSen = await api.getScenes(url);
-        console.log("dataSen::: ", dataSen);
         fetchDataScene =
           dataSen?.map((item) => ({
             name: item.name,
@@ -1925,7 +1925,6 @@ export const MyContextProvider = ({ children }) => {
             stageData: null,
             layer: new Konva.Layer(),
           })) ?? [];
-        console.log("fetchDataScene::: ", fetchDataScene);
 
         if (fetchDataScene.length >= 0) {
           setScenes(fetchDataScene);

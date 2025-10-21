@@ -251,7 +251,6 @@ export const addVideo = ({
     group.add(text);
 
     const node = getSelectedScene()?.layer;
-    console.log("node::: ", node);
 
     selectedSceneLayer.add(group);
     if (mode) selectedStage.add(selectedSceneLayer);

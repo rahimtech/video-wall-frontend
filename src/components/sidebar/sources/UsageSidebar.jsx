@@ -127,11 +127,8 @@ const UsageSidebar = () => {
     const arr = [...sources];
     const idx = arr.find((x) => x.externalId === id).z ?? 0;
 
-    console.log("idx::: ", idx);
-
     // if (idx < 0) return;
     const newIdx = idx + -direction;
-    console.log("newIdx::: ", newIdx);
     if (newIdx < 0 || newIdx >= arr.length) return;
     // console.log("newIdx >= arr.length::: ", newIdx >= arr.length);
 
@@ -248,8 +245,8 @@ const UsageSidebar = () => {
                   setSelectedSource(resource.externalId);
                 }}
                 className={`text-sm  cursor-pointer flex flex-wrap items-center justify-between  ${
-                  resource.type == "INPUT"
-                    ? selectedSource == resource.uniqId
+                  type == "INPUT"
+                    ? selectedSource == resource.externalId
                       ? "bg-blue-500"
                       : darkMode
                       ? "bg-gray-700"

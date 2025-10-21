@@ -145,7 +145,7 @@ async function applyTextEdit({ group, textNode, layer, value }) {
 async function showTextContextMenu({ group, textNode, layer, setSources, sendOperation }) {
   const isMarquee = !!group.getAttr("_marquee");
   const cfg = group.getAttr("_marqueeCfg") || {
-    width: 400,
+    width: textNode?.width() || 200,
     height: 50,
     speed: 80,
     dir: "rtl",
