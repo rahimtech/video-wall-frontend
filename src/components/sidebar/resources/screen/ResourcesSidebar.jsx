@@ -61,6 +61,7 @@ const ResourcesSidebar = () => {
     trimPrefix,
     dataDrag,
     setDataDrag,
+    setScenes,
   } = useMyContext();
 
   // cleanup function
@@ -287,7 +288,7 @@ const ResourcesSidebar = () => {
       input.click();
     } else if (type === "TEXT") {
       Swal.fire({
-        title: "متن خود را وارد کنید:",
+        title: "متن خود را وارد کنید",
         input: "text",
         showCancelButton: true,
         confirmButtonColor: "green",
@@ -300,7 +301,7 @@ const ResourcesSidebar = () => {
             type: "TEXT",
             content: textInit,
             width: 0.0,
-            height: 100,
+            height: 200,
             name: textInit,
             externalId: id,
             metadata: {
@@ -308,7 +309,7 @@ const ResourcesSidebar = () => {
               style: {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
-                fontSize: 40,
+                fontSize: 150,
                 color: "gray",
               },
               marquee: {
@@ -328,7 +329,7 @@ const ResourcesSidebar = () => {
             content: textInit,
             color: "gray",
             width: 0.0,
-            height: 100,
+            height: 200,
             x: 0,
             y: 0,
             z: 1,
@@ -338,7 +339,7 @@ const ResourcesSidebar = () => {
               style: {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
-                fontSize: 40,
+                fontSize: 150,
                 color: "gray",
               },
               marquee: {
@@ -354,7 +355,7 @@ const ResourcesSidebar = () => {
       });
     } else if (type === "RSS") {
       Swal.fire({
-        title: "لینک RSS را وارد کنید:",
+        title: "را وارد کنیدRRS لینک",
         input: "text",
         showCancelButton: true,
         inputPlaceholder: "https://example.com/rss",
@@ -369,7 +370,7 @@ const ResourcesSidebar = () => {
           try {
             const url = new URL(value);
             if (!/^https?:$/i.test(url.protocol)) {
-              Swal.showValidationMessage("لینک باید با http:// یا https:// شروع شود");
+              Swal.showValidationMessage("باشد https:// یا http:// شروع لینک باید با");
               return false;
             }
 
@@ -407,22 +408,22 @@ const ResourcesSidebar = () => {
           const media = await api.createMedia(url, {
             type: "RSS",
             content: textInit,
-            width: 0.0,
-            height: 100,
+            width: 300,
+            height: 200,
             name: textInit,
             externalId: id,
             metadata: {
               rssContent: [],
-              bgColor: "transparent",
+              bgColor: "#ffffff",
               style: {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
-                fontSize: 40,
-                color: darkMode ? "white" : "black",
+                fontSize: 150,
+                color: darkMode ? "red" : "red",
               },
               marquee: {
                 speed: 90,
-                enabled: false,
+                enabled: true,
                 scrollDirection: "rtl",
               },
             },
@@ -434,25 +435,24 @@ const ResourcesSidebar = () => {
             externalId: media?.externalId,
             name: textInit, // Show text and Editble
             content: textInit,
-            color: "gray",
-            width: 0.0,
-            height: 100,
+            width: 300,
+            height: 200,
             x: 0,
             y: 0,
             // z: 1,
             rotation: 0,
             metadata: {
               rssContent: media.metadata.rssContent,
-              bgColor: "transparent",
+              bgColor: "#ffffff",
               style: {
                 dir: "rtl",
                 fontFamily: "Vazirmatn, IRANSans, Arial",
-                fontSize: 40,
-                color: "gray",
+                fontSize: 150,
+                color: "red",
               },
               marquee: {
                 speed: 90,
-                enabled: false,
+                enabled: true,
                 scrollDirection: "rtl",
               },
             },
@@ -462,7 +462,7 @@ const ResourcesSidebar = () => {
       });
     } else if (type === "IFRAME") {
       Swal.fire({
-        title: "Enter the URL:",
+        title: "لینک را وارد کنید",
         input: "text",
         inputPlaceholder: "https://example.com",
         showCancelButton: true,
@@ -475,7 +475,7 @@ const ResourcesSidebar = () => {
           try {
             const url = new URL(value);
             if (!/^https?:$/i.test(url.protocol)) {
-              return "لینک باید با http:// یا https:// شروع شود";
+              ("باشد https:// یا http:// شروع لینک باید با");
             }
             // بررسی دامنه معتبر (حداقل یک نقطه داشته باشد)
             if (!url.hostname.includes(".")) {
@@ -519,9 +519,9 @@ const ResourcesSidebar = () => {
       });
     } else if (type === "STREAM") {
       Swal.fire({
-        title: ":آدرس استریم را وارد کنید",
+        title: "آدرس استریم را وارد کنید",
         input: "text",
-        inputPlaceholder: "فقط لینک‌های http:// یا https:// مجاز هستند",
+        inputPlaceholder: "مجاز است https:// و http:// فقط",
         showCancelButton: true,
         confirmButtonColor: "green",
         cancelButtonColor: "gray",
@@ -530,13 +530,13 @@ const ResourcesSidebar = () => {
 
           // رد کردن هر لینکی که rtsp باشد
           if (/^rtsp:\/\//i.test(value)) {
-            return "لینک‌های RTSP پشتیبانی نمی‌شوند. فقط HTTP یا HTTPS مجاز است.";
+            return " مجاز نیستند rtsp لینک‌های";
           }
 
           try {
             const parsed = new URL(value);
             if (!/^https?:$/i.test(parsed.protocol))
-              return "لینک باید با http:// یا https:// شروع شود";
+              return "باشد https:// یا http:// شروع لینک باید با";
             if (!parsed.hostname.includes(".")) return "لینک وارد شده معتبر نیست";
             console.log("TEST ERROR");
             return null;
@@ -590,7 +590,6 @@ const ResourcesSidebar = () => {
       cancelButtonColor: "#d33",
       confirmButtonText: "بله",
     });
-    console.log(sources);
 
     if (!result.isConfirmed) return;
 
@@ -598,17 +597,16 @@ const ResourcesSidebar = () => {
       setMiniLoad(true);
 
       const newSources = await api.getSources(url);
+      console.log("newSources::: ", newSources);
       const isResourceUsed = newSources.some((item) => item.media?.id == id);
       console.log("isResourceUsed::: ", isResourceUsed);
 
       if (!isResourceUsed) {
-        // اگر منبع استفاده نشده، مستقیم پاک کن
         await handleDeleteMedia(id);
         setResources((prev) => prev.filter((res) => res.id !== id));
         return;
       }
 
-      // اگر منبع استفاده شده
       const deleteConfirmed = await Swal.fire({
         title: "هشدار مهم این محتوا در جای دیگر استفاده شده",
         text: ".با پاک کردن این محتوا در تمامی صحنه‌ها این محتوا پاک خواهد شد",
@@ -623,13 +621,48 @@ const ResourcesSidebar = () => {
 
       if (!deleteConfirmed.isConfirmed) return;
 
-      // پیدا کردن همه سورس‌های مربوط به این media
       const sourcesToRemove = newSources.filter((item) => item.media?.id == id);
-      console.log("sourcesToRemove::: ", sourcesToRemove);
 
-      // حذف از Konva و ارسال درخواست به سرور
+      const sourcesByScene = {};
+      sourcesToRemove.forEach((source) => {
+        const sceneId = source.sceneId;
+        if (!sourcesByScene[sceneId]) {
+          sourcesByScene[sceneId] = [];
+        }
+        sourcesByScene[sceneId].push(source);
+      });
+
+      for (const sceneId in sourcesByScene) {
+        const sceneSourcesToRemove = sourcesByScene[sceneId];
+
+        const sceneSourcesBefore = newSources.filter((s) => s.sceneId === sceneId);
+
+        const remainingSources = sceneSourcesBefore.filter(
+          (s) =>
+            !sceneSourcesToRemove.some((removeSource) => removeSource.externalId === s.externalId)
+        );
+
+        const updatedSources = remainingSources
+          .sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
+          .map((source, index) => ({
+            ...source,
+            z: index + 1,
+          }));
+
+        updatedSources.forEach((source) => {
+          const originalZ =
+            sceneSourcesBefore.find((s) => s.externalId === source.externalId)?.z ?? 0;
+          if (source.z !== originalZ) {
+            sendOperation("source", {
+              action: "move",
+              id: source.externalId,
+              payload: { z: source.z },
+            });
+          }
+        });
+      }
+
       for (const source of sourcesToRemove) {
-        // حذف از Konva
         const groupToRemove = getSelectedScene()?.layer.findOne(`#${source.externalId}`);
         if (groupToRemove) {
           groupToRemove.destroy();
@@ -643,15 +676,38 @@ const ResourcesSidebar = () => {
         });
       }
 
-      // رفرش صفحه Konva
       getSelectedScene()?.layer.draw();
-      // به‌روزرسانی state منابع
 
+      // به‌روزرسانی state با z-index‌های جدید
       setSources((prev) => {
-        return prev.filter((item) => (item?.media?.id || item.id) != id);
+        const updatedSources = prev
+          .map((source) => {
+            // پیدا کردن z-index جدید برای این سورس
+            const sceneId = source.sceneId;
+            if (sourcesByScene[sceneId]) {
+              const sceneSourcesBefore = prev.filter((s) => s.sceneId === sceneId);
+              const remainingSources = sceneSourcesBefore.filter(
+                (s) =>
+                  !sourcesByScene[sceneId].some(
+                    (removeSource) => removeSource.externalId === s.externalId
+                  )
+              );
+
+              const sortedRemaining = remainingSources.sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+              const newZIndex =
+                sortedRemaining.findIndex((s) => s.externalId === source.externalId) + 1;
+
+              if (newZIndex > 0) {
+                return { ...source, z: newZIndex };
+              }
+            }
+            return source;
+          })
+          .filter((item) => (item?.media?.id || item.id) != id);
+
+        return updatedSources;
       });
 
-      // حذف از collections
       setCollections((prev) =>
         prev.map((col) => ({
           ...col,
@@ -662,7 +718,6 @@ const ResourcesSidebar = () => {
         }))
       );
 
-      // اگر استریم هست، توقفش کن
       const resObj = resources.find((r) => r.id === id);
       if (resObj?.type === "STREAM") {
         try {
@@ -673,10 +728,8 @@ const ResourcesSidebar = () => {
         }
       }
 
-      // حذف مدیا
       await handleDeleteMedia(id);
 
-      // به‌روزرسانی resources
       setResources((prev) => prev.filter((res) => res.id !== id));
     } catch (error) {
       console.error("Error deleting resource:", error);
@@ -893,8 +946,47 @@ const ResourcesSidebar = () => {
 
   const updateResourceName = async (resourceId, newName) => {
     await api.updateMedia(url, resourceId, { name: newName });
+
     setResources((prev) =>
       prev.map((item) => (item.id === resourceId ? { ...item, name: newName } : item))
+    );
+
+    sendOperation("source", {
+      action: "resize",
+      id: resourceId,
+      payload: { newName },
+    });
+    setScenes((prevScenes) =>
+      prevScenes.map((sc) => {
+        if (sc.id !== getSelectedScene()?.id) return sc;
+        const updated = sc?.usageSources?.map((r) =>
+          r.externalId === resourceId ? { ...r, newName, content: newName } : r
+        );
+        return { ...sc, usageSources: updated };
+      })
+    );
+
+    // آپدیت سورس‌ها (sources) که از این منبع استفاده می‌کنند
+    setSources((prev) =>
+      prev.map((source) => {
+        if (source.media?.id === resourceId) {
+          return {
+            ...source,
+            name: newName,
+            media: {
+              ...source.media,
+              name: newName,
+            },
+          };
+        }
+        if (source.id === resourceId) {
+          return {
+            ...source,
+            name: newName,
+          };
+        }
+        return source;
+      })
     );
   };
 
@@ -1097,6 +1189,7 @@ const ResourcesSidebar = () => {
                       } p-2 rounded-md shadow-sm flex-wrap`}
                     >
                       <div className="flex items-center w-[50%]">
+                        {/* <div>{input.sources[0].metadata > 0 ? <>(فعال)</> : <></>}</div> */}
                         {editingResourceId === input.id ? (
                           <input
                             type="text"
@@ -1498,7 +1591,6 @@ const ResourcesSidebar = () => {
                                       }}
                                       className="px-2 py-1 rounded bg-white text-black w-[180px]"
                                       autoFocus
-                                      // جلوگیری از شروع درگ وقتی داخل input کلیک می‌کنیم
                                       onMouseDown={(e) => e.stopPropagation()}
                                       onPointerDown={(e) => e.stopPropagation()}
                                     />
@@ -1524,7 +1616,6 @@ const ResourcesSidebar = () => {
                                       darkMode ? "text-white" : "text-black"
                                     } min-w-fit h-fit p-1`}
                                     draggable={false}
-                                    // جلوگیری از شروع درگ روی دکمه‌ها
                                     onPointerDown={(e) => e.stopPropagation()}
                                     onPress={() => addResourceToScene(r)}
                                   >

@@ -35,7 +35,7 @@ export const addImage = ({
         z: img?.z || sources.length + 1,
         width: img.imageElement.width || img.width,
         height: img.imageElement.height || img.height,
-        name: img.name,
+        name: img.media?.name || img.name,
         type: "IMAGE",
         sceneId: getSelectedScene().id,
         content: img.content,
@@ -66,7 +66,7 @@ export const addImage = ({
   const text = new Konva.Text({
     x: 0,
     y: 0,
-    text: `${img.name}\n(${img.type})`,
+    text: `${img.media?.name || img.name}`,
     fontSize: 30,
     fill: "black",
     fontFamily: "Arial",

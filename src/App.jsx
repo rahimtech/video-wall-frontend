@@ -184,7 +184,7 @@ function App() {
             if (!display.connected) {
               setMonitorConnection(false);
               if (rect) rect.fill("red");
-              if (text) text.text(`Monitor ${display.name} (Disconnected)`);
+              if (text) text.text(`VideoWall ${display.name} (Disconnected)`);
 
               if (!group.findOne(".disconnectIcon")) {
                 const disconnectIcon = new Konva.Text({
@@ -208,7 +208,7 @@ function App() {
               // });
 
               if (rect) rect.fill("#161616");
-              if (text) text.setAttr("text", `Monitor ${display.name}`);
+              if (text) text.setAttr("text", `VideoWall ${display.name}`);
               setMonitorConnection(true);
 
               const disconnectIcon = group.findOne(".disconnectIcon");
@@ -239,7 +239,7 @@ function App() {
             const text = group.findOne(".monitorText");
 
             if (rect) rect.fill("red");
-            if (text) text.text(`Monitor ${display.id} (Disconnected)`);
+            if (text) text.text(`VideoWall ${display.id} (Disconnected)`);
 
             if (!group.findOne(".disconnectIcon")) {
               const disconnectIcon = new Konva.Text({
@@ -464,12 +464,12 @@ function App() {
     >
       {/* Loader */}
       {miniLoad && (
-        <div className=" z-[1000000] w-fit h-fit flex flex-col gap-3 justify-center items-center  m-auto">
+        <div className=" z-[100] absolute left-0 w-full h-full right-0 top-0 bottom-0 bg-gray-400 bg-opacity-60  flex flex-col gap-3 justify-center items-center  m-auto">
           <CircularProgress label="در حال انجام عملیات ..." />
         </div>
       )}
       {isLoading && (
-        <div className="w-full z-[1000000] flex flex-col gap-3 justify-center items-center h-full backdrop-blur-[5px]">
+        <div className="w-full z-[100] flex flex-col gap-3 justify-center items-center h-full backdrop-blur-[5px]">
           <Spinner size="lg" />
           <div className={`vazirblack  ${darkMode ? "text-white" : "text-black"}`}>
             لطفا صبر کنید عملیات در حال انجام است

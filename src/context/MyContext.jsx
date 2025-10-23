@@ -2,7 +2,6 @@ import Konva from "konva";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import config from "../../public/config.json";
 import api from "../api/api";
-import { deleteSourceFromScene } from "../components/konva/common/deleteSourceFromScene";
 import { fitToMonitors } from "../components/konva/common/FitToMonitor";
 import { addImage } from "../components/konva/items/image/ImageKonva";
 import { addInput } from "../components/konva/items/input/InputKonva";
@@ -661,7 +660,6 @@ export const MyContextProvider = ({ children }) => {
     });
   }
 
-  // 3) یک کمک کوچک برای درآوردن id بیرونیِ آیتمِ درَگ شده
   function pickExternalId(payload) {
     // بسته به ساختار شما:
     return (
@@ -674,7 +672,6 @@ export const MyContextProvider = ({ children }) => {
     );
   }
 
-  // ---- handler اصلی
   const handleDrop = (e) => {
     e.preventDefault();
 
@@ -789,7 +786,11 @@ export const MyContextProvider = ({ children }) => {
   function contentGenerator(type, item) {
     let endObj;
     if (type === "INPUT") {
-      endObj = { name: item.name ?? "INPUT", externalId: item.externalId, metadata: item.metadata };
+      endObj = {
+        name: item.name ?? "INPUT",
+        externalId: item.externalId,
+        metadata: item.metadata,
+      };
     } else if (type === "IMAGE") {
       const imageURL = `${urlRef.current}/${item.media?.content || item.content}`;
       const img = new Image();
@@ -842,6 +843,7 @@ export const MyContextProvider = ({ children }) => {
       z: item.z,
       name: item.name ?? "",
       rotation: parseInt(item.rotation) || 0,
+      media: item.media,
     };
 
     return { endObj, type };
@@ -1432,7 +1434,7 @@ export const MyContextProvider = ({ children }) => {
       container: `containerKonva-${selectedScene}`,
       width: window.innerWidth,
       height: window.innerHeight,
-      draggable: true,
+      draggable: false,
     });
     const newLayer = new Konva.Layer();
 
@@ -1803,7 +1805,7 @@ export const MyContextProvider = ({ children }) => {
             addMonitorsToScenes({ jsonData: displays, scenes: fetchDataScene, setScenes });
 
             const newScene = await api.getSceneById(`http://${host}:${port}`, checkSavedScene);
-            const integratedSource = newScene.sources
+            const integratedSource = newScene?.sources
               .filter((s) => s.sceneId == checkSavedScene)
               .slice()
               .sort((a, b) => {
@@ -2003,7 +2005,7 @@ export const MyContextProvider = ({ children }) => {
           container: "containerKonva",
           width,
           height,
-          draggable: true,
+          draggable: false,
         });
 
         const layer = new Konva.Layer();
@@ -2247,8 +2249,6 @@ export const MyContextProvider = ({ children }) => {
     const sceneSources = sourcesRef.current.filter((item) => item.sceneId === scn.id);
     const sortedSources = [...sceneSources].sort((a, b) => (b.z ?? 0) - (a.z ?? 0));
 
-    console.log("Sorted sources by z-index:", sortedSources);
-
     // حرکت دادن المان‌ها بر اساس z-index
     sortedSources.forEach((item, index) => {
       const node = scn.layer.findOne(`#${item.externalId}`);
@@ -2264,7 +2264,6 @@ export const MyContextProvider = ({ children }) => {
     });
 
     scn.layer.batchDraw();
-    console.log("لایه‌ها با موفقیت مرتب شدند");
   };
 
   return (
@@ -2354,7 +2353,6 @@ export const MyContextProvider = ({ children }) => {
         addScene,
         deleteScene,
         handleEditSceneName,
-        deleteSourceFromScene,
         fitToMonitors,
         addImage,
         addInput,

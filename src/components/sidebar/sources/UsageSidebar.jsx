@@ -21,6 +21,7 @@ import { CgSize } from "react-icons/cg";
 import { RiFontSize } from "react-icons/ri";
 import { FiMonitor } from "react-icons/fi";
 import { TbUvIndex } from "react-icons/tb";
+import Swal from "sweetalert2";
 
 const TYPE_ICON = {
   IMAGE: FaImage,
@@ -54,30 +55,105 @@ const UsageSidebar = () => {
     setSources,
     allDataMonitors,
     getSelectedScene,
-    deleteSourceFromScene,
     fitToMonitors,
     sendOperation,
     selectedSource,
     setSelectedSource,
   } = useMyContext();
 
-  // فقط منابعِ صحنهٔ انتخاب‌شده
+  const deleteSourceFromScene = ({ id, getSelectedScene, setSources, sendOperation }) => {
+    Swal.fire({
+      title: "آیا مطمئن هستید؟",
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "خیر",
+      confirmButtonColor: "limegreen",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "بله",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const currentSceneId = getSelectedScene()?.id;
+        if (!currentSceneId) return;
+
+        // منابع همین صحنه قبل از حذف
+        const sceneSourcesBefore = sources.filter((s) => s.sceneId === currentSceneId);
+        const sourceToDelete = sceneSourcesBefore.find((s) => s.externalId === id);
+
+        if (!sourceToDelete) return;
+
+        // حذف از سرور
+        sendOperation("source", {
+          action: "remove",
+          id,
+          payload: {},
+        });
+
+        // حذف از state
+        setSources((prev) => prev.filter((item) => item.externalId !== id));
+
+        // منابع باقی‌مانده بعد از حذف
+        const remainingSources = sceneSourcesBefore.filter((s) => s.externalId !== id);
+
+        // به‌روزرسانی z-index منابع باقی‌مانده از 1 تا n
+        const updatedSources = remainingSources
+          .sort((a, b) => (a.z ?? 0) - (b.z ?? 0)) // مرتب‌سازی بر اساس z-index فعلی
+          .map((source, index) => ({
+            ...source,
+            z: index + 1, // z-index جدید از 1 شروع می‌شود
+          }));
+
+        // به‌روزرسانی state با z-index جدید
+        setSources((prev) => {
+          const otherSources = prev.filter((s) => s.sceneId !== currentSceneId);
+          return [...otherSources, ...updatedSources];
+        });
+        if (sources.length == 1) {
+          setShowIndex(false);
+        } else {
+          setShowIndex(true);
+        }
+
+        // ارسال z-index جدید به سرور برای همه منابع باقی‌مانده
+        updatedSources.forEach((source) => {
+          const originalZ =
+            sceneSourcesBefore.find((s) => s.externalId === source.externalId)?.z ?? 0;
+          if (source.z !== originalZ) {
+            sendOperation("source", {
+              action: "move",
+              id: source.externalId,
+              payload: { z: source.z },
+            });
+          }
+        });
+
+        // حذف از Konva
+        const groupToRemove = getSelectedScene()?.layer.find(`#${id}`);
+        if (groupToRemove) {
+          for (let index = 0; index < groupToRemove.length; index++) {
+            groupToRemove[index].remove();
+          }
+          getSelectedScene()?.layer.draw();
+        }
+
+        // نمایش پیام همسان‌سازی
+      }
+    });
+  };
+
   const usageSources = useMemo(() => {
     const sceneId = getSelectedScene()?.id;
     if (!sceneId) return [];
 
     return sources
       .filter((s) => s.sceneId === sceneId)
-      .slice() // کپیِ آرایه تا منابع اصلی تغییر نکنند
+      .slice()
       .sort((a, b) => {
-        // پشتیبانی از چند نام فیلد (z یا zIndex) و تبدیل به عدد امن
         const az = Number(a.z ?? a.zIndex ?? 0);
         const bz = Number(b.z ?? b.zIndex ?? 0);
 
-        // نزولی: مقدار بزرگتر z اول نمایش داده می‌شود (روی لایه جلوتر)
         return bz - az;
       });
-  }, [sources, selectedScene /* یا getSelectedScene()?.id اگر می‌خواهید */]);
+  }, [sources, selectedScene]);
 
   // --- helpers: انتخاب و هایلایت
   const isSelectedRow = (res) =>
@@ -114,7 +190,7 @@ const UsageSidebar = () => {
     updateSourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
-    location.reload();
+    // location.reload();
   };
 
   const handleKeyDownEdit = (e, id) => {
@@ -276,20 +352,15 @@ const UsageSidebar = () => {
                   const group = layer.findOne(`#${resource.externalId}`);
                   if (!group) return;
 
-                  // تشخیص type المان
                   const elementType = resource.type || resource.media?.type;
 
-                  // تنظیم anchors بر اساس type
                   let enabledAnchors = [];
                   if (elementType === "TEXT" || elementType === "RSS") {
-                    // برای متن: فقط rotate - بدون anchors
                     enabledAnchors = [];
                   } else {
-                    // برای بقیه (IMAGE, VIDEO, INPUT, etc.): anchors کامل
                     enabledAnchors = ["top-left", "top-right", "bottom-left", "bottom-right"];
                   }
 
-                  // اگر Transformer پیدا نشد، بساز
                   let transformer = layer.findOne(`Transformer[id="${resource.externalId}"]`);
                   if (!transformer) {
                     transformer = new Konva.Transformer({
@@ -303,7 +374,6 @@ const UsageSidebar = () => {
                     layer.add(transformer);
                   } else {
                     transformer.nodes([group]);
-                    // آپدیت anchors برای transformer موجود
                     transformer.enabledAnchors(enabledAnchors);
                   }
 
@@ -341,7 +411,6 @@ const UsageSidebar = () => {
                     </div>
                   </Chip>
 
-                  {/* نام + ادیت */}
                   {editingResourceId === resource.externalId ? (
                     <input
                       className="px-2 py-[2px] rounded bg-white text-black text-sm w-[180px] outline-none"
@@ -358,11 +427,11 @@ const UsageSidebar = () => {
                           darkMode ? "text-white" : "text-black"
                         }`}
                         title={resource.name}
-                        onDoubleClick={() => handleDoubleClick(resource)}
+                        // onDoubleClick={() => handleDoubleClick(resource)}
                       >
-                        {resource.name}
+                        {resource?.media?.name || resource.name}
                       </span>
-                      <Tooltip content="تغییر نام">
+                      {/* <Tooltip content="تغییر نام">
                         <button
                           className="p-1 rounded hover:bg-black/10"
                           onClick={(e) => {
@@ -372,12 +441,11 @@ const UsageSidebar = () => {
                         >
                           <FaPen size={12} />
                         </button>
-                      </Tooltip>
+                      </Tooltip> */}
                     </div>
                   )}
                 </div>
 
-                {/* Right: fit, text settings, delete */}
                 <div className="flex items-center gap-1">
                   {/* Z-order controls */}
                   <div className="flex items-center gap-1 ml-2">

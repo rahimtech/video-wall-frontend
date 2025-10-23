@@ -260,7 +260,6 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
     contentGenerator,
     sources,
   } = ctx;
-  console.log("sources::: ", sources);
 
   const scn = getSelectedScene();
   if (!scn) return;
@@ -485,7 +484,7 @@ export default function Canvas({
   const [activeTab, setActiveTab] = useState("global"); // grid | global | groups | place | placeGlobal
 
   // Per-monitor grid
-  const [dragEnabled, setDragEnabled] = useState(true);
+  const [dragEnabled, setDragEnabled] = useState(false);
   const [zoomStep] = useState(1.1);
   const [gridRows, setGridRows] = useState(2);
   const [gridCols, setGridCols] = useState(2);
@@ -764,7 +763,6 @@ export default function Canvas({
     let resource = null;
     if (type === "IMAGE" || type === "VIDEO" || type === "IFRAME") {
       resource = resources.find((r) => String(r.id) === id);
-      console.log("resource::: ", resource);
     } else if (type === "INPUT") {
       resource = inputs.find((r) => String(r.id) === id);
     }
@@ -1037,7 +1035,7 @@ export default function Canvas({
           >
             {videoWalls.map((m) => (
               <SelectItem key={m.id} value={String(m.id)}>
-                {m.name ?? `Monitor ${m.id}`}
+                {m.name ?? `VideoWall ${m.id}`}
               </SelectItem>
             ))}
           </Select>
@@ -1165,7 +1163,7 @@ export default function Canvas({
                         >
                           {videoWalls.map((m) => (
                             <SelectItem key={m.id} value={String(m.id)}>
-                              {m.name ?? `Monitor ${m.id}`}
+                              {m.name ?? `VideoWall ${m.id}`}
                             </SelectItem>
                           ))}
                         </Select>
@@ -1343,7 +1341,7 @@ export default function Canvas({
                         >
                           {videoWalls.map((m) => (
                             <SelectItem key={m.id} value={String(m.id)}>
-                              {m.name ?? `Monitor ${m.id}`}
+                              {m.name ?? `VideoWall ${m.id}`}
                             </SelectItem>
                           ))}
                         </Select>

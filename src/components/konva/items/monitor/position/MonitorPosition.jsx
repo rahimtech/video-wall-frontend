@@ -415,7 +415,7 @@ export const updateKonvaMonitorPosition = (layer, id, newX, newY) => {
 
     const text = monitorGroup.findOne(".monitorText");
     if (text) {
-      text.text(`Monitor ${id}\nX: ${newX}, Y: ${newY}`);
+      text.text(`VideoWall ${id}\nX: ${newX}, Y: ${newY}`);
     }
 
     layer.draw();

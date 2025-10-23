@@ -59,11 +59,12 @@ export const addVideo = ({
     });
   }
 
+  console.log("videoElement::: ", videoElement);
   if (mode) {
     const text = new Konva.Text({
       x: 0,
       y: 0,
-      text: `${videoElement.name}\n(${videoElement.type})`,
+      text: `${videoElement.media?.name || videoElement.name}`,
       fontSize: 30,
       fill: "black",
       fontFamily: "Arial",
@@ -215,7 +216,7 @@ export const addVideo = ({
     const text = new Konva.Text({
       x: 0,
       y: 0,
-      text: `${videoElement.name}\n(${videoElement.type})`,
+      text: `${videoElement.media?.name || videoElement.name}`,
       fontSize: 30,
       fill: "black",
       fontFamily: "Arial",

@@ -51,8 +51,8 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
       //   x: 10,
       //   y: 10,
       //   text: monitor.connected
-      //     ? `Monitor ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
-      //     : `Monitor ${monitor.id} (Disconnected)`,
+      //     ? `VideoWall ${monitor.id}\nX: ${monitor.x}, Y: ${monitor.y}`
+      //     : `VideoWall ${monitor.id} (Disconnected)`,
       //   fontSize: 50,
       //   fill: "white",
       //   align: "left",
@@ -64,8 +64,8 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
         x: 10,
         y: 10,
         text: monitor.connected
-          ? `Monitor ${monitor.name}`
-          : `Monitor ${monitor.id} (Disconnected)`,
+          ? `VideoWall ${monitor.name}`
+          : `VideoWall ${monitor.id} (Disconnected)`,
         fontSize: 50,
         fill: "white",
         align: "left",
@@ -93,7 +93,7 @@ export const addMonitorsToScenes = ({ jsonData, scenes, setScenes }) => {
         const newY = Math.round(y / step) * step;
 
         const textNode = group.findOne(".monitorText");
-        textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`);
+        textNode.text(`VideoWall ${index + 1}\nX: ${newX}, Y: ${newY}`);
 
         e.target.position({ x: newX, y: newY });
       });
@@ -211,7 +211,7 @@ export const arrangeMForScenes = (updatedVideoWalls) => {
 
           const textNode = group.findOne(".monitorText");
           if (textNode) {
-            textNode.text(`Monitor ${monitorId}\nX: ${newX}, Y: ${newY}`);
+            textNode.text(`VideoWall ${monitorId}\nX: ${newX}, Y: ${newY}`);
           }
         }
       }
@@ -256,7 +256,7 @@ export const arrangeMonitors = (rows, cols) => {
 
         const textNode = group.findOne("Text");
         if (textNode) {
-          textNode.text(`Monitor ${monitorId}\nX: ${x}, Y: ${y}`);
+          textNode.text(`VideoWall ${monitorId}\nX: ${x}, Y: ${y}`);
         }
 
         const wallIndex = updatedVideoWalls.findIndex((m) => m.id === monitorId);
@@ -327,7 +327,7 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
     const text = new Konva.Text({
       x: 10,
       y: 10,
-      text: isConnected ? `Monitor ${monitor.name}` : `Monitor ${monitor.name} (Disconnected)`,
+      text: isConnected ? `VideoWall ${monitor.name}` : `VideoWall ${monitor.name} (Disconnected)`,
       fontSize: 50,
       fill: "white",
       align: "left",
@@ -355,7 +355,7 @@ export const generateMonitorsForLayer = (layer, monitors, setMonitorConnection) 
       const newY = Math.round(y / step) * step;
 
       const textNode = group.findOne(".monitorText");
-      textNode.text(`Monitor ${index + 1}\nX: ${newX}, Y: ${newY}`);
+      textNode.text(`VideoWall ${index + 1}\nX: ${newX}, Y: ${newY}`);
 
       e.target.position({ x: newX, y: newY });
     });

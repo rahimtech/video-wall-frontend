@@ -18,13 +18,13 @@ function openMarqueeSettingsModal({ initial }) {
           <div style="flex:1">
             <label>عرض باکس (px):</label>
             <input id="mq-w" class="swal2-input" type="number" min="50" step="10" value="${
-              initial.width ?? 400
+              Math.round(initial.width) ?? 400
             }">
           </div>
           <div style="flex:1">
             <label>ارتفاع باکس (px):</label>
             <input id="mq-h" class="swal2-input" type="number" min="20" step="5" value="${
-              initial.height ?? 50
+              Math.round(initial.height) ?? 50
             }">
           </div>
         </div>
@@ -76,7 +76,6 @@ function openMarqueeSettingsModal({ initial }) {
   });
 }
 
-// helper — امن آپدیت کردن متن از مقدار ورودی modal
 async function applyTextEdit({ group, textNode, layer, value }) {
   // مقدار ورودی را نرمال کن (اختیاری — اگر می‌خوای \n حذف بشه)
   const { normalized } = normalizeForMarquee(value.text || "");
@@ -189,22 +188,18 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
         btnEdit.addEventListener("click", async () => {
           Swal.close();
 
-          // وضعیت فعلی مارکوئی را نگه دار
           const wasMarquee = !!group.getAttr("_marquee");
           const prevCfg = group.getAttr("_marqueeCfg") || null;
 
-          // اگر مارکوئی فعال است، آن را متوقف کن تا ویرایش پایدار باشد
           if (wasMarquee) {
             try {
               stopMarquee(group);
             } catch (e) {
               console.warn("stopMarquee error:", e);
             }
-            // رندر سریع تا UI ثابت شود
             layer && layer.batchDraw();
           }
 
-          // پیدا کردن نود متنی موجود (بعد از stopMarquee متن باید در group باشد)
           let currentTextNode = group.findOne("Text") || group.findOne(".marqueeInner Text");
           if (!currentTextNode) {
             // اگر متن پیدا نشد، یک بار تلاش کن با inner
@@ -212,13 +207,11 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
           }
           if (!currentTextNode) {
             console.warn("No text node to edit");
-            // در صورت نیاز مارکوئی را دوباره فعال کن
             if (wasMarquee && prevCfg)
               startMarquee(group, group.findOne("Text") || currentTextNode, prevCfg);
             return;
           }
 
-          // باز کردن modal با مقادیر فعلی (امن)
           const { isConfirmed: ok, value } = await openTextEditorModal({
             initial: {
               text: currentTextNode.text(),
@@ -241,7 +234,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
             return;
           }
 
-          // اعمال تغییرات امن روی text node
           try {
             const newText = value.text ?? "";
             currentTextNode.text(newText);
@@ -252,7 +244,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
               currentTextNode.direction(value.dir);
             }
 
-            // پاک کردن cache در صورت وجود
             if (typeof currentTextNode.clearCache === "function") {
               try {
                 currentTextNode.clearCache();
@@ -261,7 +252,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
               }
             }
 
-            // اگر نیاز به همگام‌سازی پس‌زمینه/باکس داری، اینجا انجام بده
             const bg = group.findOne(".marqueeBG") || group.findOne("Rect");
             if (bg) {
               // اگر مارکوئی خاموش است، اندازهٔ bg را به متن جدید بچسبان
@@ -269,10 +259,8 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
               bg.height(currentTextNode.height());
             }
 
-            // رندر تغییرات سریع
             layer && layer.batchDraw();
 
-            // اگر قبلاً مارکوئی روشن بوده — آن را با cfg قبلی دوباره فعال کن
             if (wasMarquee && prevCfg) {
               // delay خیلی کوتاه تا همه چیز پایدار باشه
               setTimeout(() => {
@@ -281,7 +269,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
               }, 8);
             }
 
-            // ارسال آپدیت به سرور / state
             const uniqId = group.id();
             sendOperation("source", {
               action: "update",
@@ -298,7 +285,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
                 },
               },
             });
-            // همچنین بروز رسانی local state (setSources) در صورت نیاز
           } catch (err) {
             console.error("apply edit error:", err);
           }
@@ -321,8 +307,8 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
             bgColor: "transparent",
             marquee: { enabled: false },
           },
-          width: textNode?.width(),
-          height: textNode?.height(),
+          width: Math.round(textNode?.width()),
+          height: Math.round(textNode?.height()),
         },
       });
       // syncBGNormal();
@@ -370,7 +356,6 @@ async function showTextContextMenu({ group, textNode, layer, setSources, sendOpe
     });
   }
 }
-// ⬇️ اکسپورت برای فراخوانی از بیرون (UsageSidebar)
 export function openTextContextMenuById(
   externalId,
   { getSelectedScene, setSources, sendOperation }
