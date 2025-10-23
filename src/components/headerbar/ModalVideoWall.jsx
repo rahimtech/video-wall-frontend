@@ -21,7 +21,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
 
   return (
     <>
-      <Tooltip content="جزئیات مانیتور‌ها">
+      <Tooltip content="اطلاعات مانیتور‌ها">
         <Button
           className={` min-w-[35px] h-[33px] rounded-lg p-1`}
           size="sm"
@@ -44,7 +44,7 @@ export default function ModalVideoWall({ darkMode, videoWall }) {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-lg font-bold">
-                {videoWall.length > 0 ? "جزئیات مانیتور‌ها" : "مانیتوری وجود ندارد ⚠️"}
+                {videoWall.length > 0 ? "اطلاعات مانیتور‌ها" : "مانیتوری وجود ندارد ⚠️"}
               </ModalHeader>
               <ModalBody>
                 <div dir="rtl" className="w-full h-full flex flex-col gap-4 overflow-auto">

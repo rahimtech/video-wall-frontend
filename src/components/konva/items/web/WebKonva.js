@@ -13,6 +13,7 @@ export const addWeb = async ({
   url,
 }) => {
   const { id, content, x, y, width, height, externalId, mediaId, rotation } = webResource;
+  console.log("webResource::: ", webResource);
 
   const targetX = Number.isFinite(webResource?.x) ? webResource.x : 0;
   const targetY = Number.isFinite(webResource?.y) ? webResource.y : 0;
@@ -34,8 +35,8 @@ export const addWeb = async ({
         y: targetY,
         z: webResource?.z,
 
-        width: 1920,
-        height: 1080,
+        width: width || 1920,
+        height: height || 1080,
         name: content,
         type: "IFRAME",
         sceneId: getSelectedScene()?.id,
@@ -68,7 +69,7 @@ export const addWeb = async ({
   });
 
   const webText = new Konva.Text({
-    text: content,
+    text: webResource.name,
     fontSize: 30,
     fontFamily: "Arial",
     fill: "black",

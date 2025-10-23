@@ -13,10 +13,14 @@ import {
   FaStream,
   FaRss,
 } from "react-icons/fa";
-import { MdDelete, MdInput } from "react-icons/md";
+import { MdDelete, MdFormatSize, MdInput, MdRefresh } from "react-icons/md";
 import { useMyContext } from "@/context/MyContext";
 import ModalMonitorSelection from "../scenes/screen/ModalMonitorSelection";
 import { openTextContextMenuById } from "@/components/konva/items/text/TextKonva";
+import { CgSize } from "react-icons/cg";
+import { RiFontSize } from "react-icons/ri";
+import { FiMonitor } from "react-icons/fi";
+import { TbUvIndex } from "react-icons/tb";
 
 const TYPE_ICON = {
   IMAGE: FaImage,
@@ -40,6 +44,7 @@ const TYPE_COLOR = {
 const UsageSidebar = () => {
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newName, setNewName] = useState("");
+  const [showIndex, setShowIndex] = useState(false);
 
   const {
     darkMode,
@@ -109,6 +114,7 @@ const UsageSidebar = () => {
     updateSourceName(resourceId, newName);
     setEditingResourceId(null);
     setNewName("");
+    location.reload();
   };
 
   const handleKeyDownEdit = (e, id) => {
@@ -129,7 +135,7 @@ const UsageSidebar = () => {
 
     // if (idx < 0) return;
     const newIdx = idx + -direction;
-    if (newIdx < 0 || newIdx >= arr.length) return;
+    if (newIdx < 0 || newIdx > arr.length) return;
     // console.log("newIdx >= arr.length::: ", newIdx >= arr.length);
 
     // const [moved] = arr.splice(idx, 1);
@@ -187,6 +193,31 @@ const UsageSidebar = () => {
             </Chip>
           </h2>
         </div>
+        {showIndex && (
+          <div className="flex w-full gap-2">
+            <Tooltip content="سینک شدن محتواهای کنترلر با درایور">
+              <button
+                className="p-1 bg-orange-500 text-sm w-full cursor-pointer rounded "
+                onClick={(e) => {
+                  location.reload();
+                  setShowIndex(false);
+                }}
+                aria-label="rename"
+              >
+                همسان سازی
+              </button>
+            </Tooltip>
+            <button
+              className="p-1 bg-red-500 text-sm w-full cursor-pointer rounded hover:bg-red-500"
+              onClick={(e) => {
+                setShowIndex(false);
+              }}
+              aria-label="rename"
+            >
+              لغو
+            </button>
+          </div>
+        )}
       </div>
 
       {/* List */}
@@ -226,17 +257,35 @@ const UsageSidebar = () => {
                   const group = layer.findOne(`#${resource.externalId}`);
                   if (!group) return;
 
+                  // تشخیص type المان
+                  const elementType = resource.type || resource.media?.type;
+
+                  // تنظیم anchors بر اساس type
+                  let enabledAnchors = [];
+                  if (elementType === "TEXT" || elementType === "RSS") {
+                    // برای متن: فقط rotate - بدون anchors
+                    enabledAnchors = [];
+                  } else {
+                    // برای بقیه (IMAGE, VIDEO, INPUT, etc.): anchors کامل
+                    enabledAnchors = ["top-left", "top-right", "bottom-left", "bottom-right"];
+                  }
+
                   // اگر Transformer پیدا نشد، بساز
-                  let transformer = layer.findOne("Transformer");
+                  let transformer = layer.findOne(`Transformer[id="${resource.externalId}"]`);
                   if (!transformer) {
                     transformer = new Konva.Transformer({
                       nodes: [group],
-                      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+                      enabledAnchors: enabledAnchors,
                       rotateEnabled: true,
+                      keepRatio: true,
+                      id: resource.externalId,
                     });
+                    transformer.flipEnabled(false);
                     layer.add(transformer);
                   } else {
                     transformer.nodes([group]);
+                    // آپدیت anchors برای transformer موجود
+                    transformer.enabledAnchors(enabledAnchors);
                   }
 
                   group.draggable(true);
@@ -320,6 +369,7 @@ const UsageSidebar = () => {
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                         onPress={(e) => {
                           moveSource(resource.externalId, -1);
+                          setShowIndex(true);
                         }}
                       >
                         <FaArrowUp size={14} />
@@ -332,6 +382,7 @@ const UsageSidebar = () => {
                         className={`${darkMode ? "text-white" : "text-black"} min-w-fit h-fit p-1`}
                         onPress={(e) => {
                           moveSource(resource.externalId, 1);
+                          setShowIndex(true);
                         }}
                       >
                         <FaArrowDown size={14} />

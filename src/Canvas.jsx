@@ -758,6 +758,7 @@ export default function Canvas({
     let resource = null;
     if (type === "IMAGE" || type === "VIDEO" || type === "IFRAME") {
       resource = resources.find((r) => String(r.id) === id);
+      console.log("resource::: ", resource);
     } else if (type === "INPUT") {
       resource = inputs.find((r) => String(r.id) === id);
     }

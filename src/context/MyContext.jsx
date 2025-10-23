@@ -19,7 +19,7 @@ import {
   arrangeMonitors,
   generateMonitorsForLayer,
 } from "../components/konva/items/monitor/MonitorKonva";
-import { addText } from "../components/konva/items/text/TextKonva";
+import { addText, startMarquee, stopMarquee } from "../components/konva/items/text/TextKonva";
 import {
   addVideo,
   pauseVideo,
@@ -475,9 +475,9 @@ export const MyContextProvider = ({ children }) => {
   const [flagReset, setFlagReset] = useState(false);
   const [dataDrag, setDataDrag] = useState({});
   const [filteredScenes, setFilteredScenes] = useState([]);
-  const [isChangeRealTime, setIsChangeRealTime] = useState(false);
+  const [isChangeRealTime, setIsChangeRealTime] = useState(ChangeRT.CANCEL);
   const [dataChangeRealTime, setDataChangeRealTime] = useState([]);
-  const [isRealTime, setIsRealTime] = useState(false);
+  const [isRealTime, setIsRealTime] = useState(true);
   const isRealTimeRef = useRef(isRealTime);
 
   const [isRunFitStage, setIsRunFitStage] = useState(false);
@@ -901,7 +901,7 @@ export const MyContextProvider = ({ children }) => {
       });
     }
 
-    // اندازه‌گیری برای انواع مختلف محتوا
+    // پیدا کردن نود محتوایی بر اساس نوع
     const contentNode = group.findOne("Image") || group.findOne("Rect") || group.findOne("Text");
 
     if (contentNode && (attrs.width !== undefined || attrs.height !== undefined)) {
@@ -917,10 +917,7 @@ export const MyContextProvider = ({ children }) => {
 
     // z-index (لایه‌بندی)
     if (attrs.z !== undefined) {
-      // حذف از موقعیت فعلی
       group.remove();
-
-      // اضافه کردن در موقعیت جدید بر اساس z-index
       const children = scene.layer.getChildren();
       const insertIndex = children.findIndex((child) => {
         const childZ = sourcesRef.current.find((s) => s.externalId === child.id())?.z ?? 0;
@@ -938,11 +935,71 @@ export const MyContextProvider = ({ children }) => {
       }
     }
 
+    // مدیریت متن و زیرنویس
+    const textNode = group.findOne("Text") || group.findOne(".marqueeInner Text");
+    if (textNode) {
+      // محتوای متن
+      if (attrs.content !== undefined) {
+        textNode.text(attrs.content);
+
+        // اگر زیرنویس فعال است، ری‌استارت کن
+        const isMarquee = !!group.getAttr("_marquee");
+        if (isMarquee) {
+          const cfg = group.getAttr("_marqueeCfg");
+          if (cfg) {
+            stopMarquee(group);
+            setTimeout(() => {
+              startMarquee(group, textNode, cfg);
+            }, 10);
+          }
+        }
+      }
+
+      // استایل متن
+      if (attrs.metadata?.style) {
+        const style = attrs.metadata.style;
+        if (style.fontSize !== undefined) textNode.fontSize(style.fontSize);
+        if (style.color !== undefined) textNode.fill(style.color);
+        if (style.align !== undefined) textNode.align(style.align);
+        if (style.dir !== undefined && typeof textNode.direction === "function") {
+          textNode.direction(style.dir);
+        }
+      }
+
+      // مدیریت زیرنویس (Marquee)
+      if (attrs.metadata?.marquee !== undefined) {
+        const marqueeConfig = attrs.metadata.marquee;
+
+        if (marqueeConfig.enabled) {
+          // فعال کردن زیرنویس
+          const cfg = {
+            width: attrs.width || 400,
+            height: attrs.height || 50,
+            speed: marqueeConfig.speed || 80,
+            dir: marqueeConfig.scrollDirection || "rtl",
+            bg: attrs.metadata?.bgColor || "#000000",
+          };
+          startMarquee(group, textNode, cfg);
+        } else {
+          // غیرفعال کردن زیرنویس
+          stopMarquee(group);
+        }
+      }
+
+      // رنگ پس‌زمینه
+      if (attrs.metadata?.bgColor !== undefined) {
+        const bgRect = group.findOne(".marqueeBG") || group.findOne("Rect");
+        if (bgRect) {
+          bgRect.fill(attrs.metadata.bgColor);
+        }
+      }
+    }
+
     // نام
     if (attrs.name !== undefined) {
-      const textNode = group.findOne("Text");
-      if (textNode && group.attrs.type === "TEXT") {
-        textNode.text(attrs.name);
+      const nameTextNode = group.findOne("Text");
+      if (nameTextNode) {
+        nameTextNode.text(attrs.name);
       }
     }
 
@@ -953,7 +1010,7 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const handleSourceEvent = useCallback(({ action, payload, id }) => {
-    if (!sourcesRef.current) return;
+    // if (!sourcesRef.current) return;
 
     if (isRealTimeRef.current) {
       const getScene = () => scenesRef.current.find((s) => s.id === selectedSceneRef.current);
@@ -964,7 +1021,6 @@ export const MyContextProvider = ({ children }) => {
 
       switch (action) {
         case "add": {
-          // اگر از قبل وجود دارد، اول حذفش کن
           const existingNodes = scene.layer.find(`#${id}`);
           existingNodes.forEach((node) => node.destroy());
           scene.layer.batchDraw();
@@ -1066,6 +1122,41 @@ export const MyContextProvider = ({ children }) => {
             sendOperation,
             id,
           });
+          break;
+
+        // عملیات جدید برای متن و زیرنویس
+        case "marquee-toggle":
+          console.log("📜 Real-time MARQUEE TOGGLE:", id, payload);
+          const marqueeGroup = scene.layer.findOne(`#${id}`);
+          if (marqueeGroup) {
+            const textNode =
+              marqueeGroup.findOne("Text") || marqueeGroup.findOne(".marqueeInner Text");
+            if (textNode) {
+              const isMarquee = !!marqueeGroup.getAttr("_marquee");
+              if (isMarquee) {
+                stopMarquee(marqueeGroup);
+              } else {
+                startMarquee(marqueeGroup, textNode, payload);
+              }
+            }
+          }
+          break;
+
+        case "text-edit":
+          console.log("✏️ Real-time TEXT EDIT:", id, payload);
+          const editGroup = scene.layer.findOne(`#${id}`);
+          if (editGroup) {
+            const textNode = editGroup.findOne("Text") || editGroup.findOne(".marqueeInner Text");
+            if (textNode) {
+              textNode.text(payload.content);
+              if (payload.style) {
+                if (payload.style.fontSize) textNode.fontSize(payload.style.fontSize);
+                if (payload.style.color) textNode.fill(payload.style.color);
+                if (payload.style.align) textNode.align(payload.style.align);
+              }
+              scene.layer.batchDraw();
+            }
+          }
           break;
 
         case "reset":
@@ -1388,6 +1479,8 @@ export const MyContextProvider = ({ children }) => {
     return { stage, layer: isLayer ?? newLayer };
   };
   const sendOperation = (action, payload) => {
+    console.log("payload::: ", payload);
+    console.log("action::: ", action);
     if (connectionModeRef.current) {
       if (socketRef.current) {
         socketRef.current?.emit(action, payload);
@@ -1727,6 +1820,7 @@ export const MyContextProvider = ({ children }) => {
             setMonitorConnection(true);
             requestAnimationFrame(() => {
               const scn = scenesRef.current.find((s) => s.id === selectedSceneRef.current);
+
               if (scn?.stageData) {
                 fitStageToMonitors({
                   stage: scn.stageData,
@@ -1991,7 +2085,6 @@ export const MyContextProvider = ({ children }) => {
             layer: new Konva.Layer(),
           });
         }
-
         const selectedScene = parseInt(localStorage.getItem("sceneId"));
         if (!selectedScene) localStorage.setItem("sceneId", fetchDataScene[0].id);
         setSelectedScene(selectedScene ?? fetchDataScene[0].id);
@@ -2006,7 +2099,7 @@ export const MyContextProvider = ({ children }) => {
 
     return () => {
       if (socketRef.current) {
-        // socketRef.current.off("source", handleSourceEvent);
+        socketRef.current.off("source", handleSourceEvent);
         socketRef.current.disconnect();
         socketRef.current = null;
       }
@@ -2080,6 +2173,7 @@ export const MyContextProvider = ({ children }) => {
 
   useEffect(() => {
     const scn = getSelectedScene();
+
     if (!scn?.stageData) return;
 
     const onResize = () => {
@@ -2093,34 +2187,87 @@ export const MyContextProvider = ({ children }) => {
     return () => window.removeEventListener("resize", onResize);
   }, [selectedScene, videoWalls]);
 
+  useEffect(() => {
+    const scn = getSelectedScene();
+
+    if (!scn?.stageData) return;
+
+    fitStageToMonitors({
+      stage: scn.stageData,
+      monitors: videoWalls,
+    });
+  }, [selectedScene]);
+
   const [flag, setFlag] = useState(true);
 
   useEffect(() => {
     if (flag == false) return;
 
     const scn = getSelectedScene();
-
     if (!scn?.stageData) return;
+
     fitStageToMonitors({
       stage: scn.stageData,
       monitors: videoWalls,
     });
+
     if (sourcesRef.current.length <= 0) return;
-    setFlag(false);
-    if (sourcesRef.current.length > 0)
-      sourcesRef.current.forEach((item) => {
-        const node = getSelectedScene()?.layer.findOne(`#${item.externalId}`);
-        if (item.z > 0) {
-          for (let index = 0; index < item.z; index++) {
-            node?.moveUp();
-          }
-        } else {
-          for (let index = 0; index > item.z; index--) {
-            node?.moveDown();
-          }
+
+    console.log("sourcesRef.current::: ", sourcesRef.current);
+
+    // تاخیر برای اطمینان از لود کامل
+    const timeoutId = setTimeout(() => {
+      if (sourcesRef.current.length > 0) {
+        const sceneSources = sourcesRef.current.filter((item) => item.sceneId === scn.id);
+
+        // چک کن که همه المان‌ها در لایه موجود باشند
+        const allNodesExist = sceneSources.every((item) => {
+          const node = scn.layer.findOne(`#${item.externalId}`);
+          return node !== null && node !== undefined;
+        });
+
+        if (!allNodesExist) {
+          console.log("بعضی المان‌ها هنوز load نشدن، retry در 100ms...");
+          // اگر همه المان‌ها موجود نبودن، دوباره تلاش کن
+          setTimeout(() => {
+            arrangeLayersByZIndex(scn);
+          }, 100);
+          return;
         }
-      });
+
+        arrangeLayersByZIndex(scn);
+      }
+
+      setFlag(false);
+    }, 50); // تاخیر اولیه
+
+    return () => clearTimeout(timeoutId);
   }, [selectedSceneRef.current, sourcesRef.current, flag]);
+
+  // تابع جداگانه برای مرتب‌سازی لایه‌ها
+  const arrangeLayersByZIndex = (scn) => {
+    const sceneSources = sourcesRef.current.filter((item) => item.sceneId === scn.id);
+    const sortedSources = [...sceneSources].sort((a, b) => (b.z ?? 0) - (a.z ?? 0));
+
+    console.log("Sorted sources by z-index:", sortedSources);
+
+    // حرکت دادن المان‌ها بر اساس z-index
+    sortedSources.forEach((item, index) => {
+      const node = scn.layer.findOne(`#${item.externalId}`);
+      if (node) {
+        // ابتدا المان رو به بالاترین موقعیت ببر
+        node.moveToTop();
+
+        // سپس بر اساس موقعیتش در لیست مرتب‌شده، پایین‌تر ببر
+        for (let i = 0; i < index; i++) {
+          node.moveDown();
+        }
+      }
+    });
+
+    scn.layer.batchDraw();
+    console.log("لایه‌ها با موفقیت مرتب شدند");
+  };
 
   return (
     <MyContext.Provider

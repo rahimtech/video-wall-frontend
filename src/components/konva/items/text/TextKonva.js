@@ -496,7 +496,7 @@ function bindSelectionRelay(group, ...nodes) {
   });
 }
 
-function startMarquee(group, textNode, cfg) {
+export function startMarquee(group, textNode, cfg) {
   // تمیزکاری وضعیت قبلی
   stopMarquee(group);
 
@@ -613,7 +613,7 @@ function startMarquee(group, textNode, cfg) {
   bindSelectionRelay(group, bg, viewport, inner, textNode);
 }
 
-function stopMarquee(group) {
+export function stopMarquee(group) {
   if (!group) return;
 
   // توقف انیمیشن

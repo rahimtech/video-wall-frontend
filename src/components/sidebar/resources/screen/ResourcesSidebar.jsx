@@ -516,7 +516,7 @@ const ResourcesSidebar = () => {
       });
     } else if (type === "STREAM") {
       Swal.fire({
-        title: "آدرس استریم را وارد کنید:",
+        title: ":آدرس استریم را وارد کنید",
         input: "text",
         inputPlaceholder: "فقط لینک‌های http:// یا https:// مجاز هستند",
         showCancelButton: true,
@@ -695,34 +695,115 @@ const ResourcesSidebar = () => {
   const handleFileInput = async (e, type) => {
     const file = e.target.files[0];
 
-    if (file) {
+    if (!file) return;
+
+    try {
       const fileType = file.type.split("/")[0];
+
+      // بررسی نوع فایل
+      if (type === "IMAGE" && fileType !== "image") {
+        Swal.fire({
+          title: "خطا در نوع فایل",
+          text: "لطفاً یک فایل تصویری انتخاب کنید (JPG, PNG, GIF, etc.)",
+          icon: "error",
+          confirmButtonColor: "red",
+          confirmButtonText: "متوجه شدم",
+        });
+        e.target.value = ""; // ریست کردن input
+        return;
+      }
+
+      if (type === "VIDEO" && fileType !== "video") {
+        Swal.fire({
+          title: "خطا در نوع فایل",
+          text: "لطفاً یک فایل ویدیویی انتخاب کنید (MP4, AVI, MOV, etc.)",
+          icon: "error",
+          confirmButtonColor: "red",
+          confirmButtonText: "متوجه شدم",
+        });
+        e.target.value = ""; // ریست کردن input
+        return;
+      }
+
+      // بررسی پسوند فایل برای اطمینان بیشتر
+      const fileExtension = file.name.split(".").pop().toLowerCase();
+      const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
+      const videoExtensions = ["mp4", "avi", "mov", "wmv", "flv", "webm"];
+
+      if (type === "IMAGE" && !imageExtensions.includes(fileExtension)) {
+        Swal.fire({
+          title: "فرمت فایل نامعتبر",
+          text: `فرمت ${fileExtension} برای تصویر پشتیبانی نمی‌شود. فرمت‌های مجاز: ${imageExtensions.join(
+            ", "
+          )}`,
+          icon: "error",
+          confirmButtonColor: "red",
+          confirmButtonText: "متوجه شدم",
+        });
+        e.target.value = "";
+        return;
+      }
+
+      if (type === "VIDEO" && !videoExtensions.includes(fileExtension)) {
+        Swal.fire({
+          title: "فرمت فایل نامعتبر",
+          text: `فرمت ${fileExtension} برای ویدیو پشتیبانی نمی‌شود. فرمت‌های مجاز: ${videoExtensions.join(
+            ", "
+          )}`,
+          icon: "error",
+          confirmButtonColor: "red",
+          confirmButtonText: "متوجه شدم",
+        });
+        e.target.value = "";
+        return;
+      }
+
+      // اگر نوع فایل صحیح بود
       if (fileType === "image" && type === "IMAGE") {
         const imageURL = URL.createObjectURL(file);
         let img = new Image();
         img.src = imageURL;
         const id = uuidv4();
         const imageName = file.name.split(".").slice(0, -1).join(".");
-        img.addEventListener("load", async () => {
-          // const sourceName = await uploadMedia(file, id);
-          const media = await uploadMedia(file, id);
 
-          let newResource = {
-            type: "IMAGE",
-            id: media.id,
-            externalId: media.externalId,
-            name: imageName,
-            imageElement: img,
-            content: media.content,
-            width: img.width,
-            height: img.height,
-            x: 0,
-            y: 0,
-            z: 1,
-            rotation: 0,
-          };
-          setResources((prev) => [newResource, ...prev]);
-          // updateSceneResources([newResource, ...getSelectedScene().resources]);
+        img.addEventListener("load", async () => {
+          try {
+            const media = await uploadMedia(file, id);
+            let newResource = {
+              type: "IMAGE",
+              id: media.id,
+              externalId: media.externalId,
+              name: imageName,
+              imageElement: img,
+              content: media.content,
+              width: img.width,
+              height: img.height,
+              x: 0,
+              y: 0,
+              z: 1,
+              rotation: 0,
+            };
+            setResources((prev) => [newResource, ...prev]);
+          } catch (error) {
+            console.error("Error uploading image:", error);
+            Swal.fire({
+              title: "خطا در آپلود",
+              text: "آپلود تصویر با خطا مواجه شد",
+              icon: "error",
+              confirmButtonColor: "red",
+              confirmButtonText: "متوجه شدم",
+            });
+          }
+        });
+
+        img.addEventListener("error", () => {
+          Swal.fire({
+            title: "خطا در بارگذاری تصویر",
+            text: "فایل تصویر معتبر نیست",
+            icon: "error",
+            confirmButtonColor: "red",
+            confirmButtonText: "متوجه شدم",
+          });
         });
       } else if (fileType === "video" && type === "VIDEO") {
         const video = document.createElement("video");
@@ -730,31 +811,71 @@ const ResourcesSidebar = () => {
         const id = uuidv4();
         const videoName = file.name.split(".").slice(0, -1).join(".");
         video.setAttribute("name", videoName);
-        const media = await uploadMedia(file, id);
-        video.setAttribute("id", media.id);
 
-        const width = video.videoWidth;
-        const height = video.videoHeight;
+        video.addEventListener("loadedmetadata", async () => {
+          try {
+            const media = await uploadMedia(file, id);
+            video.setAttribute("id", media.id);
 
-        let newResource = {
-          type: "VIDEO",
-          id: media.id,
-          externalId: media.externalId,
-          name: videoName,
-          videoElement: video,
-          content: media.content,
-          width,
-          height,
-          x: 0,
-          y: 0,
-          z: 1,
-          rotation: 0,
-        };
-        setResources((prev) => [newResource, ...prev]);
-        // updateSceneResources([newResource, ...getSelectedScene().resources]);
+            const width = video.videoWidth;
+            const height = video.videoHeight;
+
+            let newResource = {
+              type: "VIDEO",
+              id: media.id,
+              externalId: media.externalId,
+              name: videoName,
+              videoElement: video,
+              content: media.content,
+              width,
+              height,
+              x: 0,
+              y: 0,
+              z: 1,
+              rotation: 0,
+            };
+            setResources((prev) => [newResource, ...prev]);
+          } catch (error) {
+            console.error("Error uploading video:", error);
+            Swal.fire({
+              title: "خطا در آپلود",
+              text: "آپلود ویدیو با خطا مواجه شد",
+              icon: "error",
+              confirmButtonColor: "red",
+              confirmButtonText: "متوجه شدم",
+            });
+          }
+        });
+
+        video.addEventListener("error", () => {
+          Swal.fire({
+            title: "خطا در بارگذاری ویدیو",
+            text: "فایل ویدیو معتبر نیست",
+            icon: "error",
+            confirmButtonColor: "red",
+            confirmButtonText: "متوجه شدم",
+          });
+        });
       } else {
-        // console.error("Unsupported file type.");
+        Swal.fire({
+          title: "خطا در نوع فایل",
+          text: "نوع فایل انتخاب شده با نوع مورد انتظار مطابقت ندارد",
+          icon: "error",
+          confirmButtonColor: "red",
+          confirmButtonText: "متوجه شدم",
+        });
+        e.target.value = "";
       }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      Swal.fire({
+        title: "خطای غیرمنتظره",
+        text: "خطایی در پردازش فایل رخ داد",
+        icon: "error",
+        confirmButtonColor: "red",
+        confirmButtonText: "متوجه شدم",
+      });
+      e.target.value = "";
     }
   };
 
@@ -936,10 +1057,12 @@ const ResourcesSidebar = () => {
       )}
 
       {/* Fixed Header */}
-      <div className="sticky flex z-[50] ">
+      <div className="sticky top-0 flex z-[50] ">
         <div className="w-full">
           <Tabs
-            classNames={{ base: "sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit" }}
+            classNames={{
+              base: "sticky top-[-10px] z-[50] px-3 py-[2px] bg-inherit",
+            }}
             aria-label="Options"
             defaultSelectedKey={"items"}
             className={`${darkMode ? "dark" : "light"}`}
