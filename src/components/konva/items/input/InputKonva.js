@@ -1,7 +1,14 @@
 import Swal from "sweetalert2";
 import { v4 as uuidv4 } from "uuid";
 
-export const addInput = ({ input, mode = true, getSelectedScene, setSources, sendOperation }) => {
+export const addInput = ({
+  input,
+  mode = true,
+  getSelectedScene,
+  setSources,
+  sendOperation,
+  sources,
+}) => {
   let uniqId = mode ? uuidv4() : input.externalId;
   let native = input.metadata?.native || false;
 
@@ -71,7 +78,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
           source: "input:" + input.content,
           x: targetX,
           y: targetY,
-          z: input?.z,
+          z: input?.z || sources.length + 1,
           width: input.width,
           height: input.height,
           name: input.name,
@@ -87,7 +94,7 @@ export const addInput = ({ input, mode = true, getSelectedScene, setSources, sen
       });
       setSources((prev) => [
         ...prev,
-        { ...input, externalId: uniqId, sceneId: getSelectedScene().id },
+        { ...input, z: sources.length + 1, externalId: uniqId, sceneId: getSelectedScene().id },
       ]);
 
       selectedSceneLayer.add(group);

@@ -166,6 +166,7 @@ const ResourcesSidebar = () => {
         sendOperation,
         url,
         generateBlobImageURL,
+        sources,
       });
     }
     if (r.type === "VIDEO" || r.type === "STREAM") {
@@ -232,6 +233,7 @@ const ResourcesSidebar = () => {
           sendOperation,
           url,
           loopVideos,
+          sources,
         });
       } else {
         return addVideo({
@@ -241,17 +243,18 @@ const ResourcesSidebar = () => {
           sendOperation,
           url,
           loopVideos,
+          sources,
         });
       }
     }
     if (r.type === "IFRAME") {
-      return addWeb({ webResource: r, getSelectedScene, setSources, sendOperation, url });
+      return addWeb({ webResource: r, getSelectedScene, setSources, sendOperation, url, sources });
     }
     if (r.type === "TEXT") {
-      return addText({ textItem: r, getSelectedScene, setSources, sendOperation, url });
+      return addText({ textItem: r, getSelectedScene, setSources, sendOperation, url, sources });
     }
     if (r.type === "RSS") {
-      return addText({ textItem: r, getSelectedScene, setSources, sendOperation, url });
+      return addText({ textItem: r, getSelectedScene, setSources, sendOperation, url, sources });
     }
   };
 
@@ -911,6 +914,7 @@ const ResourcesSidebar = () => {
         sendOperation,
         url,
         generateBlobImageURL,
+        sources,
       });
     } else if (resource.type == "VIDEO") {
       setDataDrag({
@@ -921,6 +925,7 @@ const ResourcesSidebar = () => {
         sendOperation,
         url,
         loopVideos,
+        sources,
       });
     } else if (resource.type == "IFRAME") {
       setDataDrag({
@@ -930,6 +935,7 @@ const ResourcesSidebar = () => {
         setSources,
         sendOperation,
         url,
+        sources,
       });
     } else if (resource.type == "TEXT") {
       setDataDrag({
@@ -939,6 +945,7 @@ const ResourcesSidebar = () => {
         setSources,
         sendOperation,
         url,
+        sources,
       });
     } else if (resource.type == "RSS") {
       setDataDrag({
@@ -948,9 +955,17 @@ const ResourcesSidebar = () => {
         setSources,
         sendOperation,
         url,
+        sources,
       });
     } else if (resource.type == "INPUT") {
-      setDataDrag({ type: "INPUT", input: resource, getSelectedScene, setSources, sendOperation });
+      setDataDrag({
+        type: "INPUT",
+        input: resource,
+        getSelectedScene,
+        setSources,
+        sendOperation,
+        sources,
+      });
     } else if (resource.type == "STREAM") {
       const video = document.createElement("video");
       video.autoplay = true;
@@ -1016,6 +1031,7 @@ const ResourcesSidebar = () => {
         sendOperation,
         url,
         loopVideos,
+        sources,
       });
     }
   };
@@ -1109,7 +1125,13 @@ const ResourcesSidebar = () => {
                             variant="light"
                             color="default"
                             onPress={() =>
-                              addInput({ input, getSelectedScene, setSources, sendOperation })
+                              addInput({
+                                input,
+                                getSelectedScene,
+                                setSources,
+                                sendOperation,
+                                sources,
+                              })
                             }
                           >
                             <MdAddBox />

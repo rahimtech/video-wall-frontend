@@ -11,9 +11,9 @@ export const addWeb = async ({
   setSources,
   sendOperation,
   url,
+  sources,
 }) => {
   const { id, content, x, y, width, height, externalId, mediaId, rotation } = webResource;
-  console.log("webResource::: ", webResource);
 
   const targetX = Number.isFinite(webResource?.x) ? webResource.x : 0;
   const targetY = Number.isFinite(webResource?.y) ? webResource.y : 0;
@@ -33,7 +33,7 @@ export const addWeb = async ({
         source: "iframe:" + content,
         x: targetX,
         y: targetY,
-        z: webResource?.z,
+        z: webResource?.z || sources.length + 1,
 
         width: width || 1920,
         height: height || 1080,
@@ -156,7 +156,7 @@ export const addWeb = async ({
   if (mode)
     setSources((prev) => [
       ...prev,
-      { ...webResource, externalId: uniqId, sceneId: getSelectedScene().id },
+      { ...webResource, z: sources.length + 1, externalId: uniqId, sceneId: getSelectedScene().id },
     ]);
   selectedSceneLayer.add(group);
   if (mode) selectedStage.add(selectedSceneLayer);

@@ -11,6 +11,7 @@ export const addVideo = ({
   sendOperation,
   url,
   loopVideos,
+  sources,
 }) => {
   let uniqId = mode ? uuidv4() : videoElement.externalId;
   // let uniqId = videoElement.externalId;
@@ -44,7 +45,7 @@ export const addVideo = ({
         source: modifiedVideoURL,
         x: targetX,
         y: targetY,
-        z: videoElement?.z,
+        z: videoElement?.z || sources.length + 1,
         width: videoElement.videoElement.width || videoElement.videoElement.videoWidth,
         height: videoElement.videoElement.height || videoElement.videoElement.videoHeight,
         name: videoElement.name,
@@ -105,7 +106,12 @@ export const addVideo = ({
 
     setSources((prev) => [
       ...prev,
-      { ...videoElement, externalId: uniqId, sceneId: getSelectedScene().id },
+      {
+        ...videoElement,
+        z: sources.length + 1,
+        externalId: uniqId,
+        sceneId: getSelectedScene().id,
+      },
     ]);
     selectedStage.add(selectedSceneLayer);
 

@@ -258,7 +258,9 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
     loopVideos,
     generateBlobImageURL,
     contentGenerator,
+    sources,
   } = ctx;
+  console.log("sources::: ", sources);
 
   const scn = getSelectedScene();
   if (!scn) return;
@@ -281,6 +283,7 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
       sendOperation,
       url,
       generateBlobImageURL,
+      sources,
     });
   } else if (type === "VIDEO" && resource) {
     const vidObj = { ...resource, ...base, width: cellRect.width, height: cellRect.height };
@@ -295,6 +298,7 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
       sendOperation,
       url,
       loopVideos,
+      sources,
     });
   } else if (type === "IFRAME" && resource) {
     const webObj = { ...resource, ...base };
@@ -309,7 +313,7 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
     webObj.width = cellRect.width;
     webObj.height = cellRect.height;
 
-    addWeb({ webResource: webObj, getSelectedScene, setSources, sendOperation, url });
+    addWeb({ webResource: webObj, getSelectedScene, setSources, sendOperation, url, sources });
   } else if (type === "INPUT" && resource) {
     const inpObj = { ...resource, ...base };
     if (inpObj.imageElement) {
@@ -327,7 +331,7 @@ function placeResourceInCell({ type, resource, cellRect, ctx }) {
     inpObj.width = cellRect.width;
     inpObj.height = cellRect.height;
 
-    addInput({ input: inpObj, getSelectedScene, setSources, sendOperation });
+    addInput({ input: inpObj, getSelectedScene, setSources, sendOperation, sources });
   } else {
     console.warn("placeResourceInCell: unsupported type or empty resource", { type, resource });
   }
@@ -474,6 +478,7 @@ export default function Canvas({
     isRealTime,
     setIsRealTime,
     contentGenerator,
+    sources,
   } = useMyContext();
 
   // ---------- State ----------
@@ -742,6 +747,7 @@ export default function Canvas({
         url,
         loopVideos,
         generateBlobImageURL,
+        sources,
       },
     });
   };
@@ -780,6 +786,7 @@ export default function Canvas({
         url,
         loopVideos,
         generateBlobImageURL,
+        sources,
       },
     });
   };
@@ -828,6 +835,7 @@ export default function Canvas({
         url,
         loopVideos,
         generateBlobImageURL,
+        sources,
       },
     });
   };

@@ -10,25 +10,9 @@ export const addImage = ({
   sendOperation,
   url,
   generateBlobImageURL,
+  sources,
 }) => {
-  let sources = [];
   let sceneId = getSelectedScene()?.id;
-
-  setSources((prev) => {
-    sources = prev;
-    return prev;
-  });
-  console.log("sources2::: ", sources);
-
-  let source = sources
-    .filter((s) => s.sceneId === sceneId)
-    .slice()
-    .sort((a, b) => {
-      const az = Number(a.z ?? a.zIndex ?? 0);
-      const bz = Number(b.z ?? b.zIndex ?? 0);
-
-      return bz - az;
-    });
 
   // let uniqId = img.externalId;
   let uniqId = mode ? uuidv4() : img.externalId;
@@ -48,7 +32,7 @@ export const addImage = ({
         source: modifiedImageURL,
         x: targetX,
         y: targetY,
-        z: img?.z || source.length + 1,
+        z: img?.z || sources.length + 1,
         width: img.imageElement.width || img.width,
         height: img.imageElement.height || img.height,
         name: img.name,
@@ -180,7 +164,7 @@ export const addImage = ({
   if (mode)
     setSources((prev) => [
       ...prev,
-      { ...img, z: source.length + 1, externalId: uniqId, sceneId: getSelectedScene().id },
+      { ...img, z: sources.length + 1, externalId: uniqId, sceneId: getSelectedScene().id },
     ]);
 
   selectedSceneLayer.draw();

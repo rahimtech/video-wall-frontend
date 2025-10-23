@@ -43,10 +43,8 @@ const MyContext = createContext();
 
 export const MyContextProvider = ({ children }) => {
   let anim;
-
   let host = localStorage.getItem("host") ?? config.host;
   let port = localStorage.getItem("port") ?? config.port;
-
   // let initSofware = false;
 
   // INIT DATA Bad-Practice

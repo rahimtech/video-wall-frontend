@@ -130,50 +130,69 @@ const UsageSidebar = () => {
 
   // --- ترتیب Z
   const moveSource = (id, direction) => {
-    const arr = [...sources];
-    const idx = arr.find((x) => x.externalId === id).z ?? 0;
+    const currentSceneId = getSelectedScene()?.id;
+    if (!currentSceneId) return;
 
-    // if (idx < 0) return;
-    const newIdx = idx + -direction;
-    if (newIdx < 0 || newIdx > arr.length) return;
-    // console.log("newIdx >= arr.length::: ", newIdx >= arr.length);
+    // منابع همین صحنه
+    const sceneSources = sources.filter((s) => s.sceneId === currentSceneId);
+    if (sceneSources.length === 0) return;
 
-    // const [moved] = arr.splice(idx, 1);
-    // arr.splice(newIdx, 0, moved);
-    // setSources(arr);
-    let mainsource;
+    // مرتب‌سازی منابع بر اساس z-index
+    const sortedSources = [...sceneSources].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
 
+    // پیدا کردن منبع جاری و ایندکس آن
+    const currentIndex = sortedSources.findIndex((s) => s.externalId === id);
+    if (currentIndex === -1) return;
+
+    // محاسبه ایندکس جدید
+    const newIndex = currentIndex + (direction > 0 ? -1 : 1);
+
+    // بررسی مرزها
+    if (newIndex < 0 || newIndex >= sortedSources.length) return;
+
+    // جابجایی در آرایه مرتب‌شده
+    const updatedSources = [...sortedSources];
+    [updatedSources[currentIndex], updatedSources[newIndex]] = [
+      updatedSources[newIndex],
+      updatedSources[currentIndex],
+    ];
+
+    // تخصیص z-index جدید از 1 تا n
+    const finalSources = updatedSources.map((source, index) => ({
+      ...source,
+      z: index + 1, // شروع از 1 به جای 0
+    }));
+
+    // به‌روزرسانی state
     setSources((prev) => {
-      let obj = [];
-      for (let index = 0; index < sources.length; index++) {
-        if (sources[index].externalId === id) {
-          if (direction < 0) {
-            helperSourceUp = sources[index].z ?? helperSourceUp;
-            sources[index].z = helperSourceUp + 1;
-            helperSourceUp = sources[index].z;
-            obj.push(sources[index]);
-            mainsource = sources[index];
-          } else {
-            helperSourceDown = sources[index].z ?? helperSourceDown;
-            sources[index].z = helperSourceDown - 1;
-            helperSourceDown = sources[index].z;
-            obj.push(sources[index]);
-            mainsource = sources[index];
-          }
-        } else {
-          obj.push(sources[index]);
-        }
-      }
-      return obj;
+      const otherSources = prev.filter((s) => s.sceneId !== currentSceneId);
+      return [...otherSources, ...finalSources];
     });
 
-    const node = getSelectedScene()?.layer.findOne(`#${id}`);
+    // به‌روزرسانی گرافیکی در Konva
+    const layer = getSelectedScene()?.layer;
+    const node = layer?.findOne(`#${id}`);
+
     if (node) {
-      if (direction > 0) node.moveDown();
-      else node.moveUp();
-      sendOperation("source", { action: "move", id, payload: { z: mainsource.z } });
-      getSelectedScene()?.layer.draw();
+      if (direction > 0) {
+        node.moveDown();
+      } else {
+        node.moveUp();
+      }
+      layer.draw();
     }
+
+    // ارسال به سرور برای همه منابعی که z-index تغییر کرده
+    finalSources.forEach((source) => {
+      const originalZ = sortedSources.find((s) => s.externalId === source.externalId)?.z ?? 0;
+      if (source.z !== originalZ) {
+        sendOperation("source", {
+          action: "move",
+          id: source.externalId,
+          payload: { z: source.z },
+        });
+      }
+    });
   };
 
   // --- رندر

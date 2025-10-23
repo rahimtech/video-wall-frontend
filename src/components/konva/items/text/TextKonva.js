@@ -679,6 +679,7 @@ export const addText = ({
   getSelectedScene,
   setSources,
   sendOperation,
+  sources,
 }) => {
   const scn = getSelectedScene?.();
   const selectedSceneLayer = scn?.layer;
@@ -753,7 +754,7 @@ export const addText = ({
         name: textItem.name ?? textItem.type,
         x: targetX,
         y: targetY,
-        z: textItem?.z,
+        z: textItem?.z || sources.length + 1,
 
         width: textNode.width() ?? textItem.width ?? undefined,
         height: textNode.height() ?? textItem.height ?? undefined,
@@ -923,6 +924,7 @@ export const addText = ({
         sceneId: scn.id,
         x: targetX,
         y: targetY,
+        z: sources.length + 1,
         text: initialText,
         fontSize: initialSize,
         fill: initialFill,
